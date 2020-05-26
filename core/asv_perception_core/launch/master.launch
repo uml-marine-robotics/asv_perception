@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <include file="$(find asv_perception_core)/launch/image_correction.launch" />
+    <include file="$(find asv_perception_core)/launch/rgb_radar_homography.launch" />
+</launch>
