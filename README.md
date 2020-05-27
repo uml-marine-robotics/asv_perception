@@ -4,10 +4,11 @@ Perception for marine surface vehicles
 ## Installation
 *  `git clone https://github.com/uml-marine-robotics/asv_perception.git`
 *  Download `https://pjreddie.com/media/files/yolov3.weights` to `classification/data`
-*  `docker-compose build`
+*  `cd asv_perception`
+*  `./build.sh`
 
 ## Running
-`docker-compose up`, then run a `.bag` file or connect to asv sensors.  Use `rviz` to display output
+`./run.sh`, then run a `.bag` file or connect to asv sensors.  Use `rviz` to display output
 
 ## File structure
 *  `common`:  Common ROS messages and python scripts
@@ -29,6 +30,6 @@ Perception for marine surface vehicles
 *  Remove `image_correction` node?
     *  WaSR needs input invariance
     *  Change homography params for new resolution
-*  Remove need for separate classification container?
+*  Remove need for separate classification container?  Need CUDA
     *  TBD - wait for Rakshith's solution
 *  Improve performance of WaSR

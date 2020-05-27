@@ -1,3 +1,4 @@
 *.pyc
+*.bag
 .vscode
-*.weights
+yolov3.weights

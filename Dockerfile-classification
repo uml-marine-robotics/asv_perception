@@ -1,12 +1,16 @@
 # based on https://github.com/johannestang/yolo_service/blob/master/Dockerfile
 # Define base images
-ARG build_image="ros:melodic-perception-bionic"
-ARG app_image="ros:melodic-perception-bionic"
+# ARG build_image="nvidia/cuda:10.2-cudnn7-devel-ubuntu18.04"
+ARG build_image="stereolabs/zed:3.1-ros-devel-cuda10.0-ubuntu18.04"
+# ARG app_image="ros:melodic-perception-bionic"
+ARG app_image="stereolabs/zed:3.1-ros-devel-cuda10.0-ubuntu18.04"
 
 # Build image
 FROM ${build_image} AS build
-RUN apt-get update
-RUN apt-get install -y build-essential git
+RUN apt-get update && \
+    apt-get install -y build-essential git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Should CUDA be enabled?
 ARG cuda=0
@@ -29,9 +33,10 @@ RUN sed -i -e "s!OPENMP=0!OPENMP=1!g" Makefile && \
 # App image:
 FROM ${app_image}
 
+# Catkin workspace
 ARG CATKIN_WS="/catkin_ws"
-ENV CATKIN_WS=${CATKIN_WS}
 
+ENV CATKIN_WS=${CATKIN_WS}
 WORKDIR ${CATKIN_WS}
 
 # startup script
@@ -49,6 +54,7 @@ ENV LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:/usr/lib/"
 ARG weights_file="${CATKIN_WS}/data/yolov3.weights"
 ARG config_file="${CATKIN_WS}/data/yolov3.cfg"
 ARG meta_file="${CATKIN_WS}/data/coco.data"
+
 ENV weights_file=${weights_file}
 ENV config_file=${config_file}
 ENV meta_file=${meta_file}
@@ -63,12 +69,17 @@ COPY --from=build /src/darknet/libdarknet.so /usr/lib
 COPY common src
 COPY classification src
 
-# todo:  system update
+# todo:  system update?
 #    apt-get -y upgrade && \
 #    apt-get update && \
 #    apt-get clean && \
 #    rm -rf /var/lib/apt/lists/* && \
 RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get -y update && \
+    apt-get install -y ros-melodic-cv-bridge python-pip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install opencv-python && \
     chmod +x run.sh && \
     . /opt/ros/${ROS_DISTRO}/setup.sh && \
     catkin_make
