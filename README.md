@@ -3,7 +3,8 @@ Perception for marine surface vehicles
 
 ## Installation
 *  `git clone https://github.com/uml-marine-robotics/asv_perception.git`
-*  Download `https://pjreddie.com/media/files/yolov3.weights` to `classification/data`
+*  Download classifier data to `classification/data`
+*  Download segmentation data to `segmentation/data`
 *  `cd asv_perception`
 *  `./build.sh`
 
@@ -19,7 +20,7 @@ Perception for marine surface vehicles
 ## TODO:
 *  Video demo of pipeline
     *  Tom needs to finish WaSR node, ObstacleID node
-*  Classification model (Rakshith)
+*  Classification node/model (Rakshith)
     *  Currently implemented vanilla YOLOv3 ROS node/docker image, need domain-specific classifier
 *  Image segmentation (WaSR)
     *  Convert to docker image + ROS node, a la classification node

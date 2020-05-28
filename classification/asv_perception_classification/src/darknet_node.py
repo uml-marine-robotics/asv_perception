@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os
+# import os
 import rospy
 import darknet
 import numpy as np
@@ -16,9 +16,9 @@ class darknet_node(object):
         self.node_name = rospy.get_name()
 
         # init darknet
-        configPath = os.environ.get("config_file")
-        weightPath = os.environ.get("weights_file")
-        metaPath = os.environ.get("meta_file")
+        configPath = rospy.get_param("~darknet_config_file")
+        weightPath = rospy.get_param("~darknet_weights_file")
+        metaPath = rospy.get_param("~darknet_meta_file")
 
         self.net = darknet.load_net(str(configPath).encode("ascii"), str(weightPath).encode("ascii"), 0)
         self.meta = darknet.load_meta( str(metaPath).encode("ascii") )

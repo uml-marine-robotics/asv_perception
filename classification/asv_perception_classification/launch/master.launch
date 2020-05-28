@@ -14,6 +14,11 @@
         -->
         <node name="classification" pkg="$(arg pkg_name)" type="darknet_node.py" required="true" output="screen">
             <remap from="~input" to="/left_camera/rgb_image_correction/output" />
+            <rosparam>
+                darknet_config_file: "/data/yolov3.cfg"
+                darknet_weights_file: "/data/yolov3.weights"
+                darknet_meta_file: "/data/coco.data"
+            </rosparam>
         </node>
 
     </group>

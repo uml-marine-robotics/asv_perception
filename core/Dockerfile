@@ -6,25 +6,18 @@ ENV CATKIN_WS=${CATKIN_WS}
 
 WORKDIR ${CATKIN_WS}
 
-# startup script
-CMD [ "sh", "-c", "${CATKIN_WS}/run.sh"]
+# set entrypoint
+ENTRYPOINT [ "/catkin_ws/src/ros_entrypoint.sh" ]
 
 # common python scripts
 ENV PYTHONPATH "${PYTHONPATH}:${CATKIN_WS}/src/asv_perception_common/src"
 
-# copy app files
-COPY core/run.sh .
+# startup, include roscore if needed
+CMD [ "sh", "-c", "roslaunch src/asv_perception_core/launch/master.launch" ]
+
+# copy ros pkgs
 COPY common src
 COPY core src
-
-# todo:  system update
-#RUN export DEBIAN_FRONTEND=noninteractive && \
-#    apt-get update && \
-#    apt-get -y upgrade && \
-#   apt-get clean && \
-#    rm -rf /var/lib/apt/lists/*
-
-RUN chmod +x run.sh
 
 # catkin_make packages
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
