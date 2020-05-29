@@ -8,6 +8,10 @@ class correct_rgb_image_node(object):
     def __init__(self):
 
         self.node_name = rospy.get_name()
+
+        # get params
+        self.resize_w = rospy.get_param("~width")
+        self.resize_h = rospy.get_param("~height")
         
         # publisher
         self.pub = rospy.Publisher( "~output", Image, queue_size=1)
@@ -21,15 +25,19 @@ class correct_rgb_image_node(object):
         if self.pub.get_num_connections() == 0:
             return
         
-        result = utils.convert_ros_msg_to_cv2( image_msg )
+        img = utils.convert_ros_msg_to_cv2( image_msg )
 
         # do crop/resize
-        result = utils.resize_crop( result
-            , rospy.get_param("~width")
-            , rospy.get_param("~height")
+        img = utils.resize_crop( 
+            img
+            , self.resize_w
+            , self.resize_h
         )
+
+        msg = utils.convert_cv2_to_ros_msg( img, 'bgr8' )
+        msg.header = image_msg.header
         
-        self.pub.publish( utils.convert_cv2_to_ros_msg( result, 'bgr8' ))
+        self.pub.publish( msg )
 
 if __name__ == "__main__":
 
