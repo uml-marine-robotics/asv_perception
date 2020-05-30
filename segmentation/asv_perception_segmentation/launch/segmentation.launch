@@ -6,12 +6,12 @@
         <!-- 
             Node to perform image segmentation
             Subscriptions: 
-                - /input:   [sensor_msgs/Image] rgb camera image
+                - /input:   [sensor_msgs/CompressedImage] rgb camera image
             Publications:  
-                - /image_raw:   [sensor_msgs/Image] segmented image, uint8 grayscale
+                - /output:   [sensor_msgs/Image] segmented image, mono8/grayscale
         -->
         <node name="segmentation" pkg="$(arg pkg_name)" type="segmentation_node.py" required="true" output="screen">
-            <remap from="~input" to="/left_camera/rgb_image_correction/output" />
+            <remap from="~input" to="/left_camera/image_color/compressed" />
             <rosparam>
                 model_path: "/data/arm8imu3_noimu.ckpt-80000"
                 <!-- wasr class remapping values [0,255] -->

@@ -13,7 +13,7 @@
             Subscriptions: /input: [MsgType] IMU data (TODO)
             Publications:  /output: [marine_perception/HomographyStamped.msg] Homography from rgb image to radar
         -->
-        <node name="$(arg node_name)_pub" pkg="$(arg pkg_name)" type="homography_pub_node.py" required="true" output="screen">
+        <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="homography_node.py" required="true" output="screen">
 
             <remap from="~input" to="/imu/data/enu" />
 
@@ -26,14 +26,29 @@
                     RADAR to rgb alignment parameter values.  Values generated from output of calibrate.py
                     Values are specific to radar and rgb image shape
                 -->
-                pitch: 76.02
+
+                <!-- 1024 x 768 -->
+                <!-- 
                 roll: -3.0
+                pitch: 76.02
                 yaw: 0
                 fovy: 46.3
                 tx: 2.5
                 ty: 4.1
                 tz: -4.4
                 radar_img_w: 1024
+                -->
+                
+                <!-- 1280 x 1024 -->
+                roll: -2.96
+                pitch: 80.29
+                yaw: 8.19
+                fovy: 46.3
+                tx: 2.5
+                ty: 6.2
+                tz: -4.4
+                radar_img_w: 1024
+
             </rosparam>
 
         </node>
@@ -41,7 +56,7 @@
         <!-- 
             Node to visualize alignment between rgb and radar images
             Subscriptions: 
-                /input_rgb: [sensor_msgs/Image]  Corrected mage from rgb camera
+                /input_rgb: [sensor_msgs/CompressedImage]  Image from rgb camera
                 /input_radar: [sensor_msgs/Image]  Image from radar
                 /input_homography:  [marine_perception/HomographyStamped] Homography from rgb image to radar
             Publications:  
@@ -50,8 +65,8 @@
         <node name="$(arg node_name)_vis" pkg="$(arg pkg_name)" type="homography_vis_node.py" required="false" output="screen">
 
             <!-- remap from=sink to=source -->
-            <remap from="~input_homography" to="$(arg node_name)_pub/output" />
-            <remap from="~input_rgb" to="/left_camera/rgb_image_correction/output" />
+            <remap from="~input_homography" to="$(arg node_name)/output" />
+            <remap from="~input_rgb" to="/left_camera/image_color/compressed" />
             <remap from="~input_radar" to="/radar/radar_1/image_raw" />
         </node>
 

@@ -31,7 +31,7 @@ ENTRYPOINT [ "/catkin_ws/src/ros_entrypoint.sh" ]
 ENV PYTHONPATH "${PYTHONPATH}:${CATKIN_WS}/src/asv_perception_common/src"
 
 # set startup script
-CMD [ "sh", "-c", "roslaunch --wait src/asv_perception_segmentation/launch/master.launch" ]
+CMD [ "sh", "-c", "roslaunch --wait src/asv_perception_segmentation/launch/segmentation.launch" ]
 
 # Install ROS pkgs
 COPY common src

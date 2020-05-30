@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-# import os
 import rospy
 import darknet
 import numpy as np
 import cv2
 
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CompressedImage
 from asv_perception_common.msg import Classification, ClassificationArray
 import asv_perception_utils as utils
 
@@ -26,14 +25,14 @@ class darknet_node(object):
         # get network expected image shape params
         self.net_img_w, self.net_img_h = darknet.get_expected_shape( self.net )
 
-        # publisher
+        # publisher of classification array
         self.pub = rospy.Publisher( "~output", ClassificationArray, queue_size=1)
 
         # image publisher for visualization/debugging
-        self.pub_img = rospy.Publisher( "~image_raw", Image, queue_size=1)
+        self.pub_img = rospy.Publisher( "~image", Image, queue_size=1)
 
         # subscribers
-        self.sub = rospy.Subscriber( "~input", Image, self.processImage, queue_size=1 )
+        self.sub = rospy.Subscriber( "~input", CompressedImage, self.processImage, queue_size=1 )
         
 
     def processImage(self, image_msg):
@@ -43,39 +42,48 @@ class darknet_node(object):
             return
 
         # darknet requires rgb image in proper shape.  we need to resize, and then convert resulting bounding boxes to proper shape
-        img_orig = utils.convert_ros_msg_to_cv2(image_msg, 'rgb8' )
-        orig_h, orig_w = img_orig.shape[:2]
+        img_orig = utils.convert_ros_msg_to_cv2( image_msg, 'rgb8' )
 
-        img = cv2.resize( img_orig,( self.net_img_w, self.net_img_h ), interpolation = cv2.INTER_LINEAR)
-
+        # need distortion-free center crop; detector likely requires square image while input is likely widescreen
+        img, offset, scale = utils.resize_crop( img_orig, ( self.net_img_h, self.net_img_w ) )
+        
         # def detect(net, meta, im, thresh=.5, hier_thresh=.5, nms=.45, debug= False) -> [(nameTag, dets[j].prob[i], (b.x, b.y, b.w, b.h))]:
         # todo:  parameterize darknet params
         dets = darknet.detect( self.net, self.meta, img )
 
-        # compute scaling params to restore bounding boxes to original img size
-        scale_w = orig_w / float( self.net_img_w )
-        scale_h = orig_h / float( self.net_img_h )
-
         msg = ClassificationArray()
         msg.header = image_msg.header #match timestamps
+        msg.image_width = img_orig.shape[1]
+        msg.image_height = img_orig.shape[0]
+
         for det in dets:
             cls = Classification()
             cls.label = det[0]
             cls.probability = det[1]
             roi = det[2]
+
+            # darknet roi:  ( x, y, w, h ), where x and y are the centers of the detection
+            #  RegionOfInterest x & y are left- and top-most coords
+            cls.roi.width = roi[2]
+            cls.roi.height = roi[3]
+            cls.roi.x_offset = roi[0] - ( cls.roi.width / 2. )  # convert to left-most x
+            cls.roi.y_offset = roi[1] - ( cls.roi.height / 2. ) # convert to top-most y
             
-            cls.roi.x_offset = roi[0] * scale_w
-            cls.roi.y_offset = roi[1] * scale_h
-            w = roi[2]*scale_w
-            h = roi[3]*scale_h
-            cls.roi.width = np.uint32( w )
-            cls.roi.height = np.uint32( h )
+            # scale to orig img size; must invert scale params for scaled --> cropped
+            scale_x = 1. / float(scale[0])
+            scale_y = 1. / float(scale[1])
 
-            # darknet x,y is center of detection, RegionOfInterest x & y are left- and top-most coords
-            cls.roi.x_offset = np.uint32( cls.roi.x_offset - ( w / 2. ) )
-            cls.roi.y_offset = np.uint32( cls.roi.y_offset - ( h / 2. ) )
+            cls.roi.x_offset *= scale_x
+            cls.roi.width *= scale_x
+            cls.roi.y_offset *= scale_y
+            cls.roi.height *= scale_y
+            
+            # append crop offset, convert to uint32
+            cls.roi.x_offset = np.uint32( cls.roi.x_offset + offset[0] )
+            cls.roi.y_offset = np.uint32( cls.roi.y_offset + offset[1] )
+            cls.roi.width = np.uint32( cls.roi.width )
+            cls.roi.height = np.uint32( cls.roi.height )
 
-            # cls.roi.do_rectify meaning?
             msg.classifications.append(cls)
 
         self.pub.publish( msg )
@@ -89,6 +97,9 @@ class darknet_node(object):
         # no subscribers, no work
         if self.pub_img.get_num_connections() <= 0:
             return
+
+        # do color conversion rgb --> bgr
+        img = cv2.cvtColor( img, cv2.COLOR_RGB2BGR )
 
         for cls in clsMsg.classifications:
             (w, h) = (cls.roi.width, cls.roi.height)
