@@ -2,7 +2,7 @@
 import rospy
 import numpy as np
 from calibrate import create_unified_image
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CompressedImage
 import asv_perception_utils as utils
 from asv_perception_common.msg import Homography
 
@@ -25,7 +25,7 @@ class homography_visualization(object):
         self.sub_radar = rospy.Subscriber( "~input_radar", Image, self.processRadarImage, queue_size=1 )
 
         # rgb camera
-        self.sub_rgb = rospy.Subscriber( "~input_rgb", Image, self.processRGBImage, queue_size=1 )
+        self.sub_rgb = rospy.Subscriber( "~input_rgb", CompressedImage, self.processRGBImage, queue_size=1 )
 
         # homography matrix
         self.sub_homography = rospy.Subscriber( "~input_homography", Homography, self.processHomography, queue_size=1 )

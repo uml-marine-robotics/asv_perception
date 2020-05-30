@@ -31,7 +31,7 @@ ENTRYPOINT [ "/catkin_ws/src/ros_entrypoint.sh" ]
 ENV PYTHONPATH "${PYTHONPATH}:${CATKIN_WS}/src/asv_perception_common/src"
 
 # set startup script
-CMD [ "sh", "-c", "roslaunch --wait src/asv_perception_classification/launch/master.launch" ]
+CMD [ "sh", "-c", "roslaunch --wait ${CATKIN_WS}/src/asv_perception_classification/launch/classification.launch" ]
 
 # Install ROS pkgs
 COPY common src
@@ -42,14 +42,15 @@ RUN chmod +x ${CATKIN_WS}/src/ros_entrypoint.sh && \
     . /opt/ros/${ROS_DISTRO}/setup.sh && \
     catkin_make
 
-# Get and compile darknet
+# for finding libs
+ENV LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:/usr/lib/"
+
+# Get and compile darknet, move libdarknet.so to library path
+
 # Should CUDA be enabled?
 ARG cuda=1
 # Compile with support for Tensor Cores?
 ARG cuda_tc=1
-
-# for finding libs
-ENV LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:/usr/lib/:/usr/local/cuda-10.2/compat/"
 
 WORKDIR /src
 RUN git clone -n https://github.com/AlexeyAB/darknet.git && \

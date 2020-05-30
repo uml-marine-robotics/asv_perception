@@ -7,7 +7,7 @@ import asv_perception_utils as utils
 
 from calibrate import warpMatrix
 
-class homography_pub_node(object):
+class homography_node(object):
 
     def __init__(self):
         
@@ -67,8 +67,8 @@ class homography_pub_node(object):
 if __name__ == "__main__":
 
     try:
-        rospy.init_node(homography_pub_node.__name__)
-        n = homography_pub_node()
+        rospy.init_node(homography_node.__name__)
+        n = homography_node()
         n.publish()  # publish one time (with latch), subsequent publishes will be triggered by receipt of IMU data
         rospy.spin()
     except rospy.ROSInterruptException:

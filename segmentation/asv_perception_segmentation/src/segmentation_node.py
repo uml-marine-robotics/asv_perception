@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-import os
 import rospy
 import numpy as np
 import cv2
 from wasr_net import WASR_net, IMG_SIZE as wasr_img_shape
 
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import Image, CompressedImage
 import asv_perception_utils as utils
 
 class segmentation_node(object):
@@ -23,10 +22,10 @@ class segmentation_node(object):
         self.wasr = WASR_net( rospy.get_param("~model_path") )
         
         # publisher
-        self.pub = rospy.Publisher( "~image_raw", Image, queue_size=1)
+        self.pub = rospy.Publisher( "~output", Image, queue_size=1)
 
         # subscribers
-        self.sub = rospy.Subscriber( "~input", Image, self.processImage, queue_size=1 )
+        self.sub = rospy.Subscriber( "~input", CompressedImage, self.processImage, queue_size=1 )
         
 
     def processImage(self, image_msg):
@@ -39,8 +38,9 @@ class segmentation_node(object):
         # orig_h, orig_w = img_orig.shape[:2]
 
         # resize img to wasr expected shape (512w x 384h)
-        #  todo:  resize with aspect ratio preservation (via crop)?  likely needed if removing image correction node
-        img = cv2.resize( img_orig,( wasr_img_shape[1], wasr_img_shape[0] ), interpolation = cv2.INTER_LINEAR)
+        # img = cv2.resize( img_orig,( wasr_img_shape[1], wasr_img_shape[0] ), interpolation = cv2.INTER_LINEAR)
+        resized = utils.resize_crop( img_orig, wasr_img_shape )
+        img = resized[0]
 
         # run wasr
         img = self.wasr.run_wasr_inference( img )
@@ -51,10 +51,9 @@ class segmentation_node(object):
         img = np.where( img==1, self.water_pixel_value, img )  # water
         img = np.where( img==2, self.sky_pixel_value, img )    # sky
 
-        # keep it at the smaller size; let the subscriber resize if necessary
-        msg = utils.convert_cv2_to_ros_msg( img, 'passthrough' )  #uint8
+        # keep it at the reduced resolution; subscriber will resize as needed
+        msg = utils.convert_cv2_to_ros_msg( img, 'mono8' )
         msg.header = image_msg.header
-
         self.pub.publish( msg )
 
 if __name__ == "__main__":
