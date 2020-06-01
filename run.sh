@@ -14,7 +14,7 @@ docker run -d --rm \
   --name classification \
   --gpus all \
   --network="host" --env ROS_MASTER_URI=http://0.0.0.0:11311/ \
-  -v $(pwd)/classification/data:/data \
+  -v $(pwd)/docker/classification/data:/data \
   asv_perception_classification
 
 echo "Starting asv_perception_segmentation"
@@ -24,5 +24,5 @@ docker run -d --rm \
   --gpus all \
   --network="host" \
   --env ROS_MASTER_URI=http://0.0.0.0:11311/ \
-  -v $(pwd)/segmentation/data:/data \
+  -v $(pwd)/docker/segmentation/data:/data \
   asv_perception_segmentation

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
-    <arg name="pkg_name" value="asv_perception_core"/>
+    <arg name="pkg_name" value="asv_perception_homography"/>
 
     <arg name="node_name" default="rgb_radar_homography"/>
 
