@@ -3,22 +3,20 @@ Perception for marine surface vehicles
 
 ## Installation
 *  `git clone https://github.com/uml-marine-robotics/asv_perception.git`
-*  Download classifier data to `classification/data`
-*  Download segmentation data to `segmentation/data`
+*  Download classifier data to `docker/classification/data`
+*  Download segmentation data to `docker/segmentation/data`
 *  `cd asv_perception`
 *  `./build.sh`
 
 ## Running
-`./run.sh`, then run a `.bag` file or connect to asv sensors.  Use `rviz` to display output
+`./run.sh` to start the `asv_perception` nodes, then run a `.bag` file or connect to asv sensors.  Use `rviz` to display output
 
 ## ROS Topics
 * TODO
 
 ## File structure
-*  `common`:  Common ROS messages and python scripts
-*  `core`:  Files/packages which do not need to be run in separate containers
-*  `classification`:  Object classification/detection files/packages
-*  `segmentation`:  Image segmentation files/packages
+*  `docker`:  Build files and data for docker images
+*  `packages`:  ROS packages
 
 ## TODO:
 *  Video demo of pipeline
