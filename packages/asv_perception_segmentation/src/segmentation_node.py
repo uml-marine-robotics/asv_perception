@@ -25,7 +25,7 @@ class segmentation_node(object):
         self.pub = rospy.Publisher( "~output", Image, queue_size=1)
 
         # subscribers
-        self.sub = rospy.Subscriber( "~input", CompressedImage, self.processImage, queue_size=1 )
+        self.sub = rospy.Subscriber( "~input", CompressedImage, self.processImage, queue_size=1, buff_size=2**24 )
         
 
     def processImage(self, image_msg):
@@ -34,24 +34,28 @@ class segmentation_node(object):
         if self.pub.get_num_connections() <= 0:
             return
 
-        img_orig = utils.convert_ros_msg_to_cv2( image_msg, 'bgr8' )
-        # orig_h, orig_w = img_orig.shape[:2]
+        rospy.logdebug( 'Processing img with timestamp secs=%d, nsecs=%d', image_msg.header.stamp.secs, image_msg.header.stamp.nsecs )
+
+        img = utils.convert_ros_msg_to_cv2( image_msg, 'bgr8' ) # wasr does bgr->rgb
+
+        orig_shape = img.shape
 
         # resize img to wasr expected shape (512w x 384h)
-        # img = cv2.resize( img_orig,( wasr_img_shape[1], wasr_img_shape[0] ), interpolation = cv2.INTER_LINEAR)
-        resized = utils.resize_crop( img_orig, wasr_img_shape )
-        img = resized[0]
+        img = utils.resize( img, wasr_img_shape )[0] # distortion-free crop/resize
 
         # run wasr
         img = self.wasr.run_wasr_inference( img )
 
         # remap wasr classes iaw config
+        #  todo:  remove this; is unnecessary overhead.  subscriber can remap if needed.  create separate /output topic with remapping for debug/vis
         # obstacles=0, water=1, sky=2
         img = np.where( img==0, self.obstacle_pixel_value, img )  # obstacles 
         img = np.where( img==1, self.water_pixel_value, img )  # water
         img = np.where( img==2, self.sky_pixel_value, img )    # sky
 
-        # keep it at the reduced resolution; subscriber will resize as needed
+        # resize back to original, pad as needed
+        img = utils.resize( img, orig_shape, 'pad' )[0]
+
         msg = utils.convert_cv2_to_ros_msg( img, 'mono8' )
         msg.header = image_msg.header
         self.pub.publish( msg )

@@ -47,40 +47,95 @@ def convert_cv2_to_ros_msg( cv2_data, image_encoding='passthrough' ):
     global bridge
     return bridge.cv2_to_imgmsg(cv2_data, image_encoding)
 
-def resize_crop( img, shape ):
+def compute_resize_params( src, dst, method = 'crop' ):
     """
-    Center crops (if needed) and then resizes to desired shape (h,w) without distortion
-    Returns tuple of resized img, (offset_x, offset_y), (scale_x, scale_y)
-    - (offset_x, offset_y) is the left- and top-most point at which the crop operation ended
-    - (scale_x, scale_y) is the scaling multiplier from the original image to the output image
-    Based on https://stackoverflow.com/a/4744625/882436
+    Computes crop/pad and scale values to resize between src and dst shapes without distortion
+    src:  src shape of (h,w)
+    dst:  dst shape of (h,w)
+    method:  'crop' or 'pad'
+    returns: ( crop/pad (h,w), scale )
     """
 
-    h,w = img.shape[:2]
-    ar = w/float(h)  # input aspect ratio
+    assert src[0] != 0
+    assert dst[0] != 0
 
-    target_h, target_w = shape[:2]
-    target_ar = target_w/float(target_h)  # target aspect ratio
+    if method == 'pad':
+        # use crop vals from dst to src, invert
+        dims, scale = compute_resize_params( dst, src, 'crop' )
+        return dims*-1, 1/scale
 
-    offset_x = 0
-    offset_y = 0
+    # else, cropping
+    if method != 'crop':
+        raise NotImplementedError(method)
 
-    if np.isclose([ ar ], [ target_ar ])[0]:  #np float comparison
-        result = img  # no cropping necessary
-    else:  # crop needed
-        if ar > target_ar: #crop left&right
-            new_w = int(target_ar*h)
-            offset_x = ( w - new_w ) / 2
-        else: # crop top&bottom
-            new_h = int(w/target_ar)
-            offset_y = (h-new_h) / 2
+    # compute aspect ratios
+    src_ar = src[1]/float(src[0])
+    dst_ar = dst[1]/float(dst[0])
+    
+    crop = np.array([0,0],dtype=np.int32)
 
-        #do crop
-        result = img[ offset_y:(h-offset_y), offset_x:(w-offset_x) ]
+    if not np.isclose([ src_ar ], [ dst_ar ])[0]:  #np float comparison
+        if src_ar > dst_ar: #crop width of src
+            # crop width = src width - new width
+            crop[1] = src[1] - int( dst_ar*src[0] )
+        else: # crop height of src
+            # crop height = src height - new height
+            crop[0] = src[0] - int( src[1]/dst_ar )  
 
-    # compute scaling factors from cropped to resized
-    #  target sz / cropped sz
-    scale = ( shape[1] / float(result.shape[1]), shape[0] / float(result.shape[0]) )
+    # compute scaling factor from cropped src to dst
+    #  dimension does not matter at this point, since goal is no distortion
+    #  dst sz / cropped_src sz
+    scale = dst[0] / float( src[0] - crop[0] ) 
+        
+    return crop*-1, scale
 
-    # do resize, return vals
-    return ( cv2.resize(result, (target_w,target_h)), (offset_x, offset_y), scale )
+def apply_offsets( img, offsets, method='center' ):
+    
+    if offsets[0] == offsets[1] == 0:
+        return img
+
+    if method != 'center':
+        raise NotImplementedError(method)
+    
+    # compute center offsets
+    off_y = offsets[0] // 2
+    off_x = offsets[1] // 2
+    
+    if off_y < 0:  # crop y
+        img = img[ (off_y*-1):( img.shape[0] + off_y ) ]
+    elif off_y > 0: # pad y
+        shapes = [(0,0) for x in range(len(img.shape))] # must account for all dimensions
+        shapes[0]=(off_y,off_y)
+        img = np.pad( img, shapes, mode='constant' )
+        
+    if off_x < 0: # crop x
+        img = img[ :, (off_x*-1):( img.shape[1] + off_x ) ]
+    elif off_x > 0: # pad x
+        shapes = [(0,0) for x in range(len(img.shape))] # must account for all dimensions
+        shapes[1]=(off_x,off_x)
+        img = np.pad( img, shapes, mode='constant' )
+
+    return img
+
+def resize( img, shape, method='crop' ):
+    """
+    Center pads/crops and scales to desired shape (h,w)
+    Returns resized img, offsets (y,x), and scale (float)
+    """
+
+    offsets, scale = compute_resize_params( img.shape, shape, method )
+
+    # if crop, apply offsets then scale
+    # if pad, scale then apply offsets
+
+    if method=='crop':
+        img = apply_offsets( img, offsets ) # crop first
+        img = cv2.resize( img, (shape[1],shape[0]) )
+    elif method=='pad':
+        prepad_shape = shape[:2] - offsets  # resize to prepad shape, then pad
+        img = cv2.resize( img, (prepad_shape[1], prepad_shape[0] ) )
+        img = apply_offsets( img, offsets )
+    else:
+        raise NotImplementedError(method)
+
+    return img, offsets, scale
