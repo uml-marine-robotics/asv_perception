@@ -14,6 +14,15 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu bionic main" > /etc/apt/
     rosdep init && \
     rosdep update
 
+#installing python3 and pip3
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.6 \
+    python3.6-dev \
+    python3-pip \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # for finding libs
 ENV LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:/usr/lib/"
 
@@ -25,18 +34,12 @@ ARG cuda=1
 ARG cuda_tc=1
 
 WORKDIR /src
-RUN git clone -n https://github.com/AlexeyAB/darknet.git && \
-    cd darknet && \
-    git checkout 4c315ea26b56c2bf20ebc240d94386c6e3cc83db && \
-    sed -i -e "s!OPENMP=0!OPENMP=1!g" Makefile && \
-    sed -i -e "s!AVX=0!AVX=1!g" Makefile && \
-    sed -i -e "s!LIBSO=0!LIBSO=1!g" Makefile && \
-    sed -i -e "s!GPU=0!GPU=${cuda}!g" Makefile && \
-    sed -i -e "s!CUDNN=0!CUDNN=${cuda}!g" Makefile && \
-    sed -i -e "s!CUDNN_HALF=0!CUDNN_HALF=${cuda_tc}!g" Makefile && \
-    make && \
-    mv libdarknet.so /usr/lib && \
-    rm -r /src
+
+#install marine-keras-yolo and install dependencies
+RUN git clone https://github.com/rakshithsinghgm/Marine-Keras-Yolo.git && \
+    cd Marine-Keras-Yolo && \
+    pip3 install --upgrade setuptools && \
+    pip3 install -r requirements.txt
 
 # set ROS distro
 ARG ROS_DISTRO=melodic
