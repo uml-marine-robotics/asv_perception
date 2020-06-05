@@ -1,0 +1,15 @@
+<library path="lib/libasv_perception_obstacleid_nodelet">
+
+  <class name="asv_perception_obstacleid/ClusterExtractionNodelet" type="obstacle_id::ClusterExtractionNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Labeled Euclidean Cluster Extraction
+    </description>
+  </class>
+
+  <class name="asv_perception_obstacleid/ClusterVisualizationNodelet" type="obstacle_id::ClusterVisualizationNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Cluster visualization nodelet
+    </description>
+  </class>
+
+</library>

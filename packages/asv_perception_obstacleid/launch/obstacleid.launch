@@ -1,0 +1,42 @@
+<launch>
+  <!-- package name -->
+  <arg name="pkg_name" value="asv_perception_obstacleid"/>
+
+  <!-- todo: left_camera/fusion backprojection to pc -->
+
+  <group ns="$(arg pkg_name)">
+    <arg name="nodelet_name" value="$(arg pkg_name)_nodelet" />
+
+    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager"/>
+
+    <!-- Run a VoxelGrid filter to clean NaNs and downsample the data -->
+    <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
+      <remap from="~input" to="/todo_my_pointcloud_src" /> <!-- remap from=sink to=source -->
+      <rosparam>
+        filter_field_name: z
+        filter_limit_min: -0.0
+        filter_limit_max: 2.0
+        filter_limit_negative: False
+        leaf_size: 0.1
+      </rosparam>
+    </node>
+
+    <!-- cluster extraction -->
+    <node pkg="nodelet" type="nodelet" name="cluster_extraction" args="load $(arg pkg_name)/ClusterExtractionNodelet $(arg nodelet_name)" output="screen">
+      <remap from="~input" to="voxel_grid/output" />
+      
+      <rosparam>
+        cluster_tolerance: 4.0
+        min_cluster_size: 15
+        max_cluster_size: 25000
+      </rosparam>
+    </node>
+
+    <!-- Convex hull and visualization markers -->
+    <node pkg="nodelet" type="nodelet" name="cluster_visualization" args="load $(arg pkg_name)/ClusterVisualizationNodelet $(arg nodelet_name)" output="screen">
+      <remap from="~input" to="cluster_extraction/output" />
+    </node>
+    
+  </group>
+
+</launch>

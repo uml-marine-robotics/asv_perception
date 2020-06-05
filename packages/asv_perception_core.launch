@@ -14,5 +14,6 @@
 
     <include file="$(find asv_perception_homography)/launch/homography.launch" />
     <include file="$(find asv_perception_fusion)/launch/fusion.launch" />
+    <include file="$(find asv_perception_obstacleid)/launch/obstacleid.launch" />
     
 </launch> 
