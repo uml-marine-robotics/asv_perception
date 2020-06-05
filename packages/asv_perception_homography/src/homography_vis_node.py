@@ -22,10 +22,10 @@ class homography_visualization(object):
         # todo:  approximatetimesync on radar and image, but not homography
 
         # radar
-        self.sub_radar = rospy.Subscriber( "~input_radar", Image, self.processRadarImage, queue_size=1 )
+        self.sub_radar = rospy.Subscriber( "~input_radar", Image, self.processRadarImage, queue_size=1, buff_size=2**24 )
 
         # rgb camera
-        self.sub_rgb = rospy.Subscriber( "~input_rgb", CompressedImage, self.processRGBImage, queue_size=1 )
+        self.sub_rgb = rospy.Subscriber( "~input_rgb", CompressedImage, self.processRGBImage, queue_size=1, buff_size=2**24 )
 
         # homography matrix
         self.sub_homography = rospy.Subscriber( "~input_homography", Homography, self.processHomography, queue_size=1 )

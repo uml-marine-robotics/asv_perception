@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <!-- launch file for packages in the asv_perception_core image -->
+
+    <!-- set the classifier string/fusion image pixel value mappings -->
+    <rosparam param="/asv_perception/classification_pixel_map" command="delete" />
+    <rosparam param="/asv_perception/classification_pixel_map">
+        {
+            'unknown': 128
+            , 'person': 192
+            , 'boat': 255
+        }
+    </rosparam>
+
+    <include file="$(find asv_perception_homography)/launch/homography.launch" />
+    <include file="$(find asv_perception_fusion)/launch/fusion.launch" />
+    
+</launch> 

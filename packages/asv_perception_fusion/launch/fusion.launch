@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <arg name="pkg_name" value="asv_perception_fusion"/>
+    <arg name="node_name" default="fusion"/>
+
+    <group ns="left_camera">
+
+        <arg name="topic_root_ns" default="/left_camera/$(arg node_name)/"/>
+
+        <!-- 
+            Node to consolidate known and unknown obstacle image in 2D
+            Subscriptions: 
+                - /input_classification: [asv_perception_common/ClassificationArray] Array of detections
+                - /input_segmentation:   [sensor_msgs/Image] Segmented image, mono8/grayscale
+            Publications:  
+                - /output: [sensor_msgs/Image] Fused classified + segmented image, mono8/grayscale
+                            with pixel values as defined in ~pixel_map
+        -->
+        <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="fusion_node.py" required="true" output="screen">
+
+            <remap from="~segmentation" to="/left_camera/segmentation/output" />
+            <remap from="~classification" to="/left_camera/classification/output" />
+            <remap from="~pixel_map" to="/asv_perception/classification_pixel_map" />
+
+            <rosparam>
+                <!-- pixel value of an obstacle in the segmentation image -->
+                segmentation_obstacle_pixel_value: 128
+            </rosparam>
+
+        </node>
+
+    </group>
+    
+</launch>
+

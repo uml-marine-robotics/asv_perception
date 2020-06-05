@@ -32,7 +32,7 @@ class darknet_node(object):
         self.pub_img = rospy.Publisher( "~image", Image, queue_size=1)
 
         # subscribers
-        self.sub = rospy.Subscriber( "~input", CompressedImage, self.processImage, queue_size=1 )
+        self.sub = rospy.Subscriber( "~input", CompressedImage, self.processImage, queue_size=1, buff_size=2**24 )
         
 
     def processImage(self, image_msg):
@@ -41,20 +41,27 @@ class darknet_node(object):
         if self.pub.get_num_connections() <= 0 and self.pub_img.get_num_connections() <= 0:
             return
 
+        rospy.logdebug( 'Processing img with timestamp secs=%d, nsecs=%d', image_msg.header.stamp.secs, image_msg.header.stamp.nsecs )
+
         # darknet requires rgb image in proper shape.  we need to resize, and then convert resulting bounding boxes to proper shape
-        img_orig = utils.convert_ros_msg_to_cv2( image_msg, 'rgb8' )
+        img = utils.convert_ros_msg_to_cv2( image_msg, 'rgb8' )
+
+        orig_shape = img.shape
 
         # need distortion-free center crop; detector likely requires square image while input is likely widescreen
-        img, offset, scale = utils.resize_crop( img_orig, ( self.net_img_h, self.net_img_w ) )
-        
+        img, offsets, scale = utils.resize( img, ( self.net_img_h, self.net_img_w ) ) # do crop/resize
+
+        scale_up = 1./ float(scale) #invert scale to convert from resized --> orig
+        offsets = np.abs(offsets // 2) # divide offsets by 2 for center crop.  make positive
+
         # def detect(net, meta, im, thresh=.5, hier_thresh=.5, nms=.45, debug= False) -> [(nameTag, dets[j].prob[i], (b.x, b.y, b.w, b.h))]:
         # todo:  parameterize darknet params
         dets = darknet.detect( self.net, self.meta, img )
 
         msg = ClassificationArray()
         msg.header = image_msg.header #match timestamps
-        msg.image_width = img_orig.shape[1]
-        msg.image_height = img_orig.shape[0]
+        msg.image_width = orig_shape[1]
+        msg.image_height = orig_shape[0]
 
         for det in dets:
             cls = Classification()
@@ -69,18 +76,15 @@ class darknet_node(object):
             cls.roi.x_offset = roi[0] - ( cls.roi.width / 2. )  # convert to left-most x
             cls.roi.y_offset = roi[1] - ( cls.roi.height / 2. ) # convert to top-most y
             
-            # scale to orig img size; must invert scale params for scaled --> cropped
-            scale_x = 1. / float(scale[0])
-            scale_y = 1. / float(scale[1])
-
-            cls.roi.x_offset *= scale_x
-            cls.roi.width *= scale_x
-            cls.roi.y_offset *= scale_y
-            cls.roi.height *= scale_y
+            # scale roi to orig img size
+            cls.roi.x_offset *= scale_up
+            cls.roi.width *= scale_up
+            cls.roi.y_offset *= scale_up
+            cls.roi.height *= scale_up
             
             # append crop offset, convert to uint32
-            cls.roi.x_offset = np.uint32( cls.roi.x_offset + offset[0] )
-            cls.roi.y_offset = np.uint32( cls.roi.y_offset + offset[1] )
+            cls.roi.x_offset = np.uint32( cls.roi.x_offset + offsets[1]  )
+            cls.roi.y_offset = np.uint32( cls.roi.y_offset + offsets[0] )
             cls.roi.width = np.uint32( cls.roi.width )
             cls.roi.height = np.uint32( cls.roi.height )
 
@@ -88,7 +92,7 @@ class darknet_node(object):
 
         self.pub.publish( msg )
 
-        self.publishImage( img_orig, msg )
+        self.publishImage( img, msg )
 
     def publishImage( self, img, clsMsg ):
         """
@@ -98,8 +102,12 @@ class darknet_node(object):
         if self.pub_img.get_num_connections() <= 0:
             return
 
-        # do color conversion rgb --> bgr
-        img = cv2.cvtColor( img, cv2.COLOR_RGB2BGR )
+        # upscale/pad img back to orig resolution
+        #  bounding boxes are already correct for this resolution
+        img = utils.resize( img, ( clsMsg.image_height, clsMsg.image_width ), 'pad' )[0]
+
+        # do color conversion rgb --> bgr (optional)
+        #img = cv2.cvtColor( img, cv2.COLOR_RGB2BGR )
 
         for cls in clsMsg.classifications:
             (w, h) = (cls.roi.width, cls.roi.height)
@@ -112,10 +120,9 @@ class darknet_node(object):
             cv2.putText( img, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2 )
 
         # publish
-        msg = utils.convert_cv2_to_ros_msg( img, 'bgr8' )
+        msg = utils.convert_cv2_to_ros_msg( img, 'rgb8' )
         msg.header = clsMsg.header # match timestamp
         self.pub_img.publish( msg )
-
 
 if __name__ == "__main__":
 

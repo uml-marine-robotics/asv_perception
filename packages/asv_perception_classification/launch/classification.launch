@@ -8,7 +8,7 @@
             Subscriptions: 
                 - /input:   [sensor_msgs/CompressedImage] rgb camera image
             Publications:  
-                - /output:  [marine_perception_common/ClassificationArray]
+                - /output:  [asv_perception_common/ClassificationArray]
                             Array of detections.  Resulting ROIs scaled to input image size
                 - /image:   [sensor_msgs/Image] annotated rgb image (for visualization/debugging)
         -->
