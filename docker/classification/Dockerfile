@@ -17,6 +17,7 @@ RUN sh -c 'echo "deb http://packages.ros.org/ros/ubuntu bionic main" > /etc/apt/
 #installing python3 and pip3
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.6 \
+    wget \
     python3.6-dev \
     python3-pip \
     && \
@@ -36,10 +37,11 @@ ARG cuda_tc=1
 WORKDIR /src
 
 #install marine-keras-yolo and install dependencies
-RUN git clone https://github.com/rakshithsinghgm/Marine-Keras-Yolo.git && \
-    cd Marine-Keras-Yolo && \
-    pip3 install --upgrade setuptools && \
-    pip3 install -r requirements.txt
+#RUN cd /catkin_ws/src && \
+#    git clone https://github.com/rakshithsinghgm/Marine-Keras-Yolo.git && \
+#    cd Marine-Keras-Yolo && \
+#    pip3 install --upgrade setuptools && \
+#    pip3 install -r requirements.txt
 
 # set ROS distro
 ARG ROS_DISTRO=melodic
@@ -69,3 +71,11 @@ COPY docker/ros_entrypoint.sh /ros_entrypoint.sh
 RUN chmod +x /ros_entrypoint.sh && \
     . /opt/ros/${ROS_DISTRO}/setup.sh && \
     catkin_make
+
+RUN cd /catkin_ws/src && \
+    git clone https://github.com/rakshithsinghgm/Marine-Keras-Yolo.git && \
+    cd Marine-Keras-Yolo && \
+    wget http://rakshithsingh.com/model-download/ && \
+    mv index.html keras_model.h5 && \
+    pip3 install --upgrade setuptools && \
+    pip3 install -r requirements.txt
