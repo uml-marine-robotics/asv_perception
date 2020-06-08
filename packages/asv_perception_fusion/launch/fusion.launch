@@ -8,13 +8,16 @@
         <arg name="topic_root_ns" default="/left_camera/$(arg node_name)/"/>
 
         <!-- 
-            Node to consolidate known and unknown obstacle image in 2D
+            Node to consolidate known and unknown obstacle images in 2D
             Subscriptions: 
-                - /input_classification: [asv_perception_common/ClassificationArray] Array of detections
-                - /input_segmentation:   [sensor_msgs/Image] Segmented image, mono8/grayscale
+                - ~classification: [asv_perception_common/ClassificationArray] Array of detections
+                - ~segmentation:   [sensor_msgs/Image] Segmented image, mono8/grayscale
             Publications:  
-                - /output: [sensor_msgs/Image] Fused classified + segmented image, mono8/grayscale
+                - ~output: [sensor_msgs/Image] Fused classified + segmented image, mono8/grayscale
                             with pixel values as defined in ~pixel_map
+            Parameters:
+                - ~pixel_map:  dictionary of (string, uint8) for mapping of classification strings to pixel values
+                - ~segmentation_obstacle_pixel_value:  pixel value of an obstacle in the segmentation image
         -->
         <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="fusion_node.py" required="true" output="screen">
 
@@ -23,7 +26,6 @@
             <remap from="~pixel_map" to="/asv_perception/classification_pixel_map" />
 
             <rosparam>
-                <!-- pixel value of an obstacle in the segmentation image -->
                 segmentation_obstacle_pixel_value: 128
             </rosparam>
 
