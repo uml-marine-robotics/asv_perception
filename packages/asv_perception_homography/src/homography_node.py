@@ -5,7 +5,7 @@ from std_msgs.msg import Header
 from asv_perception_common.msg import Homography
 import asv_perception_utils as utils
 
-from calibrate import warpMatrix
+from calibrate import warpMatrix, get_radar_to_world_matrix
 
 class homography_node(object):
 
@@ -21,7 +21,9 @@ class homography_node(object):
         self.has_published = False
         
         # publish with latch in case of no IMU/testing/etc
-        self.pub = rospy.Publisher( "~output", Homography, queue_size=1, latch=True)
+        self.pub_rgb_radar = rospy.Publisher( "~rgb_radar", Homography, queue_size=1, latch=True)
+        self.pub_radar_world = rospy.Publisher( "~radar_world", Homography, queue_size=1, latch=True)
+        self.pub_rgb_world = rospy.Publisher( "~rgb_world", Homography, queue_size=1, latch=True)
 
         # subscriptions:
 
@@ -31,38 +33,53 @@ class homography_node(object):
         #    , Something, self.publish, queue_size=1
         #    )
 
+    def publishHomography( self, pub, M, t ):
+        msg = Homography()
+        msg.header.stamp = t
+        msg.header.frame_id = rospy.get_param("~frame_id")
+        msg.child_frame_id = rospy.get_param("~child_frame_id")
+        msg.values = np.ravel( M )
+        pub.publish( msg )
+        self.has_published = True
+
+
     def publish( self, msg = None ):
+
+        # check for early exit
+        if self.has_published and self.pub_rgb_radar.get_num_connections() < 1 and self.pub_radar_world.get_num_connections() < 1 and self.pub_rgb_world.get_num_connections() < 1:
+            return
 
         #if msg is not None:
         #   todo: convert IMU data to YPR ( in degrees ), set self.imu_*
 
-        # publish at least once, but don't continue to publish if no subscribers
-        if not self.has_published or self.pub.get_num_connections() > 0:
+        # message time
+        t = rospy.Time.now()
 
-            # compute homography matrix
-            H = warpMatrix( 
-                rospy.get_param('~radar_img_w') 
-                , rospy.get_param('~radar_img_w')
-                , rospy.get_param('~yaw') + self.imu_yaw
-                , rospy.get_param('~pitch') + self.imu_pitch
-                , rospy.get_param('~roll') + self.imu_roll
-                , 1.
-                , rospy.get_param('~fovy')
-                , rospy.get_param('~tx')
-                , rospy.get_param('~ty')
-                , rospy.get_param('~tz')
-                )
+        # rgb to radar
+        #  warpMatrix computes radar to rgb, we want the inverse
+        M_rgb_radar = np.linalg.inv( warpMatrix( 
+            rospy.get_param('~radar_img_w') 
+            , rospy.get_param('~radar_img_w')
+            , rospy.get_param('~yaw') + self.imu_yaw
+            , rospy.get_param('~pitch') + self.imu_pitch
+            , rospy.get_param('~roll') + self.imu_roll
+            , 1.
+            , rospy.get_param('~fovy')
+            , rospy.get_param('~tx')
+            , rospy.get_param('~ty')
+            , rospy.get_param('~tz')
+            ) 
+            )
 
-            # publish the message
-            msg = Homography()
-            msg.header.stamp = rospy.Time.now()
-            msg.header.frame_id = rospy.get_param("~frame_id")
-            msg.child_frame_id = rospy.get_param("~child_frame_id")
-            #  warpMatrix returns the radar to rgb homography, but we want to publish the inverse
-            msg.values = np.ravel( np.linalg.inv(H) )
-            
-            self.pub.publish( msg )
-            self.has_published = True
+        self.publishHomography( self.pub_rgb_radar, M_rgb_radar, t )
+
+        # radar to world
+        M_radar_world = get_radar_to_world_matrix( rospy.get_param('~radar_img_w'), rospy.get_param('~radar_world_units') )
+        self.publishHomography( self.pub_radar_world, M_radar_world, t )
+
+        # rgb to world is (radar_to_world)*(rgb_to_radar)
+        M_rgb_world = np.matmul( M_radar_world, M_rgb_radar )
+        self.publishHomography( self.pub_rgb_world, M_rgb_world, t )
 
 if __name__ == "__main__":
 
