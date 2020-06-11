@@ -12,10 +12,12 @@ find_package(catkin REQUIRED COMPONENTS
   nodelet
   pcl_conversions
   pcl_ros
+  asv_perception_common
+  OpenCV
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+find_package( OpenCV REQUIRED )
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -130,6 +132,7 @@ set (NODELET_NAME
 ## Declare a C++ library
 # nodelet library
 add_library( ${NODELET_NAME} 
+  src/ObstacleProjectionNodelet.cpp
   src/ClusterExtractionNodelet.cpp
   src/ClusterVisualizationNodelet.cpp
 )
@@ -201,10 +204,14 @@ target_link_libraries( ${NODELET_NAME} ${LINK_LIBS} )
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_rex4_lidar.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
+file(GLOB PROJECT_TESTS test/*.cpp)
+
+catkin_add_gtest(${PROJECT_NAME}-test ${PROJECT_TESTS})
+
+if(TARGET ${PROJECT_NAME}-test)
+  #target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
+  target_link_libraries(${PROJECT_NAME}-test ${NODELET_NAME})
+endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)

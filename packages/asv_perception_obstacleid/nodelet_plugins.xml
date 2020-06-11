@@ -1,5 +1,10 @@
 <library path="lib/libasv_perception_obstacleid_nodelet">
 
+  <class name="asv_perception_obstacleid/ObstacleProjectionNodelet" type="obstacle_id::ObstacleProjectionNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      2D to 3D obstacle backprojection
+    </description>
+  </class>
   <class name="asv_perception_obstacleid/ClusterExtractionNodelet" type="obstacle_id::ClusterExtractionNodelet" base_class_type="nodelet::Nodelet">
     <description>
       Labeled Euclidean Cluster Extraction

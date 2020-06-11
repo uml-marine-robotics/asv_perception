@@ -1,17 +1,25 @@
 <launch>
   <!-- package name -->
   <arg name="pkg_name" value="asv_perception_obstacleid"/>
-
-  <!-- todo: left_camera/fusion backprojection to pc -->
-
+  
   <group ns="$(arg pkg_name)">
     <arg name="nodelet_name" value="$(arg pkg_name)_nodelet" />
 
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager"/>
 
+    <!-- left_camera/fusion backprojection to pc -->
+    <node pkg="nodelet" type="nodelet" name="lcam_obstacle_projection" args="load $(arg pkg_name)/ObstacleProjectionNodelet $(arg nodelet_name)" output="screen">
+
+      <remap from="~segmentation" to="/left_camera/segmentation/output" />
+      <remap from="~classification" to="/left_camera/classification/output" />
+      <remap from="~homography" to="/left_camera/rgb_radar_homography/output" />
+      <remap from="~pixel_map" to="/asv_perception/classification_pixel_map" />
+
+    </node>
+
     <!-- Run a VoxelGrid filter to clean NaNs and downsample the data -->
     <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
-      <remap from="~input" to="/todo_my_pointcloud_src" /> <!-- remap from=sink to=source -->
+      <remap from="~input" to="lcam_obstacle_projection/output" /> <!-- remap from=sink to=source -->
       <rosparam>
         filter_field_name: z
         filter_limit_min: -0.0
