@@ -1,7 +1,7 @@
 # Represents a 3D obstacle
 
 # polygon describing the obstacle, with first and last points connected
-geometry_msgs/Polygon points
+geometry_msgs/Polygon shape
 
 # classification label
 string label

@@ -354,7 +354,7 @@ def get_radar_to_world_matrix( radar_img_side, radar_world_diameter_units ):
     # returns radar to world matrix for provided radar image width and real-world unit measurement
     return np.array([
         [1.,0.,-(radar_img_side/2.)]
-        , [0.,1.,-(radar_img_side/2.)]
+        , [0.,-1.,(radar_img_side/2.)]
         , [0.,0.,(radar_img_side/radar_world_diameter_units)]
         ])
 
