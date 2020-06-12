@@ -1,5 +1,5 @@
 
-#include "ClusterVisualizationNodelet.h"
+#include "ObstacleVisualizationNodelet.h"
 
 #include <pluginlib/class_list_macros.h>
 #include <pcl/common/centroid.h>    // compute3DCentroid
@@ -128,7 +128,7 @@ namespace {
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-void ClusterVisualizationNodelet::onInit ()
+void ObstacleVisualizationNodelet::onInit ()
 {
     // Call the super onInit ()
     PCLNodelet::onInit ();
@@ -143,23 +143,23 @@ void ClusterVisualizationNodelet::onInit ()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-void ClusterVisualizationNodelet::subscribe ()
+void ObstacleVisualizationNodelet::subscribe ()
 {
   this->_sub_input = pnh_->subscribe<sensor_msgs::PointCloud2> (
     TOPIC_NAME_INPUT
     , this->max_queue_size_
-    , bind (&ClusterVisualizationNodelet::sub_callback, this, _1 )
+    , bind (&ObstacleVisualizationNodelet::sub_callback, this, _1 )
   );
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-void ClusterVisualizationNodelet::unsubscribe ()
+void ObstacleVisualizationNodelet::unsubscribe ()
 {
   this->_sub_input.shutdown();
 }
 
 
-void ClusterVisualizationNodelet::sub_callback (
+void ObstacleVisualizationNodelet::sub_callback (
       const sensor_msgs::PointCloud2::ConstPtr& cloud
 )
 {
@@ -190,4 +190,4 @@ void ClusterVisualizationNodelet::sub_callback (
 }
 
 
-PLUGINLIB_EXPORT_CLASS(obstacle_id::ClusterVisualizationNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS(obstacle_id::ObstacleVisualizationNodelet, nodelet::Nodelet)

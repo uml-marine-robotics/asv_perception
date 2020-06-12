@@ -8,12 +8,15 @@ add_compile_options(-std=c++11 -g)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  asv_perception_common
+  std_msgs
+  sensor_msgs
   roscpp
   nodelet
   pcl_conversions
   pcl_ros
-  asv_perception_common
-  OpenCV
+  cv_bridge
+  image_transport
 )
 
 ## System dependencies are found with CMake's conventions
@@ -132,9 +135,9 @@ set (NODELET_NAME
 ## Declare a C++ library
 # nodelet library
 add_library( ${NODELET_NAME} 
-  src/ObstacleProjectionNodelet.cpp
+  src/ClassifiedObstacleProjectionNodelet.cpp
   src/ClusterExtractionNodelet.cpp
-  src/ClusterVisualizationNodelet.cpp
+  src/ObstacleVisualizationNodelet.cpp
 )
 
 target_link_libraries( ${NODELET_NAME} ${LINK_LIBS} )

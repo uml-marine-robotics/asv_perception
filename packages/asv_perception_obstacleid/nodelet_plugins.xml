@@ -1,8 +1,8 @@
 <library path="lib/libasv_perception_obstacleid_nodelet">
 
-  <class name="asv_perception_obstacleid/ObstacleProjectionNodelet" type="obstacle_id::ObstacleProjectionNodelet" base_class_type="nodelet::Nodelet">
+  <class name="asv_perception_obstacleid/ClassifiedObstacleProjectionNodelet" type="obstacle_id::ClassifiedObstacleProjectionNodelet" base_class_type="nodelet::Nodelet">
     <description>
-      2D to 3D obstacle backprojection
+      2D to 3D obstacle backprojection of classified bounding boxes and segmentation map
     </description>
   </class>
   <class name="asv_perception_obstacleid/ClusterExtractionNodelet" type="obstacle_id::ClusterExtractionNodelet" base_class_type="nodelet::Nodelet">
@@ -11,9 +11,9 @@
     </description>
   </class>
 
-  <class name="asv_perception_obstacleid/ClusterVisualizationNodelet" type="obstacle_id::ClusterVisualizationNodelet" base_class_type="nodelet::Nodelet">
+  <class name="asv_perception_obstacleid/ObstacleVisualizationNodelet" type="obstacle_id::ObstacleVisualizationNodelet" base_class_type="nodelet::Nodelet">
     <description>
-      Cluster visualization nodelet
+      Obstacle visualization nodelet
     </description>
   </class>
 

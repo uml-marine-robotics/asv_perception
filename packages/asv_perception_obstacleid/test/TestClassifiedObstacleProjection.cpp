@@ -1,10 +1,10 @@
 #include <iostream>
 #include <asv_perception_common/ClassificationArray.h>
 #include "../include/utils.h"
-#include "../include/obstacle_extraction2d.h"
+#include "../include/classified_obstacle_projection.h"
 #include <gtest/gtest.h>
 
-#define TEST_CASE_NAME TestObstacleExtraction2d
+#define TEST_CASE_NAME TestClassifiedObstacleProjection
 namespace {
     using namespace obstacle_id;
 
@@ -20,7 +20,7 @@ namespace {
 // homography test
 TEST( TEST_CASE_NAME, homography )
 {   
-    const auto h = Homography( HOMOGRAPHY_DATA );
+    const auto h = Homography( HOMOGRAPHY_DATA.data() );
 
     // transforms validated with calibrate.py
     //  rgb image to real world
@@ -36,8 +36,9 @@ TEST( TEST_CASE_NAME, homography )
 
 }
 
-TEST( TEST_CASE_NAME, obstacle_extraction2d_basic )
+TEST( TEST_CASE_NAME, create_obstacles_basic )
 {   
+    const auto h = Homography( HOMOGRAPHY_DATA.data() );
     const int PX_VAL = 255;
     cv::Mat img( 1024, 1280, CV_8U,cv::Scalar(PX_VAL));
 
@@ -57,19 +58,13 @@ TEST( TEST_CASE_NAME, obstacle_extraction2d_basic )
     c.probability = 0.5;
     v.classifications.emplace_back( c );
 
-    const auto r = obstacle_extraction2d::create_obstacle2d( img, v );
-
-    ASSERT_TRUE( !r.empty() );
-    ASSERT_TRUE( r.front() );// check pointer
+    const auto projs = classified_obstacle_projection::create_obstacles( img, v, h );
 
     // get the roi of the classification from the image, ensure it's been cleared    
-    const auto cv_roi = utils::to_cv_rect( r.front()->cls.roi );
+    const auto cv_roi = utils::to_cv_rect( c.roi );
     EXPECT_EQ( cv::sum( img( cv_roi ) )[0], 0 );
 
     // check projection
-    const auto h = Homography( HOMOGRAPHY_DATA );
-    const auto projs = obstacle_extraction2d::project_obstacle2d( r, h );
-
     ASSERT_TRUE( !projs.empty() );
     const auto proj0 = projs[0];
     EXPECT_EQ( proj0.label, c.label );
@@ -84,5 +79,10 @@ TEST( TEST_CASE_NAME, obstacle_extraction2d_basic )
     EXPECT_EQ( (int)proj0.shape.points[1].x, -8 );
     EXPECT_EQ( (int)proj0.shape.points[1].y, 21 );
     EXPECT_EQ( (int)proj0.shape.points[1].z, 0 );
+
+    // centroid
+    EXPECT_EQ( (int)proj0.pose.position.x, -10 );
+    EXPECT_EQ( (int)proj0.pose.position.y, 22 );
+    EXPECT_DOUBLE_EQ( proj0.pose.position.z, 0.5 );    // height is (currently) always 1
 
 }

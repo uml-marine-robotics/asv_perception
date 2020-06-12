@@ -2,7 +2,9 @@
 #define OBSTACLEID_HOMOGRAPHY_H
 
 #include <Eigen/Dense>
+#include <asv_perception_common/Homography.h>
 #include "defs.h"
+
 
 namespace obstacle_id {
 
@@ -13,8 +15,13 @@ class Homography {
 
     public:
         // initialize from row-major float vector
-        Homography( const std::vector<float>& data ) 
-            : _mat( Eigen::Map<const Eigen::Matrix<float,3,3, Eigen::RowMajor>>( data.data() ) ) // a copy of the data is expected
+        //Homography( const std::vector<float>& data ) 
+        //   : _mat( Eigen::Map<const Eigen::Matrix<float,3,3, Eigen::RowMajor>>( data.data() ) ) // a copy of the data is expected
+        //{}
+
+        // initialize from row-major float ptr
+        Homography( const float* const data ) 
+            : _mat( Eigen::Map<const Eigen::Matrix<float,3,3, Eigen::RowMajor>>( data ) ) // a copy of the data is expected
         {}
 
         // transforms 2d point
