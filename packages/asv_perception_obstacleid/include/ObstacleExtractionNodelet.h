@@ -1,5 +1,5 @@
-#ifndef CLUSTER_EXTRACTION_NODELET_H
-#define CLUSTER_EXTRACTION_NODELET_H
+#ifndef OBSTACLE_EXTRACTION_NODELET_H
+#define OBSTACLE_EXTRACTION_NODELET_H
 
 #include <pcl_ros/pcl_nodelet.h>
 #include <ros/ros.h>
@@ -8,26 +8,29 @@
 namespace obstacle_id
 {
   /*
-  Cluster extraction nodelet is a ROS nodelet which takes a pointcloud of a labeled points and extracts labeled clusters
+  Obstacle extraction nodelet is a ROS nodelet which takes in a pointcloud extracts obstacles
+  Performs euclidean clustering and constructs Obstacle messages
+
   Based on pcl_ros nodelet, https://github.com/ros-perception/perception_pcl/blob/melodic-devel/pcl_ros/include/pcl_ros/segmentation/extract_clusters.h
+
   Parameters:
   - cluster_tolerance: (required)  clustering tolerance, type=float
   - max_clusters:   maximum number of clusters to return, type=uint, default=(max value)
   - min_cluster_size:  minimum number of points in a cluster.  type=uint, default=1
   - max_cluster_size:  maximum number of points in a cluster.  type=uint, default=(max value)
   Topics:
-  - input:  input labeled pointcloud
-  - output:  output labeled pointclouds, one per labeled cluster
-  - convex_hull_2d:  output 2d labeled pointclouds (where z==0), one per labeled cluster
-  - descriptor:  output string containing obstacle info (TBD)
+  - cloud:  input pointcloud
+  - obstacles:  output obstacles
   */
-  class ClusterExtractionNodelet 
-    : public pcl_ros::PCLNodelet
+  class ObstacleExtractionNodelet 
+    : public nodelet_topic_tools::NodeletLazy
   {
     public:
+
+      using base_type = nodelet_topic_tools::NodeletLazy;
       
       // default constructor
-      ClusterExtractionNodelet() = default;
+      ObstacleExtractionNodelet() = default;
                                       
     protected:
 
@@ -56,14 +59,10 @@ namespace obstacle_id
     private:
 
       /** \brief The input PointCloud subscriber. */
-      ros::Subscriber _sub_input;
-
+      ros::Subscriber _sub;
       
       ros::Publisher
-        // 2d convex hull
-        _pub_convex_hull_2d
-        // string descriptor
-        , _pub_descriptor
+        _pub
         ;
 
     public:

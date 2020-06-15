@@ -16,8 +16,8 @@
                 model_path: "/data/arm8imu3_noimu.ckpt-80000"
                 <!-- wasr class remapping values [0,255] -->
                 obstacle_pixel_value: 128
-                water_pixel_value: 64
-                sky_pixel_value: 8
+                water_pixel_value: 0
+                sky_pixel_value: 0
             </rosparam>
         </node>
 

@@ -134,11 +134,8 @@ set (NODELET_NAME
 
 ## Declare a C++ library
 # nodelet library
-add_library( ${NODELET_NAME} 
-  src/ClassifiedObstacleProjectionNodelet.cpp
-  src/ClusterExtractionNodelet.cpp
-  src/ObstacleVisualizationNodelet.cpp
-)
+file(GLOB SRC_CPP src/*.cpp)
+add_library( ${NODELET_NAME} ${SRC_CPP} )
 
 target_link_libraries( ${NODELET_NAME} ${LINK_LIBS} )
 

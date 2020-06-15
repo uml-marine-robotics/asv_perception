@@ -1,5 +1,5 @@
-#ifndef CLASSIFIEDOBSTACLEPROJECTIONNODELET_H
-#define CLASSIFIEDOBSTACLEPROJECTIONNODELET_H
+#ifndef OBSTACLEPROJECTIONNODELET_H
+#define OBSTACLEPROJECTIONNODELET_H
 
 #include <ros/ros.h>
 #include <nodelet_topic_tools/nodelet_lazy.h>
@@ -15,19 +15,19 @@
 namespace obstacle_id
 {
     /*
-    Nodelet for classified obstacle backprojection from 2D to 3D.  
+    Nodelet for obstacle backprojection from 2D to 3D.  
     In 2D, combines segmented/unknown obstacle map with classified obstacle bounding boxes
     Expands classified obstacle bounding boxes as needed, estimates 3d properties, then creates Obstacle messages for the classified obstacles
-    Outputs filtered unknown obstacle map for further processing
+    Projects remaining unclassified obstacle pixels to pointcloud
     Input topics:
     - segmentation:       2d obstacle map of unknown obstacle types
     - classification:     ClassificationArray
     - homography:         rgb to world homography matrix
     Output topics:
-    - output:             ObstacleArray
-    - output_segmentation:  2d obstacle map, with classified obstacles removed
+    - obstacles:          ObstacleArray of classified obstacles
+    - cloud:              Pointcloud of unclassified obstacles
     */
-    class ClassifiedObstacleProjectionNodelet 
+    class ObstacleProjectionNodelet 
     : public nodelet_topic_tools::NodeletLazy
     {
     public:
@@ -38,8 +38,8 @@ namespace obstacle_id
         using homography_msg_type = asv_perception_common::Homography;
         
         // default constructor
-        ClassifiedObstacleProjectionNodelet() = default;
-                                        
+        ObstacleProjectionNodelet() = default;
+
     protected:
 
         /** \brief Nodelet initialization routine. */
@@ -56,19 +56,23 @@ namespace obstacle_id
         );
 
         // homography callback
-        void cb_homography(
-            typename homography_msg_type::ConstPtr
-        );
+        void cb_homography_rgb_radar ( typename homography_msg_type::ConstPtr );
+        void cb_homography_rgb_world ( typename homography_msg_type::ConstPtr );
         
     private:
 
         // publishers
-        ros::Publisher _pub_obstacles;
-        ros::Publisher _pub_segmentation;
+        ros::Publisher 
+            _pub
+            , _pub_cloud
+            , _pub_debug_img
+            ;
 
         // subscriptions
-        ros::Subscriber _sub_homography;
-
+        ros::Subscriber 
+            _sub_rgb_radar
+            , _sub_rgb_world
+            ;
         message_filters::Subscriber<segmentation_msg_type> _sub_segmentation;
         message_filters::Subscriber<classification_msg_type> _sub_classification;
 
@@ -78,11 +82,12 @@ namespace obstacle_id
         boost::shared_ptr<_seg_cls_synchronizer_type> _seg_cls_sync;
 
         // homography msg storage
-        typename asv_perception_common::Homography::ConstPtr _homography;
+        typename asv_perception_common::Homography::ConstPtr _h_rgb_world;
+        typename asv_perception_common::Homography::ConstPtr _h_rgb_radar;
 
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };  // class
-}
+}   // ns
 
 #endif  //#ifndef

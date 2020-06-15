@@ -7,7 +7,7 @@
 
 namespace obstacle_id {
 
-    using point_type = pcl::PointXYZL;
+    using point_type = pcl::PointXYZ;
     using pointcloud_type = pcl::PointCloud<point_type>;
     using image_type = cv::Mat;
 

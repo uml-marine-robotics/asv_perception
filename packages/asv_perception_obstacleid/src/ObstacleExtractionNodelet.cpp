@@ -1,54 +1,39 @@
 
-#include "ClusterExtractionNodelet.h"
+#include "ObstacleExtractionNodelet.h"
 
 #include <pluginlib/class_list_macros.h>
-#include <std_msgs/String.h>
+#include <pcl_conversions/pcl_conversions.h>
 
+#include <asv_perception_common/ObstacleArray.h>
+
+#include "utils.h"
+
+/*
+#include <std_msgs/String.h>
 #include <pcl/common/common.h>      // getMinMax3D
 #include <pcl/PointIndices.h>
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/segmentation/extract_labeled_clusters.h>
 #include <pcl/surface/convex_hull.h>    // convexHull
+*/
 
-#include <pcl_conversions/pcl_conversions.h>
+
 
 namespace {
   using namespace obstacle_id;
 
   static const std::string 
-    TOPIC_NAME_INPUT = "input"
-    , TOPIC_NAME_OUTPUT = "output"
-    , TOPIC_NAME_OUTPUT_DESCRIPTOR = "descriptor"
-    , TOPIC_NAME_OUTPUT_CONVEX_HULL_2D = "convex_hull_2d"
+    TOPIC_NAME_INPUT = "cloud"
+    , TOPIC_NAME_OUTPUT = "obstacles"
   ;
-
-  std::string create_obstacle_descriptor( const pointcloud_type& pc ) {
-
-      point_type min_pt, max_pt;
-      pcl::getMinMax3D(pc, min_pt, max_pt);
-      
-      const auto& first_pt = pc.points.front();
-      auto result = std::to_string(first_pt.label);  // TODO:  labelToString( first_pt.label );
-
-      const auto fmt_pt = []( const point_type& pt ) {
-          return std::string("x=")
-              + std::to_string( (int) pt.x)
-              + ",y="
-              + std::to_string( (int)pt.y )
-              + ",z=" + std::to_string( (int)pt.z )
-              ;
-      };
-
-      return result + ";" + fmt_pt( min_pt ) + ";" + fmt_pt(max_pt);
-  }
 } // ns
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-void ClusterExtractionNodelet::onInit ()
+void ObstacleExtractionNodelet::onInit ()
 {
   // Call the super onInit ()
-  PCLNodelet::onInit ();
+  base_type::onInit ();
 
   // Mandatory parameters
   if ( !pnh_->getParam ("cluster_tolerance", this->_cluster_tolerance ))
@@ -68,9 +53,8 @@ void ClusterExtractionNodelet::onInit ()
   if ( pnh_->getParam("min_cluster_size", val ) && val >= 0 )
     this->_min_cluster_sz = (std::uint32_t)val;
 
-  this->pub_output_ = advertise<sensor_msgs::PointCloud2> (*pnh_, TOPIC_NAME_OUTPUT, this->max_queue_size_);
-  this->_pub_convex_hull_2d = advertise<sensor_msgs::PointCloud2> (*pnh_, TOPIC_NAME_OUTPUT_CONVEX_HULL_2D, this->max_queue_size_);
-  this->_pub_descriptor = advertise<std_msgs::String> (*pnh_, TOPIC_NAME_OUTPUT_DESCRIPTOR, this->max_queue_size_);
+  // publisher
+  this->_pub = advertise<asv_perception_common::ObstacleArray>( *pnh_, TOPIC_NAME_OUTPUT, 1 );
 
   NODELET_DEBUG("[%s::onInit] Initializing node with parameters: cluster_tolerance=%f, max_clusters=%u, max_cluster_size=%u, min_cluster_size=%u"
     , getName ().c_str()
@@ -84,38 +68,36 @@ void ClusterExtractionNodelet::onInit ()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-void ClusterExtractionNodelet::subscribe ()
+void ObstacleExtractionNodelet::subscribe ()
 {
-  this->_sub_input = pnh_->subscribe<sensor_msgs::PointCloud2> (
+  this->_sub = pnh_->subscribe<sensor_msgs::PointCloud2> (
     TOPIC_NAME_INPUT
-    , this->max_queue_size_
-    , bind (&ClusterExtractionNodelet::sub_callback, this, _1 )
+    , 1
+    , bind (&ObstacleExtractionNodelet::sub_callback, this, _1 )
   );
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
-void ClusterExtractionNodelet::unsubscribe ()
+void ObstacleExtractionNodelet::unsubscribe ()
 {
-  this->_sub_input.shutdown();
+  this->_sub.shutdown();
 }
 
 
-void ClusterExtractionNodelet::sub_callback (
+void ObstacleExtractionNodelet::sub_callback (
       const sensor_msgs::PointCloud2::ConstPtr& cloud
 )
 {
   // No subscribers, no work
   if ( 
-    this->pub_output_.getNumSubscribers () <= 0 
-    && this->_pub_convex_hull_2d.getNumSubscribers() <= 0 
-    && this->_pub_descriptor.getNumSubscribers() <= 0
+    this->_pub.getNumSubscribers () < 1
     )
     return;
 
   // If cloud is given, check if it's valid
-  if (!isValid (cloud))
+  if ( !utils::is_cloud_valid( cloud ) )
   {
-    NODELET_ERROR ("[%s::sub_callback] Invalid input!", getName ().c_str ());
+    NODELET_ERROR ("[%s::sub_callback] Invalid input cloud!", getName ().c_str ());
     return;
   }
 
@@ -126,10 +108,14 @@ void ClusterExtractionNodelet::sub_callback (
   pointcloud_type::Ptr pc(new pointcloud_type());
   pcl::fromROSMsg( *cloud, *pc );
 
+  // TODO:  cluster extraction
+
+
   // labeled euclidean cluster extraction
   //  clusters array must have preallocated size > max_label, else segfault
   //  https://github.com/PointCloudLibrary/pcl/pull/4084
   //  alternative:  ConditionalEuclideanClustering
+  /*
   std::vector< std::vector< pcl::PointIndices> > labeled_clusters = {};
   
   const auto max_label_it = std::max_element( pc->points.begin(), pc->points.end()
@@ -235,8 +221,9 @@ void ClusterExtractionNodelet::sub_callback (
     } // for label
 
   } // for labeled_clusters
+  */
 
 }
 
 
-PLUGINLIB_EXPORT_CLASS(obstacle_id::ClusterExtractionNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS(obstacle_id::ObstacleExtractionNodelet, nodelet::Nodelet)

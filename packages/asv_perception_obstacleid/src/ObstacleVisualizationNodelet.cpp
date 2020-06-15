@@ -2,7 +2,6 @@
 #include "ObstacleVisualizationNodelet.h"
 
 #include <pluginlib/class_list_macros.h>
-#include <pcl_conversions/pcl_conversions.h>
 #include <visualization_msgs/MarkerArray.h>
 #include "utils.h"
 
@@ -17,7 +16,7 @@ namespace {
 
     // default for how long should the marker be visible
     static const int MARKER_DURATION_DEFAULT_SECS = 0;
-    static const int MARKER_DURATION_DEFAULT_NSECS = 1e+6 * 100;
+    static const int MARKER_DURATION_DEFAULT_NSECS = 1e+6 * 100;  // 100ms
 
     // create marker, set common properties
     visualization_msgs::Marker _create_marker( 
@@ -48,7 +47,7 @@ namespace {
 
         marker.pose = obs.pose;
 
-        // hack: create marker id from pose
+        // hack: create marker id from pose, type
         marker.id = (std::int32_t)( marker.pose.position.x * marker.pose.position.y * marker.pose.position.z ) + type;
 
         return marker;
@@ -93,9 +92,9 @@ namespace {
 void ObstacleVisualizationNodelet::onInit ()
 {
     // Call the super onInit ()
-    PCLNodelet::onInit ();
+    base_type::onInit ();
 
-    this->pub_output_ = advertise<visualization_msgs::MarkerArray> ( *pnh_, TOPIC_NAME_OUTPUT, this->max_queue_size_ );
+    this->_out = advertise<visualization_msgs::MarkerArray> ( *pnh_, TOPIC_NAME_OUTPUT, 1 );
 
     NODELET_DEBUG("[%s::onInit] Initializing node"
         , getName ().c_str()
@@ -107,9 +106,9 @@ void ObstacleVisualizationNodelet::onInit ()
 //////////////////////////////////////////////////////////////////////////////////////////////
 void ObstacleVisualizationNodelet::subscribe ()
 {
-  this->_sub_input = pnh_->subscribe<asv_perception_common::ObstacleArray> (
+  this->_in = pnh_->subscribe<asv_perception_common::ObstacleArray> (
     TOPIC_NAME_INPUT
-    , this->max_queue_size_
+    , 1
     , bind (&ObstacleVisualizationNodelet::sub_callback, this, _1 )
   );
 }
@@ -117,7 +116,7 @@ void ObstacleVisualizationNodelet::subscribe ()
 //////////////////////////////////////////////////////////////////////////////////////////////
 void ObstacleVisualizationNodelet::unsubscribe ()
 {
-  this->_sub_input.shutdown();
+  this->_in.shutdown();
 }
 
 
@@ -126,7 +125,7 @@ void ObstacleVisualizationNodelet::sub_callback (
 )
 {
     // No subscribers/input, no work
-    if ( ( this->pub_output_.getNumSubscribers () < 1 ) 
+    if ( ( this->_out.getNumSubscribers () < 1 ) 
         || !obs_array
         || obs_array->obstacles.empty()
         )
@@ -155,7 +154,7 @@ void ObstacleVisualizationNodelet::sub_callback (
         );
     }
 
-    this->pub_output_.publish( marker_array );
+    this->_out.publish( marker_array );
 }
 
 

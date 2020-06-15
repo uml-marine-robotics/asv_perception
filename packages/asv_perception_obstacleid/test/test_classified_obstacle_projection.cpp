@@ -1,44 +1,20 @@
 #include <iostream>
 #include <asv_perception_common/ClassificationArray.h>
 #include "../include/utils.h"
-#include "../include/classified_obstacle_projection.h"
+#include "../include/detail/classified_obstacle_projection.h"
+#include "test_common.h"
+
 #include <gtest/gtest.h>
 
 #define TEST_CASE_NAME TestClassifiedObstacleProjection
 namespace {
     using namespace obstacle_id;
-
-    // image (1280x1024) to world matrix (radar img:  1024x1024, 220m real-world diameter)
-    static const std::vector<float> HOMOGRAPHY_DATA = { 
-        0.47386, -0.113292, -291.825,
-        0.053203, -0.387605, 674.903,
-        0.0163188, 0.311054, -103.878
-    };
-
-}
-
-// homography test
-TEST( TEST_CASE_NAME, homography )
-{   
-    const auto h = Homography( HOMOGRAPHY_DATA.data() );
-
-    // transforms validated with calibrate.py
-    //  rgb image to real world
-    //  150, 400 --> -11, 22
-    //  200, 375 --> -14, 33
-    const auto r1 = h( 150.f, 400.f );
-    EXPECT_EQ( (int)r1.first, -11 );
-    EXPECT_EQ( (int)r1.second, 22 );
-
-    const auto r2 = h( 250.f, 400.f );
-    EXPECT_EQ( (int)r2.first, -8 );
-    EXPECT_EQ( (int)r2.second, 21 );
-
+    using namespace obstacle_id::detail;
 }
 
 TEST( TEST_CASE_NAME, create_obstacles_basic )
 {   
-    const auto h = Homography( HOMOGRAPHY_DATA.data() );
+    const auto h = ::getRGBtoWorldHomography();
     const int PX_VAL = 255;
     cv::Mat img( 1024, 1280, CV_8U,cv::Scalar(PX_VAL));
 
@@ -58,10 +34,10 @@ TEST( TEST_CASE_NAME, create_obstacles_basic )
     c.probability = 0.5;
     v.classifications.emplace_back( c );
 
-    const auto projs = classified_obstacle_projection::create_obstacles( img, v, h );
+    const auto projs = classified_obstacle_projection::project( img, v, h );
 
     // get the roi of the classification from the image, ensure it's been cleared    
-    const auto cv_roi = utils::to_cv_rect( c.roi );
+    const auto cv_roi = utils::to_cv_rect( c.roi, img );
     EXPECT_EQ( cv::sum( img( cv_roi ) )[0], 0 );
 
     // check projection

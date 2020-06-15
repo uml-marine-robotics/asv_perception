@@ -8,7 +8,7 @@
 #include "Homography.h"
 
 namespace obstacle_id {
-
+namespace detail {
 namespace impl {
 
     using namespace asv_perception_common;
@@ -106,5 +106,5 @@ class ClassifiedObstacle2d {
         }   // project
 };  // class
 
-}   // ns
+}}   // ns
 #endif

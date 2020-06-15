@@ -1,8 +1,8 @@
 #ifndef OBSTACLE_VIS_NODELET_H
 #define OBSTACLE_VIS_NODELET_H
 
-#include <pcl_ros/pcl_nodelet.h>
 #include <ros/ros.h>
+#include <nodelet_topic_tools/nodelet_lazy.h>
 #include <asv_perception_common/ObstacleArray.h>
 #include "defs.h"
 
@@ -15,9 +15,11 @@ namespace obstacle_id
   - output:  MarkerArray
   */
   class ObstacleVisualizationNodelet 
-    : public pcl_ros::PCLNodelet
+    : public nodelet_topic_tools::NodeletLazy
   {
     public:
+      
+      using base_type = nodelet_topic_tools::NodeletLazy;
       
       // default constructor
       ObstacleVisualizationNodelet() = default;
@@ -35,9 +37,11 @@ namespace obstacle_id
       void sub_callback ( typename asv_perception_common::ObstacleArray::ConstPtr );
       
     private:
+      // ObstacleArray
+      ros::Subscriber _in;
 
-      /** \brief The input subscriber. */
-      ros::Subscriber _sub_input;
+      // markerarray
+      ros::Publisher _out;
 
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW

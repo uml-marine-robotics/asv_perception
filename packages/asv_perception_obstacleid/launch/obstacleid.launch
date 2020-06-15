@@ -9,20 +9,17 @@
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager"/>
 
     <!-- 
-      left_camera classified obstacle backprojection
-      outputs:
-      - output:  ObstacleArray
-      - output_segmentation:  filtered segmentation map, with classified obstacle bounding boxes removed
-      -->
-    <node pkg="nodelet" type="nodelet" name="classified_projection" args="load $(arg package_name)/ClassifiedObstacleProjectionNodelet $(arg nodelet_name)" output="screen">
+      Left camera classified extraction, unclassified projection
+      See ObstacleProjectionNodelet.h
+    -->
+    <node pkg="nodelet" type="nodelet" name="obstacle_projection" args="load $(arg package_name)/ObstacleProjectionNodelet $(arg nodelet_name)" output="screen">
 
       <remap from="~segmentation" to="/left_camera/segmentation/output" />
       <remap from="~classification" to="/left_camera/classification/output" />
-      <remap from="~homography" to="/left_camera/rgb_radar_homography/rgb_world" />
+      <remap from="~rgb_world" to="/left_camera/rgb_radar_homography/rgb_world" />
+      <remap from="~rgb_radar" to="/left_camera/rgb_radar_homography/rgb_radar" />
 
     </node>
-
-    <!-- TODO:  node to take lcam_classified_obstacle_projection/output_segmentation and project pc -->
 
     <!-- Run a VoxelGrid filter to clean NaNs and downsample the data -->
     <!-- 
@@ -51,7 +48,15 @@
     -->
     <!-- Rviz visualization markers -->
     <node pkg="nodelet" type="nodelet" name="obstacle_visualization" args="load $(arg package_name)/ObstacleVisualizationNodelet $(arg nodelet_name)" output="screen">
-      <remap from="~input" to="classified_projection/output" />
+      
+      <!-- classified obstacles -->
+      <remap from="~input" to="obstacle_projection/obstacles" />
+
+      <!-- unclassified obstacles from pointcloud extraction -->
+      <!-- 
+      <remap from="~input" to="obstacle_extraction/output" />
+      -->
+
       <rosparam>
         <!-- marker duration in secs -->
         marker_duration_secs: 0

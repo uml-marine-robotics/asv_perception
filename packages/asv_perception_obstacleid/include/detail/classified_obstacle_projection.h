@@ -11,6 +11,7 @@
 #include "Homography.h"
 
 namespace obstacle_id {
+namespace detail {
 namespace classified_obstacle_projection {
 
 using namespace asv_perception_common;
@@ -21,7 +22,7 @@ Combines an unclassified obstacle map with a vector of classification bounding b
     Classified obstacle bounding boxes are then removed from the provided obstacle map
     Returns vector of projected Obstacles
 */
-inline std::vector<Obstacle> create_obstacles( 
+inline std::vector<Obstacle> project( 
     image_type& obstacle_map
     , const asv_perception_common::ClassificationArray& classifications
     , const Homography& h
@@ -47,12 +48,14 @@ inline std::vector<Obstacle> create_obstacles(
     // now project each to obstacle msg, remove bb from unknown obstacle map
     auto result = std::vector<Obstacle>{};
     for ( const auto& obs : obstacles_2d ) {
-        obstacle_map( utils::to_cv_rect( obs->cls.roi ) ) = 0;    // set roi to black in obstacle_map
+        const auto rect = utils::to_cv_rect( obs->cls.roi, obstacle_map );
+
+        obstacle_map( rect ) = 0;    // set roi to black in obstacle_map
         result.emplace_back( obs->project(h) );
     }
 
     return result;
 }
 
-}}   // ns
+}}}   // ns
 #endif
