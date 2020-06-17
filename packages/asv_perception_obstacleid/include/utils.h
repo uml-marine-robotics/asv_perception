@@ -45,10 +45,22 @@ inline std::pair<PointT, PointT> minmax_3d( const std::vector<PointT, Alloc>& po
     return std::make_pair(std::move(min), std::move(max));
 }
 
-// test whether a cloud is valid, based on 
+// test whether a PointCloud2 is valid, based on 
 //  https://github.com/ros-perception/perception_pcl/blob/melodic-devel/pcl_ros/include/pcl_ros/pcl_nodelet.h
 inline bool is_cloud_valid( const sensor_msgs::PointCloud2::ConstPtr& cloud ) {
-    return cloud->width * cloud->height * cloud->point_step == cloud->data.size();
+    return 
+        ( cloud )
+        && ( cloud->width * cloud->height * cloud->point_step == cloud->data.size() )
+        ;
+}
+
+// convert point type to ros point32
+inline geometry_msgs::Point32 to_point32( const point_type& pt ) {
+    geometry_msgs::Point32 result = {};
+    result.x = pt.x;
+    result.y = pt.y;
+    result.z = pt.z;
+    return result;
 }
 
 }}  // ns

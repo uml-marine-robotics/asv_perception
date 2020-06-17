@@ -20,12 +20,13 @@ namespace obstacle_id
     Expands classified obstacle bounding boxes as needed, estimates 3d properties, then creates Obstacle messages for the classified obstacles
     Projects remaining unclassified obstacle pixels to pointcloud
     Input topics:
-    - segmentation:       2d obstacle map of unknown obstacle types
-    - classification:     ClassificationArray
-    - homography:         rgb to world homography matrix
+    - segmentation:       [sensor_msgs/Image] 2d obstacle map, all pixels with value > 0 are considered obstacle pixels
+    - classification:     [asv_perception_common/ClassificationArray]  Classifications
+    - rgb_world:          [asv_perception_common/Homography] rgb to world homography matrix
+    - rgb_radar:          [asv_perception_common/Homography] rgb to radar homography matrix
     Output topics:
-    - obstacles:          ObstacleArray of classified obstacles
-    - cloud:              Pointcloud of unclassified obstacles
+    - obstacles:          [asv_perception_common/ObstacleArray] Classified obstacles
+    - cloud:              [sensor_msgs/PointCloud2]  Unclassified obstacle pointcloud
     */
     class ObstacleProjectionNodelet 
     : public nodelet_topic_tools::NodeletLazy
@@ -51,13 +52,13 @@ namespace obstacle_id
 
         // the callback function to handle input
         void sub_callback ( 
-            typename segmentation_msg_type::ConstPtr
-            , typename classification_msg_type::ConstPtr
+            const typename segmentation_msg_type::ConstPtr&
+            , const typename classification_msg_type::ConstPtr&
         );
 
         // homography callback
-        void cb_homography_rgb_radar ( typename homography_msg_type::ConstPtr );
-        void cb_homography_rgb_world ( typename homography_msg_type::ConstPtr );
+        void cb_homography_rgb_radar ( const typename homography_msg_type::ConstPtr& );
+        void cb_homography_rgb_world ( const typename homography_msg_type::ConstPtr& );
         
     private:
 
@@ -65,7 +66,6 @@ namespace obstacle_id
         ros::Publisher 
             _pub
             , _pub_cloud
-            , _pub_debug_img
             ;
 
         // subscriptions
@@ -82,8 +82,10 @@ namespace obstacle_id
         boost::shared_ptr<_seg_cls_synchronizer_type> _seg_cls_sync;
 
         // homography msg storage
-        typename asv_perception_common::Homography::ConstPtr _h_rgb_world;
-        typename asv_perception_common::Homography::ConstPtr _h_rgb_radar;
+        typename asv_perception_common::Homography::ConstPtr 
+            _h_rgb_world
+            , _h_rgb_radar
+            ;
 
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW

@@ -1,30 +1,29 @@
 <launch>
 
   <arg name="package_name" value="asv_perception_obstacleid"/>
-  <arg name="namespace_name" value="obstacleid"/>
+  <arg name="namespace_name" value="left_camera"/>
   
   <group ns="$(arg namespace_name)">
-    <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
 
+    <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager"/>
 
     <!-- 
       Left camera classified extraction, unclassified projection
       See ObstacleProjectionNodelet.h
     -->
-    <node pkg="nodelet" type="nodelet" name="obstacle_projection" args="load $(arg package_name)/ObstacleProjectionNodelet $(arg nodelet_name)" output="screen">
+    <node pkg="nodelet" type="nodelet" name="projection" args="load $(arg package_name)/ObstacleProjectionNodelet $(arg nodelet_name)" output="screen">
 
-      <remap from="~segmentation" to="/left_camera/segmentation/output" />
-      <remap from="~classification" to="/left_camera/classification/output" />
-      <remap from="~rgb_world" to="/left_camera/rgb_radar_homography/rgb_world" />
-      <remap from="~rgb_radar" to="/left_camera/rgb_radar_homography/rgb_radar" />
+      <remap from="~segmentation" to="segmentation/output" />
+      <remap from="~classification" to="classification/output" />
+      <remap from="~rgb_world" to="homography/rgb_world" />
+      <remap from="~rgb_radar" to="homography/rgb_radar" />
 
     </node>
 
-    <!-- Run a VoxelGrid filter to clean NaNs and downsample the data -->
-    <!-- 
+    <!-- voxel grid + z filter -->
     <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
-      <remap from="~input" to="lcam_obstacle_projection/output" /> 
+      <remap from="~input" to="projection/cloud" /> <!-- remap from=sink to=source -->
       <rosparam>
         filter_field_name: z
         filter_limit_min: -0.0
@@ -33,36 +32,32 @@
         leaf_size: 0.1
       </rosparam>
     </node>
-    -->
-    <!-- cluster extraction to obstacles?  combine with OldClusterVisNodelet -->
-    <!--
-    <node pkg="nodelet" type="nodelet" name="cluster_extraction" args="load $(arg package_name)/ClusterExtractionNodelet $(arg nodelet_name)" output="screen">
+
+    <!-- cluster extraction to obstacles -->
+    <node pkg="nodelet" type="nodelet" name="extraction" args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" output="screen">
       <remap from="~input" to="voxel_grid/output" />
       
       <rosparam>
-        cluster_tolerance: 4.0
-        min_cluster_size: 15
-        max_cluster_size: 25000
+        cluster_tolerance: 2.0
+        min_cluster_size: 5
       </rosparam>
     </node>
-    -->
-    <!-- Rviz visualization markers -->
-    <node pkg="nodelet" type="nodelet" name="obstacle_visualization" args="load $(arg package_name)/ObstacleVisualizationNodelet $(arg nodelet_name)" output="screen">
-      
-      <!-- classified obstacles -->
-      <remap from="~input" to="obstacle_projection/obstacles" />
-
-      <!-- unclassified obstacles from pointcloud extraction -->
-      <!-- 
-      <remap from="~input" to="obstacle_extraction/output" />
-      -->
-
+    
+    <!-- Rviz visualization markers:  classified obstacles -->
+    <node pkg="nodelet" type="nodelet" name="visualization_classified" args="load $(arg package_name)/ObstacleVisualizationNodelet $(arg nodelet_name)" output="screen">
+      <remap from="~input" to="projection/obstacles" />
       <rosparam>
-        <!-- marker duration in secs -->
         marker_duration_secs: 0
+        marker_duration_nsecs: 150000000
+      </rosparam>
+    </node>
 
-        <!-- marker duration in nanosecs -->
-        marker_duration_nsecs: 100000000
+    <!-- Rviz visualization markers:  unclassified obstacles -->
+    <node pkg="nodelet" type="nodelet" name="visualization_unclassified" args="load $(arg package_name)/ObstacleVisualizationNodelet $(arg nodelet_name)" output="screen">
+      <remap from="~input" to="extraction/output" />
+      <rosparam>
+        marker_duration_secs: 0
+        marker_duration_nsecs: 400000000
       </rosparam>
     </node>
     

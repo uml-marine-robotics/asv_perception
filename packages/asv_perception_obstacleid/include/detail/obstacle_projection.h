@@ -24,7 +24,7 @@ namespace impl {
 
     // compute the image row (y) value which approximates the horizon at image column (x)
     //  see compute_horizon in calibrate.py, asv_perception_homography 
-    std::uint32_t compute_rgb_horizon( const std::uint32_t x, const Homography& radar_to_rgb ) {
+    inline std::uint32_t compute_rgb_horizon( const std::uint32_t x, const Homography& radar_to_rgb ) {
 
         //  todo:  use rgb to/from world to transform two arbitrary points along x axis world coordinates as y -> inf, compute slope
         //      currently, doing this underestimates horizon, results vary depending on start x
@@ -49,7 +49,7 @@ namespace impl {
     }   // compute_rgb_horizon
 
     // appends points to pointcloud at x and y; constrined to x + height and y + depth at resolution (interval)
-    void append_points(
+    inline void append_points(
         const float x
         , const float y
         , const float max_height
@@ -81,7 +81,7 @@ namespace impl {
     }
 
     // projects obstacle pixels within vertical scanline at img column x to pointcloud
-    void project_scanline( 
+    inline void project_scanline( 
         const std::uint32_t x
         , const image_type& img
         , const Homography& rgb_to_world

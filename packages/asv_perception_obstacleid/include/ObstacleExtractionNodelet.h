@@ -8,19 +8,15 @@
 namespace obstacle_id
 {
   /*
-  Obstacle extraction nodelet is a ROS nodelet which takes in a pointcloud extracts obstacles
-  Performs euclidean clustering and constructs Obstacle messages
-
-  Based on pcl_ros nodelet, https://github.com/ros-perception/perception_pcl/blob/melodic-devel/pcl_ros/include/pcl_ros/segmentation/extract_clusters.h
+  Obstacle extraction nodelet performs euclidean clustering and constructs Obstacle messages
 
   Parameters:
   - cluster_tolerance: (required)  clustering tolerance, type=float
-  - max_clusters:   maximum number of clusters to return, type=uint, default=(max value)
   - min_cluster_size:  minimum number of points in a cluster.  type=uint, default=1
   - max_cluster_size:  maximum number of points in a cluster.  type=uint, default=(max value)
   Topics:
-  - cloud:  input pointcloud
-  - obstacles:  output obstacles
+  - input:  [sensor_msgs/PointCloud2] input pointcloud
+  - output: [asv_perception_common/ObstacleArray]  output obstacles
   */
   class ObstacleExtractionNodelet 
     : public nodelet_topic_tools::NodeletLazy
@@ -34,17 +30,14 @@ namespace obstacle_id
                                       
     protected:
 
-      /** \brief Maximum number of clusters to publish. */
-      std::uint32_t _max_clusters = std::numeric_limits<std::uint32_t>::max();
+      std::uint32_t 
+        _min_cluster_sz = 1
+        , _max_cluster_sz = std::numeric_limits<std::uint32_t>::max()
+        ;
 
-      // Minimum cluster size
-      std::uint32_t _min_cluster_sz = 1;
-
-      // Maximum cluster size
-      std::uint32_t _max_cluster_sz = std::numeric_limits<std::uint32_t>::max();
-
-      // Cluster tolerance
-      float _cluster_tolerance = 0.f;
+      float 
+        _cluster_tolerance = 0.f
+        ;
 
       /** \brief Nodelet initialization routine. */
       void onInit () override;

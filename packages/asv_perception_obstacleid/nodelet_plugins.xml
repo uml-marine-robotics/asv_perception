@@ -5,9 +5,9 @@
       2D to 3D obstacle backprojection of classified bounding boxes and unclassified pixel backprojection to pointcloud
     </description>
   </class>
-  <class name="asv_perception_obstacleid/ClusterExtractionNodelet" type="obstacle_id::ClusterExtractionNodelet" base_class_type="nodelet::Nodelet">
+  <class name="asv_perception_obstacleid/ObstacleExtractionNodelet" type="obstacle_id::ObstacleExtractionNodelet" base_class_type="nodelet::Nodelet">
     <description>
-      Labeled Euclidean Cluster Extraction
+      Obstacle extraction from Euclidean cluster extraction within a pointcloud
     </description>
   </class>
 

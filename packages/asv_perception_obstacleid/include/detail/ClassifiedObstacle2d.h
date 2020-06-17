@@ -14,7 +14,7 @@ namespace impl {
     using namespace asv_perception_common;
 
     // projects a roi to a vector of points using homography
-    std::vector<geometry_msgs::Point32> roi_to_polygon( 
+    inline std::vector<geometry_msgs::Point32> roi_to_polygon( 
         const sensor_msgs::RegionOfInterest& roi
         , const float depth
         , const float height

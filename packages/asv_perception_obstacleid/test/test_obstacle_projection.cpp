@@ -97,6 +97,7 @@ TEST( TEST_CASE_NAME, create_obstacles_basic )
         EXPECT_TRUE( pt_exists( start_x + x_offset, start_y + h - 1, 0 ) );
 }
 
+/*
 TEST( TEST_CASE_NAME, from_image ) {
 
     const auto 
@@ -108,6 +109,5 @@ TEST( TEST_CASE_NAME, from_image ) {
     ASSERT_FALSE(img.empty());
 
     auto cloud = detail::obstacle_projection::project( img, h_rgb_world, h_radar_rgb );
-
-
 }
+*/

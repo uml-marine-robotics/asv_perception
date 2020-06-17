@@ -34,7 +34,7 @@ namespace obstacle_id
       void unsubscribe () override;
 
       // the callback function to handle input from subscription
-      void sub_callback ( typename asv_perception_common::ObstacleArray::ConstPtr );
+      void sub_callback ( const typename asv_perception_common::ObstacleArray::ConstPtr& );
       
     private:
       // ObstacleArray

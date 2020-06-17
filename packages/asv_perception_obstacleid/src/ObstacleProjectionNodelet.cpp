@@ -31,7 +31,6 @@ namespace {
         , TOPIC_NAME_INPUT_HOMOGRAPHY_RGB_TO_RADAR = "rgb_radar"
         , TOPIC_NAME_OUTPUT_OBSTACLES = "obstacles"
         , TOPIC_NAME_OUTPUT_CLOUD = "cloud"
-        , TOPIC_NAME_OUTPUT_DEBUG_IMG = "debug_img"
     ;
 
 } // ns
@@ -46,7 +45,6 @@ void ObstacleProjectionNodelet::onInit ()
     // advertise publishers
     this->_pub = advertise<asv_perception_common::ObstacleArray>( *pnh_, TOPIC_NAME_OUTPUT_OBSTACLES, 1 );
     this->_pub_cloud = advertise<sensor_msgs::PointCloud2> (*pnh_, TOPIC_NAME_OUTPUT_CLOUD, 1 );
-    this->_pub_debug_img = advertise<sensor_msgs::Image> (*pnh_, TOPIC_NAME_OUTPUT_DEBUG_IMG, 1 );
 
     NODELET_DEBUG("[%s::onInit] Initializing node"
         , getName ().c_str()
@@ -95,7 +93,7 @@ void ObstacleProjectionNodelet::unsubscribe ()
     this->_sub_rgb_world.shutdown();
 }
 
-void ObstacleProjectionNodelet::cb_homography_rgb_radar( typename homography_msg_type::ConstPtr h ) {
+void ObstacleProjectionNodelet::cb_homography_rgb_radar( const typename homography_msg_type::ConstPtr& h ) {
 
     if ( !h ) {
         NODELET_WARN( "Invalid homography received, ignoring" );
@@ -104,7 +102,7 @@ void ObstacleProjectionNodelet::cb_homography_rgb_radar( typename homography_msg
     this->_h_rgb_radar = h;
 }
 
-void ObstacleProjectionNodelet::cb_homography_rgb_world( typename homography_msg_type::ConstPtr h ) {
+void ObstacleProjectionNodelet::cb_homography_rgb_world( const typename homography_msg_type::ConstPtr& h ) {
 
     if ( !h ) {
         NODELET_WARN( "Invalid homography received, ignoring" );
@@ -114,10 +112,13 @@ void ObstacleProjectionNodelet::cb_homography_rgb_world( typename homography_msg
 }
 
 void ObstacleProjectionNodelet::sub_callback ( 
-    typename segmentation_msg_type::ConstPtr seg_msg 
-    , typename classification_msg_type::ConstPtr cls_msg
+    const typename segmentation_msg_type::ConstPtr& seg_msg 
+    , const typename classification_msg_type::ConstPtr& cls_msg
     )
 {
+
+    static const std::string OUTPUT_FRAME_ID = "map";   // todo:  parameterize
+
     // No subscribers/data, no work
     if (
         !seg_msg
@@ -125,7 +126,6 @@ void ObstacleProjectionNodelet::sub_callback (
         || (
             ( this->_pub.getNumSubscribers () < 1 ) 
             && ( this->_pub_cloud.getNumSubscribers() < 1 )
-            && ( this->_pub_debug_img.getNumSubscribers() < 1 )
             )
         )
         return;
@@ -166,18 +166,22 @@ void ObstacleProjectionNodelet::sub_callback (
     // get classified obstacles, publish obstacle message
     auto msg = asv_perception_common::ObstacleArray();
     msg.header = cls_msg->header;
-    msg.header.frame_id = "map";    // parameterize?
+    msg.header.frame_id = OUTPUT_FRAME_ID;
     msg.obstacles = detail::classified_obstacle_projection::project( img, *cls_msg, h_rgb_to_world );
     this->_pub.publish( msg );
 
     // debug img
-    auto debug_img_msg = sensor_msgs::Image();
-    cv_bridge::CvImage debug_img;
-    debug_img.encoding = sensor_msgs::image_encodings::MONO8;
-    debug_img.image = img;
-    debug_img.toImageMsg( debug_img_msg );
-    debug_img_msg.header = cls_msg->header;
-    this->_pub_debug_img.publish( debug_img_msg );
+    /*
+    if ( this->_pub_debug_img.getNumSubscribers() > 0 ) {
+        auto debug_img_msg = sensor_msgs::Image();
+        cv_bridge::CvImage debug_img;
+        debug_img.encoding = sensor_msgs::image_encodings::MONO8;
+        debug_img.image = img;
+        debug_img.toImageMsg( debug_img_msg );
+        debug_img_msg.header = cls_msg->header;
+        this->_pub_debug_img.publish( debug_img_msg );
+    }
+    */
     
     // unclass pointcloud
     if ( this->_pub_cloud.getNumSubscribers() > 0 ) {
@@ -188,7 +192,7 @@ void ObstacleProjectionNodelet::sub_callback (
         
         pcl::toROSMsg ( cloud, *output_blob );
         output_blob->header = cls_msg->header;
-        output_blob->header.frame_id = "map";
+        output_blob->header.frame_id = OUTPUT_FRAME_ID;
 
         // publish
         this->_pub_cloud.publish( output_blob );

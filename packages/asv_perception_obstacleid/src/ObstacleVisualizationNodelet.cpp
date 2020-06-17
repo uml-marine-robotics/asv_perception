@@ -3,6 +3,7 @@
 
 #include <pluginlib/class_list_macros.h>
 #include <visualization_msgs/MarkerArray.h>
+#include "defs.h"
 #include "utils.h"
 
 namespace {
@@ -71,16 +72,18 @@ namespace {
     }
     
 
-    // create a marker for the provided pointcloud, which should be a convex hull
+    // create a marker for the provided obstacle
     visualization_msgs::Marker create_marker_cube( const std_msgs::Header& hdr, const asv_perception_common::Obstacle& obs, const ros::Duration& d ) {
 
         auto marker = _create_marker( hdr, obs, visualization_msgs::Marker::CUBE, d );
         
         const auto minmax = utils::minmax_3d( obs.shape.points );
 
-        marker.scale.x = minmax.second.x - minmax.first.x;
-        marker.scale.y = minmax.second.y - minmax.first.y;
-        marker.scale.z = minmax.second.z - minmax.first.z;
+        static const float MIN_SCALE = 0.5;
+
+        marker.scale.x = std::max( minmax.second.x - minmax.first.x, MIN_SCALE );
+        marker.scale.y = std::max( minmax.second.y - minmax.first.y, MIN_SCALE );
+        marker.scale.z = std::max( minmax.second.z - minmax.first.z, MIN_SCALE );
         
         return marker;
     }   // create_marker_cube
@@ -121,7 +124,7 @@ void ObstacleVisualizationNodelet::unsubscribe ()
 
 
 void ObstacleVisualizationNodelet::sub_callback (
-      typename asv_perception_common::ObstacleArray::ConstPtr obs_array
+      const typename asv_perception_common::ObstacleArray::ConstPtr& obs_array
 )
 {
     // No subscribers/input, no work
@@ -148,10 +151,11 @@ void ObstacleVisualizationNodelet::sub_callback (
             create_marker_cube( obs_array->header, obs, d ) 
         );
 
-        // text marker
-        marker_array.markers.emplace_back( 
-            create_marker_text( obs_array->header, obs, d )
-        );
+        // text marker if not unknown
+        if ( !obs.label.empty() )
+            marker_array.markers.emplace_back( 
+                create_marker_text( obs_array->header, obs, d )
+            );
     }
 
     this->_out.publish( marker_array );
