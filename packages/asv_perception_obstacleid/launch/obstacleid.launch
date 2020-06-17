@@ -1,0 +1,66 @@
+<launch>
+
+  <arg name="package_name" value="asv_perception_obstacleid"/>
+  <arg name="namespace_name" value="left_camera"/>
+  
+  <group ns="$(arg namespace_name)">
+
+    <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
+    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager"/>
+
+    <!-- 
+      Left camera classified extraction, unclassified projection
+      See ObstacleProjectionNodelet.h
+    -->
+    <node pkg="nodelet" type="nodelet" name="projection" args="load $(arg package_name)/ObstacleProjectionNodelet $(arg nodelet_name)" output="screen">
+
+      <remap from="~segmentation" to="segmentation/output" />
+      <remap from="~classification" to="classification/output" />
+      <remap from="~rgb_world" to="homography/rgb_world" />
+      <remap from="~rgb_radar" to="homography/rgb_radar" />
+
+    </node>
+
+    <!-- voxel grid + z filter -->
+    <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
+      <remap from="~input" to="projection/cloud" /> <!-- remap from=sink to=source -->
+      <rosparam>
+        filter_field_name: z
+        filter_limit_min: -0.0
+        filter_limit_max: 2.0
+        filter_limit_negative: False
+        leaf_size: 0.1
+      </rosparam>
+    </node>
+
+    <!-- cluster extraction to obstacles -->
+    <node pkg="nodelet" type="nodelet" name="extraction" args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" output="screen">
+      <remap from="~input" to="voxel_grid/output" />
+      
+      <rosparam>
+        cluster_tolerance: 2.0
+        min_cluster_size: 5
+      </rosparam>
+    </node>
+    
+    <!-- Rviz visualization markers:  classified obstacles -->
+    <node pkg="nodelet" type="nodelet" name="visualization_classified" args="load $(arg package_name)/ObstacleVisualizationNodelet $(arg nodelet_name)" output="screen">
+      <remap from="~input" to="projection/obstacles" />
+      <rosparam>
+        marker_duration_secs: 0
+        marker_duration_nsecs: 150000000
+      </rosparam>
+    </node>
+
+    <!-- Rviz visualization markers:  unclassified obstacles -->
+    <node pkg="nodelet" type="nodelet" name="visualization_unclassified" args="load $(arg package_name)/ObstacleVisualizationNodelet $(arg nodelet_name)" output="screen">
+      <remap from="~input" to="extraction/output" />
+      <rosparam>
+        marker_duration_secs: 0
+        marker_duration_nsecs: 400000000
+      </rosparam>
+    </node>
+    
+  </group>
+
+</launch>

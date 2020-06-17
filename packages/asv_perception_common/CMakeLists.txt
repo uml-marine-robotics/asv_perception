@@ -8,11 +8,11 @@ project(asv_perception_common)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-#  roscpp
   rospy
   message_generation
   std_msgs
   sensor_msgs
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -54,6 +54,8 @@ add_message_files(
   Homography.msg
   Classification.msg
   ClassificationArray.msg
+  Obstacle.msg
+  ObstacleArray.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -75,6 +77,7 @@ generate_messages(
   DEPENDENCIES
   std_msgs
   sensor_msgs
+  geometry_msgs
 )
 
 ################################################
@@ -109,7 +112,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES basic_duckiebot_move
-   CATKIN_DEPENDS std_msgs sensor_msgs
+   CATKIN_DEPENDS std_msgs sensor_msgs geometry_msgs
 #  DEPENDS system_lib
 )
 

@@ -47,8 +47,9 @@ class segmentation_node(object):
         img = self.wasr.run_wasr_inference( img )
 
         # remap wasr classes iaw config
-        #  todo:  remove this; is unnecessary overhead.  subscriber can remap if needed.  create separate /output topic with remapping for debug/vis
-        # obstacles=0, water=1, sky=2
+        #  todo(?):  may need to publish separate outputs for each class (at least obstacles?)
+        #  obstacleid package expects only obstacle pixels to be > 0
+        # wasr classes:  obstacles=0, water=1, sky=2
         img = np.where( img==0, self.obstacle_pixel_value, img )  # obstacles 
         img = np.where( img==1, self.water_pixel_value, img )  # water
         img = np.where( img==2, self.sky_pixel_value, img )    # sky

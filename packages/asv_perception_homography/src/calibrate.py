@@ -288,11 +288,26 @@ def compute_horizon( mtx, img_x ):
 
 tuner = None
 
+
 def onMouse( evt, x, y, flags, userData ):
+    # handles mouse event on window. x,y are img coords
     
     if evt == cv2.EVENT_MOUSEMOVE:
-        ih = invWarpPt( userData[2][0], x, y )
-        cv2.setWindowTitle(tuner.imageWindowName, '(Press q to quit)  img_x: %d, img_y: %d ==> radar_x'': %d, radar_y:'':%d' % (x,y, ih[0], ih[1] ))
+
+        # get matrices stored in userData
+        M_ri = userData[2][0]       # radar to img
+        M_ir = np.linalg.inv(M_ri)  # img to radar
+        M_rw = userData[2][1]       # radar to world
+        
+        radar_xy = transform_pt( M_ir, (x, y) )  # img to radar pts
+        world_xy = transform_pt( M_rw, radar_xy ) # radar to world pts
+        world_distance = np.linalg.norm( world_xy )  # real-world distance
+
+        cv2.setWindowTitle(
+            tuner.imageWindowName
+            , '(Press q to quit)  img_x: %d, img_y: %d ==> radar_x'': %d, radar_y:'': %d ==> world_x: %d, world_y: %d, world_distance: %d' 
+                % (x,y, radar_xy[0], radar_xy[1], world_xy[0], world_xy[1], world_distance )
+        )
 
 # constrain an image to bounding box defined by 4 points
 # all pixels outside bounding box are set to val
@@ -335,18 +350,29 @@ def create_unified_image( base_img, overlay_img, M, overlay_alpha = 0.5 ):
     
     return cv2.addWeighted( overlay, overlay_alpha, base_img, 1 - overlay_alpha, 0 )
 
+def get_radar_to_world_matrix( radar_img_side, radar_world_diameter_units ):
+    # returns radar to world matrix for provided radar image width and real-world unit measurement
+    return np.array([
+        [1.,0.,-(radar_img_side/2.)]
+        , [0.,-1.,(radar_img_side/2.)]
+        , [0.,0.,(radar_img_side/radar_world_diameter_units)]
+        ])
+
 # print a 3x3 matrix
 def print_3x3_matrix( M ):
     print('%f \t %f \t %f' % ( M[0,0], M[0,1], M[0,2] ))
     print('%f \t %f \t %f' % ( M[1,0], M[1,1], M[1,2] ))
     print('%f \t %f \t %f' % ( M[2,0], M[2,1], M[2,2] ))
 
+# diameter of the radar img in world units
+radar_world_diameter = 220.
+
 # accept a dict of prop-->value and ( base img, overlay img, [array] ).  apply to image, return for display
 def tuner_transform_img( d, userData ):
 
     overlay_img_alpha = 0.5
 
-    # todo (?):  use ImageRadarTransformer
+    # todo (?):  use/remove ImageRadarTransformer
     yaw = d['yaw']
     pitch = d['pitch']
     roll = d['roll']
@@ -361,7 +387,11 @@ def tuner_transform_img( d, userData ):
     overlayImg = userData[1]
     H,W    = overlayImg.shape[:2]
 
+    # construct radar to rgb matrix
     M = warpMatrix( W,H, yaw, pitch, roll, 1., fovy, tx, ty, tz )
+
+    # construct RADAR to world matrix
+    M_rw = get_radar_to_world_matrix( H, radar_world_diameter )
 
     # using warp matrix:
     # original pt --> warped pt
@@ -370,34 +400,39 @@ def tuner_transform_img( d, userData ):
     #iwp = invWarpPt(M, wp[0,0], wp[1,0])
     # assert( wp == iwp )
 
-    #store matrix for mouse event
-    #tuner.userData[2][0] = M
+    #store matrices for mouse event
+    if len(userData[2]) < 2:
+        userData[2].append(None)
+        userData[2].append(None)
+
     userData[2][0] = M
-
-    # create top-left, top-right horizon points
-    #horizonPts = [
-    #    (0,-topb)
-    #    , (baseW, -(topm*baseW+topb))
-    #]
-
-    # create the valid region using slope and offset; assumption is that everything below the line is valid
-    #bb = [ (0, -topb), (baseW, -(topm*baseW+topb)), (baseW,baseH),(0,baseH) ]
-    #overlay = constrain( overlay, bb )
-    #result = cv2.addWeighted( overlay, overlay_img_alpha, baseImg, 1 - overlay_img_alpha, 0 )
+    userData[2][1] = M_rw
 
     result = create_unified_image( baseImg, overlayImg, M, overlay_img_alpha)
 
     # output parameters/warp matrix?
     if 'output' in d and d['output']:
         print('\n*************** Calibration parameters ***************')
-        print('For RGB image dimensions: w=%d, h=%d' % ( baseW, baseH ) )
+        print('RGB image dimensions: w=%d, h=%d' % ( baseW, baseH ) )
+        print('RADAR image dimensions: w=%d, h=%d' % ( W, H ) )
+
         print('\nyaw: %.3f \npitch: %.3f \nroll: %.3f \nfovy: %.3f \ntx: %.3f \nty: %.3f \ntz: %.3f \nradar_img_w: %d' % ( yaw, pitch, roll, fovy, tx, ty, tz, W ) )
         
-        print('\n*************** RADAR to image matrix ***************')
+        print('\n*************** RADAR to rgb image matrix ***************')
         print_3x3_matrix(M)
 
-        print('\n*************** image to RADAR matrix ***************')
+        print('\n*************** rgb image to RADAR matrix ***************')
         print_3x3_matrix( np.linalg.inv(M) )
+
+        # construct RADAR to world matrix.  M_rw(3,3) numerator assumes square radar img?
+        print('\n*************** RADAR to world matrix ***************')
+        M_rw = get_radar_to_world_matrix( W, radar_world_diameter )
+        #M_rw = np.array([
+        #    [1.,0.,-(W/2.)]
+        #    , [0.,1.,-(H/2.)]
+        #    , [0.,0.,(W/radar_world_diameter)]
+        #    ])
+        print_3x3_matrix( M_rw )
 
         print('\n*To transform a point between planes, given transformation matrix M and point [px py]:')
         print(" [x y w]' = M*[px py 1]'")
@@ -433,7 +468,7 @@ def resize_crop( img, target_w, target_h ):
 
 # run this file directly to perform manual calibration on calibration images stored in 'calibrate_imgs' folder
 if __name__ == '__main__':
-
+    
     imgs_path = os.path.dirname( os.path.abspath(__file__) ) + '/calibrate_imgs/'
 
     # radar latency
@@ -461,8 +496,17 @@ if __name__ == '__main__':
     warp_img = cv2.imread(imgs_path + 'radar_1572379275.77.png')  #set 3 radar before refresh
     warp_img = cv2.imread(imgs_path + 'overlay-9276.02.png')
 
+
     # resize to multiple of wasr-accepted format (512x384)
-    base_img = resize_crop(base_img, 1024,768)
+    # base_img = resize_crop(base_img, 1024,768)
+    # pretty good values for 1024x768:
+    #   roll:   -3.0
+    #   pitch:  76.02
+    #   yaw:    0.0
+    #   fovy:   46.3
+    #   tx:     2.5
+    #   ty:     4.1
+    #   tz:     -4.4
     
     h,w   = warp_img.shape[:2]
     # todo:  add transparency to overlay; black=transparent
@@ -476,22 +520,24 @@ if __name__ == '__main__':
     #   ty:     6.2
     #   tz:     -4.4
 
-    # calibration for 1024x768
-
     #using image dimensions for translation (tx, ty, tz) limits but this is not strictly required
+
+    # set world units of radar diameter
+    radar_world_diameter = 220.   # meters
+
     tuner = Tuner( [
-        TunerCtl( 'roll', -3.0, 360, True, -2 ) # set1
-        , TunerCtl( 'pitch', 76.02, 360, True, -2 ) # set 3
-        , TunerCtl( 'yaw', 0.0, 360, True, -2 ) # set1
+        TunerCtl( 'roll', -2.96, 360, True, -2 ) # set1
+        , TunerCtl( 'pitch', 80.29, 360, True, -2 ) # set 3
+        , TunerCtl( 'yaw', 8.19, 360, True, -2 ) # set1
         , TunerCtl( 'fovy', 46.3, 180, False, -1 ) #set1
         , TunerCtl( 'tx', 2.5, w, True, -1 )  # set1
-        , TunerCtl( 'ty', 4.1, h, True, -1 ) # set 3
+        , TunerCtl( 'ty', 6.2, h, True, -1 ) # set 3
         , TunerCtl( 'tz', -4.4, h, True, -1 )
         , TunerCtl( 'output', 0, 1, False, 0 ) #special value for parameters&matrix output to stdout
         ]
         , tuner_transform_img # transform_img
         , onMouse
-        , ( base_img, warp_img, [None] )  # store the transformation matrix as the 3rd element
+        , ( base_img, warp_img, [] )  #  transformation matrices will be stored in 3rd element array
     )
     
     tuner.show()

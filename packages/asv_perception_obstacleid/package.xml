@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>asv_perception_fusion</name>
+  <name>asv_perception_obstacleid</name>
   <version>0.0.0</version>
-  <description>asv_perception_fusion</description>
+  <description>asv_perception_obstacleid</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -37,6 +37,14 @@
   <!--   <build_depend>roscpp</build_depend> -->
   <!--   <exec_depend>roscpp</exec_depend> -->
   <depend>asv_perception_common</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>nodelet</depend>
+  <depend>pcl_conversions</depend>
+  <depend>pcl_ros</depend>
+  <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
 
   <!-- Use build_depend for packages you need at compile time: -->
   <!-- <build_depend>message_generation</build_depend> -->
@@ -51,17 +59,13 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>rospy</build_depend>
-  <build_depend>std_msgs</build_depend>
-  <build_export_depend>rospy</build_export_depend>
-  <build_export_depend>std_msgs</build_export_depend>
-  <exec_depend>rospy</exec_depend>
-  <exec_depend>std_msgs</exec_depend>
-
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->
+    
+    <!-- nodelet info -->
+    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
 
   </export>
 </package>

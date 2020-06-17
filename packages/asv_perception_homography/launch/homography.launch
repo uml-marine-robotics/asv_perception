@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
     <arg name="pkg_name" value="asv_perception_homography"/>
-
-    <arg name="node_name" default="rgb_radar_homography"/>
+    <arg name="node_name" default="homography"/>
 
     <group ns="left_camera">
-
-        <arg name="topic_root_ns" default="/left_camera/$(arg node_name)/"/>
 
         <!-- 
             Node to publish rgb-radar homography matrix (TODO:  adjust w/ IMU data) 
             Subscriptions: /input: [MsgType] IMU data (TODO)
-            Publications:  /output: [marine_perception/HomographyStamped.msg] Homography from rgb image to radar
+            Publications:
+                - /rgb_radar:   [asv_perception_common/Homography.msg] Homography from rgb image to radar
+                - /radar_world: [asv_perception_common/Homography.msg] Homography from radar to world units
+                - /rgb_world:   [asv_perception_common/Homography.msg] Homography from rgb image to world units
         -->
         <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="homography_node.py" required="true" output="screen">
 
@@ -49,6 +49,9 @@
                 tz: -4.4
                 radar_img_w: 1024
 
+                <!-- radar img diameter equals how many world units (eg meters) -->
+                radar_world_units: 220.
+
             </rosparam>
 
         </node>
@@ -65,7 +68,7 @@
         <node name="$(arg node_name)_vis" pkg="$(arg pkg_name)" type="homography_vis_node.py" required="false" output="screen">
 
             <!-- remap from=sink to=source -->
-            <remap from="~input_homography" to="$(arg node_name)/output" />
+            <remap from="~input_homography" to="$(arg node_name)/rgb_radar" />
             <remap from="~input_rgb" to="/left_camera/image_color/compressed" />
             <remap from="~input_radar" to="/radar/radar_1/image_raw" />
         </node>

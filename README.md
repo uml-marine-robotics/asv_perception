@@ -19,13 +19,12 @@ Perception for marine surface vehicles
 *  `packages`:  ROS packages
 
 ## TODO:
-*  Video demo of pipeline
-    *  Tom needs to finish ObstacleID node
-*  Classification node/model (Rakshith)
+*  Obstacle reporting node
+*  Classification node/model (Tom + Rakshith)
     *  Currently implemented vanilla YOLOv3 ROS node/docker image, need domain-specific classifier
+    *  Use current Darknet + new weights
 *  Obstacle ID node
-    *  Classification + segmentation fusion (convert Python node to C++ nodelet)
-    *  Finish integration into pipeline
+    *  Projection:  fix wasr/classifier offset, parent/child detections
+    *  Refactor pointcloud filtering to nodelet
+    *  Accurate height/depth obstacle estimation
 *  Incorporate IMU data into homography node
-*  Remove need for separate classification container?  Need CUDA
-    *  TBD - wait for Rakshith's solution
