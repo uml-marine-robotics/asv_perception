@@ -27,7 +27,7 @@ ARG cuda_tc=1
 WORKDIR /src
 RUN git clone -n https://github.com/AlexeyAB/darknet.git && \
     cd darknet && \
-    git checkout 4c315ea26b56c2bf20ebc240d94386c6e3cc83db && \
+    git checkout e08a818d5fd12f2f6e6e262267b132be195b40a5 && \
     sed -i -e "s!OPENMP=0!OPENMP=1!g" Makefile && \
     sed -i -e "s!AVX=0!AVX=1!g" Makefile && \
     sed -i -e "s!LIBSO=0!LIBSO=1!g" Makefile && \
