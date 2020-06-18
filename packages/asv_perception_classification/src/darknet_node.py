@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 import rospy
-import darknet
 import numpy as np
 import cv2
-
+from darknet import (
+    detect_image as darknet_detect,
+    lib as darknet_lib, 
+    load_net as darknet_load_net, 
+    load_meta as darknet_load_meta,
+    array_to_image as darknet_array_to_image
+)
 from sensor_msgs.msg import Image, CompressedImage
 from asv_perception_common.msg import Classification, ClassificationArray
 import asv_perception_utils as utils
@@ -18,12 +23,18 @@ class darknet_node(object):
         configPath = rospy.get_param("~darknet_config_file")
         weightPath = rospy.get_param("~darknet_weights_file")
         metaPath = rospy.get_param("~darknet_meta_file")
+        
+        #darknet params; using defaults from darknet.py
+        self.darknet_thresh = rospy.get_param("~darknet_thresh", 0.5 )
+        self.darknet_hier_thresh = rospy.get_param("~darknet_hier_thresh", 0.5 )
+        self.darknet_nms = rospy.get_param("~darknet_nms", 0.45 )
 
-        self.net = darknet.load_net(str(configPath).encode("ascii"), str(weightPath).encode("ascii"), 0)
-        self.meta = darknet.load_meta( str(metaPath).encode("ascii") )
+        self.net = darknet_load_net(str(configPath).encode("ascii"), str(weightPath).encode("ascii"), 0)
+        self.meta = darknet_load_meta( str(metaPath).encode("ascii") )
 
         # get network expected image shape params
-        self.net_img_w, self.net_img_h = darknet.get_expected_shape( self.net )
+        self.net_img_w = darknet_lib.network_width( self.net )
+        self.net_img_h = darknet_lib.network_height( self.net )
 
         # publisher of classification array
         self.pub = rospy.Publisher( "~output", ClassificationArray, queue_size=1)
@@ -54,9 +65,12 @@ class darknet_node(object):
         scale_up = 1./ float(scale) #invert scale to convert from resized --> orig
         offsets = np.abs(offsets // 2) # divide offsets by 2 for center crop.  make positive
 
-        # def detect(net, meta, im, thresh=.5, hier_thresh=.5, nms=.45, debug= False) -> [(nameTag, dets[j].prob[i], (b.x, b.y, b.w, b.h))]:
-        # todo:  parameterize darknet params
-        dets = darknet.detect( self.net, self.meta, img )
+        # convert to darknet img format
+        #  todo:  use darknet/opencv instead?
+        img_data = darknet_array_to_image( img )  #returns tuple
+
+        # returns [(nameTag, dets[j].prob[i], (b.x, b.y, b.w, b.h))]:
+        dets = darknet_detect( self.net, self.meta, img_data[0], thresh=self.darknet_thresh, hier_thresh=self.darknet_hier_thresh, nms=self.darknet_nms )
 
         msg = ClassificationArray()
         msg.header = image_msg.header #match timestamps

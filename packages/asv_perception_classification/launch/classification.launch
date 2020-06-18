@@ -10,14 +10,17 @@
             Publications:  
                 - /output:  [asv_perception_common/ClassificationArray]
                             Array of detections.  Resulting ROIs scaled to input image size
-                - /image:   [sensor_msgs/Image] annotated rgb image (for visualization/debugging)
+                - /image:   [sensor_msgs/Image] annotated image (for visualization/debugging)
         -->
         <node name="classification" pkg="$(arg pkg_name)" type="darknet_node.py" required="true" output="screen">
-            <remap from="~input" to="/left_camera/image_color/compressed" />
+            <remap from="~input" to="image_color/compressed" />
             <rosparam>
-                darknet_config_file: "/data/yolov3.cfg"
-                darknet_weights_file: "/data/yolov3.weights"
-                darknet_meta_file: "/data/coco.data"
+                darknet_config_file: "/data/model.cfg"
+                darknet_weights_file: "/data/model.weights"
+                darknet_meta_file: "/data/model.data"
+                darknet_thresh: .5
+                darknet_hier_thresh: .5
+                darknet_nms: .45
             </rosparam>
         </node>
 

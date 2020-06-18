@@ -1,7 +1,4 @@
 #!python3
-
-#https://github.com/stereolabs/zed-yolo/blob/master/libdarknet/darknet.py
-
 """
 Python 3 wrapper for identifying objects in images
 
@@ -62,8 +59,13 @@ class DETECTION(Structure):
                 ("prob", POINTER(c_float)),
                 ("mask", POINTER(c_float)),
                 ("objectness", c_float),
-                ("sort_class", c_int)]
+                ("sort_class", c_int),
+                ("uc", POINTER(c_float)),
+                ("points", c_int)]
 
+class DETNUMPAIR(Structure):
+    _fields_ = [("num", c_int),
+                ("dets", POINTER(DETECTION))]
 
 class IMAGE(Structure):
     _fields_ = [("w", c_int),
@@ -78,7 +80,7 @@ class METADATA(Structure):
 
 
 #lib = CDLL("/home/pjreddie/documents/darknet/libdarknet.so", RTLD_GLOBAL)
-#lib = CDLL("darknet.so", RTLD_GLOBAL)
+#lib = CDLL("libdarknet.so", RTLD_GLOBAL)
 hasGPU = True
 if os.name == "nt":
     cwd = os.path.dirname(__file__)
@@ -128,13 +130,24 @@ lib.network_width.restype = c_int
 lib.network_height.argtypes = [c_void_p]
 lib.network_height.restype = c_int
 
-predict = lib.network_predict
+copy_image_from_bytes = lib.copy_image_from_bytes
+copy_image_from_bytes.argtypes = [IMAGE,c_char_p]
+
+def network_width(net):
+    return lib.network_width(net)
+
+def network_height(net):
+    return lib.network_height(net)
+
+predict = lib.network_predict_ptr
 predict.argtypes = [c_void_p, POINTER(c_float)]
 predict.restype = POINTER(c_float)
 
 if hasGPU:
     set_gpu = lib.cuda_set_device
     set_gpu.argtypes = [c_int]
+
+init_cpu = lib.init_cpu
 
 make_image = lib.make_image
 make_image.argtypes = [c_int, c_int, c_int]
@@ -151,10 +164,13 @@ make_network_boxes.restype = POINTER(DETECTION)
 free_detections = lib.free_detections
 free_detections.argtypes = [POINTER(DETECTION), c_int]
 
+free_batch_detections = lib.free_batch_detections
+free_batch_detections.argtypes = [POINTER(DETNUMPAIR), c_int]
+
 free_ptrs = lib.free_ptrs
 free_ptrs.argtypes = [POINTER(c_void_p), c_int]
 
-network_predict = lib.network_predict
+network_predict = lib.network_predict_ptr
 network_predict.argtypes = [c_void_p, POINTER(c_float)]
 
 reset_rnn = lib.reset_rnn
@@ -196,6 +212,15 @@ predict_image = lib.network_predict_image
 predict_image.argtypes = [c_void_p, IMAGE]
 predict_image.restype = POINTER(c_float)
 
+predict_image_letterbox = lib.network_predict_image_letterbox
+predict_image_letterbox.argtypes = [c_void_p, IMAGE]
+predict_image_letterbox.restype = POINTER(c_float)
+
+network_predict_batch = lib.network_predict_batch
+network_predict_batch.argtypes = [c_void_p, IMAGE, c_int, c_int, c_int,
+                                   c_float, c_float, POINTER(c_int), c_int, c_int]
+network_predict_batch.restype = POINTER(DETNUMPAIR)
+
 def array_to_image(arr):
     import numpy as np
     # need to return old values to avoid python freeing memory
@@ -220,38 +245,37 @@ def classify(net, meta, im):
     res = sorted(res, key=lambda x: -x[1])
     return res
 
-
-def get_expected_shape( net ):
-    """
-    Returns the width, height expected as input
-    """
-    return ( lib.network_width(net), lib.network_height(net) )
-
 def detect(net, meta, image, thresh=.5, hier_thresh=.5, nms=.45, debug= False):
     """
-    Expects RGB cv2/numpy image in proper shape
+    Performs the meat of the detection
     """
     #pylint: disable= C0321
-    #im = load_image(image, 0, 0)
-    # import cv2
-    #custom_image_bgr = cv2.imread(image) # use: detect(,,imagePath,)
-    # custom_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    # custom_image = cv2.resize( image,(lib.network_width(net), lib.network_height(net)), interpolation = cv2.INTER_LINEAR)
-    assert( image.shape[0] == lib.network_height(net) )
-    assert( image.shape[1] == lib.network_width(net ))
+    im = load_image(image, 0, 0)
+    if debug: print("Loaded image")
+    ret = detect_image(net, meta, im, thresh, hier_thresh, nms, debug)
+    free_image(im)
+    if debug: print("freed image")
+    return ret
 
+def detect_image(net, meta, im, thresh=.5, hier_thresh=.5, nms=.45, debug= False):
+    #import cv2
+    #custom_image_bgr = cv2.imread(image) # use: detect(,,imagePath,)
+    #custom_image = cv2.cvtColor(custom_image_bgr, cv2.COLOR_BGR2RGB)
+    #custom_image = cv2.resize(custom_image,(lib.network_width(net), lib.network_height(net)), interpolation = cv2.INTER_LINEAR)
     #import scipy.misc
     #custom_image = scipy.misc.imread(image)
-    im, arr = array_to_image( image )		# you should comment line below: free_image(im)
-    if debug: print("Loaded image")
+    #im, arr = array_to_image(custom_image)		# you should comment line below: free_image(im)
     num = c_int(0)
     if debug: print("Assigned num")
     pnum = pointer(num)
     if debug: print("Assigned pnum")
     predict_image(net, im)
+    letter_box = 0
+    #predict_image_letterbox(net, im)
+    #letter_box = 1
     if debug: print("did prediction")
-    #dets = get_network_boxes(net, custom_image_bgr.shape[1], custom_image_bgr.shape[0], thresh, hier_thresh, None, 0, pnum, 0) # OpenCV
-    dets = get_network_boxes(net, im.w, im.h, thresh, hier_thresh, None, 0, pnum, 0)
+    #dets = get_network_boxes(net, custom_image_bgr.shape[1], custom_image_bgr.shape[0], thresh, hier_thresh, None, 0, pnum, letter_box) # OpenCV
+    dets = get_network_boxes(net, im.w, im.h, thresh, hier_thresh, None, 0, pnum, letter_box)
     if debug: print("Got dets")
     num = pnum[0]
     if debug: print("got zeroth index of pnum")
@@ -280,8 +304,6 @@ def detect(net, meta, image, thresh=.5, hier_thresh=.5, nms=.45, debug= False):
     if debug: print("did range")
     res = sorted(res, key=lambda x: -x[1])
     if debug: print("did sort")
-    #free_image(im)
-    if debug: print("freed image")
     free_detections(dets, num)
     if debug: print("freed detections")
     return res
@@ -291,7 +313,7 @@ netMain = None
 metaMain = None
 altNames = None
 
-def performDetect(imagePath="data/dog.jpg", thresh= 0.25, configPath = "./cfg/yolov3.cfg", weightPath = "yolov3.weights", metaPath= "./cfg/coco.data", showImage= True, makeImageOnly = False, initOnly= False):
+def performDetect(imagePath="data/dog.jpg", thresh= 0.25, configPath = "./cfg/yolov4.cfg", weightPath = "yolov4.weights", metaPath= "./cfg/coco.data", showImage= True, makeImageOnly = False, initOnly= False):
     """
     Convenience function to handle the detection and returns of objects.
 
@@ -434,5 +456,72 @@ def performDetect(imagePath="data/dog.jpg", thresh= 0.25, configPath = "./cfg/yo
             print("Unable to show image: "+str(e))
     return detections
 
+def performBatchDetect(thresh= 0.25, configPath = "./cfg/yolov4.cfg", weightPath = "yolov4.weights", metaPath= "./cfg/coco.data", hier_thresh=.5, nms=.45, batch_size=3):
+    import cv2
+    import numpy as np
+    # NB! Image sizes should be the same
+    # You can change the images, yet, be sure that they have the same width and height
+    img_samples = ['data/person.jpg', 'data/person.jpg', 'data/person.jpg']
+    image_list = [cv2.imread(k) for k in img_samples]
+
+    net = load_net_custom(configPath.encode('utf-8'), weightPath.encode('utf-8'), 0, batch_size)
+    meta = load_meta(metaPath.encode('utf-8'))
+    pred_height, pred_width, c = image_list[0].shape
+    net_width, net_height = (network_width(net), network_height(net))
+    img_list = []
+    for custom_image_bgr in image_list:
+        custom_image = cv2.cvtColor(custom_image_bgr, cv2.COLOR_BGR2RGB)
+        custom_image = cv2.resize(
+            custom_image, (net_width, net_height), interpolation=cv2.INTER_NEAREST)
+        custom_image = custom_image.transpose(2, 0, 1)
+        img_list.append(custom_image)
+
+    arr = np.concatenate(img_list, axis=0)
+    arr = np.ascontiguousarray(arr.flat, dtype=np.float32) / 255.0
+    data = arr.ctypes.data_as(POINTER(c_float))
+    im = IMAGE(net_width, net_height, c, data)
+
+    batch_dets = network_predict_batch(net, im, batch_size, pred_width,
+                                                pred_height, thresh, hier_thresh, None, 0, 0)
+    batch_boxes = []
+    batch_scores = []
+    batch_classes = []
+    for b in range(batch_size):
+        num = batch_dets[b].num
+        dets = batch_dets[b].dets
+        if nms:
+            do_nms_obj(dets, num, meta.classes, nms)
+        boxes = []
+        scores = []
+        classes = []
+        for i in range(num):
+            det = dets[i]
+            score = -1
+            label = None
+            for c in range(det.classes):
+                p = det.prob[c]
+                if p > score:
+                    score = p
+                    label = c
+            if score > thresh:
+                box = det.bbox
+                left, top, right, bottom = map(int,(box.x - box.w / 2, box.y - box.h / 2,
+                                            box.x + box.w / 2, box.y + box.h / 2))
+                boxes.append((top, left, bottom, right))
+                scores.append(score)
+                classes.append(label)
+                boxColor = (int(255 * (1 - (score ** 2))), int(255 * (score ** 2)), 0)
+                cv2.rectangle(image_list[b], (left, top),
+                          (right, bottom), boxColor, 2)
+        cv2.imwrite(os.path.basename(img_samples[b]),image_list[b])
+
+        batch_boxes.append(boxes)
+        batch_scores.append(scores)
+        batch_classes.append(classes)
+    free_batch_detections(batch_dets, batch_size)
+    return batch_boxes, batch_scores, batch_classes    
+
 if __name__ == "__main__":
     print(performDetect())
+    #Uncomment the following line to see batch inference working 
+    #print(performBatchDetect())
