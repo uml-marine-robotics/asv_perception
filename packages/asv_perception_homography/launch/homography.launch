@@ -7,15 +7,16 @@
 
         <!-- 
             Node to publish rgb-radar homography matrix (TODO:  adjust w/ IMU data) 
-            Subscriptions: /input: [MsgType] IMU data (TODO)
+            Subscriptions: 
+                - ~imu:             [sensor_msgs/Imu] IMU data (TODO)
             Publications:
-                - /rgb_radar:   [asv_perception_common/Homography.msg] Homography from rgb image to radar
-                - /radar_world: [asv_perception_common/Homography.msg] Homography from radar to world units
-                - /rgb_world:   [asv_perception_common/Homography.msg] Homography from rgb image to world units
+                - ~rgb_radar:       [asv_perception_common/Homography] Homography from rgb image to radar
+                - ~radar_world:     [asv_perception_common/Homography] Homography from radar to world units
+                - ~rgb_world:       [asv_perception_common/Homography] Homography from rgb image to world units
         -->
         <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="homography_node.py" required="true" output="screen">
 
-            <remap from="~input" to="/imu/data/enu" />
+            <remap from="~imu" to="/imu/data/enu" />
 
             <rosparam>
                 <!-- parent and child frame ids for homography  ( parent/from -> child/to ) -->
@@ -59,18 +60,20 @@
         <!-- 
             Node to visualize alignment between rgb and radar images
             Subscriptions: 
-                /input_rgb: [sensor_msgs/CompressedImage]  Image from rgb camera
-                /input_radar: [sensor_msgs/Image]  Image from radar
-                /input_homography:  [marine_perception/HomographyStamped] Homography from rgb image to radar
-            Publications:  
-                /output: [sensor_msgs/Image]   Image which visualizes homography between rgb image and radar
+                - ~rgb:                   [sensor_msgs/CompressedImage] Image from rgb camera
+                - ~radar:                 [sensor_msgs/Image] Image from radar
+                - ~rgb_radar:             [asv_perception_common/HomographyStamped] Homography from rgb image to radar
+                - ~imu:                   [sensor_msgs/Imu] IMU data, East-North-Up
+            Publications:
+                - ~image:                 [sensor_msgs/Image] Image which visualizes homography between rgb image and radar
         -->
         <node name="$(arg node_name)_vis" pkg="$(arg pkg_name)" type="homography_vis_node.py" required="false" output="screen">
 
             <!-- remap from=sink to=source -->
-            <remap from="~input_homography" to="$(arg node_name)/rgb_radar" />
-            <remap from="~input_rgb" to="/left_camera/image_color/compressed" />
-            <remap from="~input_radar" to="/radar/radar_1/image_raw" />
+            <remap from="~imu" to="/imu/data/enu" />
+            <remap from="~rgb" to="image_color/compressed" />
+            <remap from="~radar" to="/radar/radar_1/image_raw" />
+            <remap from="~rgb_radar" to="$(arg node_name)/rgb_radar" />
         </node>
 
     </group>

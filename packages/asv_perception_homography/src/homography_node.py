@@ -29,7 +29,7 @@ class homography_node(object):
 
         # imu
         #self.sub_imu = rospy.Subscriber(
-        #    rospy.get_param( "~sub_imu" )
+        #    rospy.get_param( "~imu" )
         #    , Something, self.publish, queue_size=1
         #    )
 
