@@ -18,14 +18,14 @@ Perception for marine surface vehicles
 *  `docker`:  Build files and data for docker images
 *  `packages`:  ROS packages
 
-## TODO:
+## To-Do:
 *  Homography:
-    *  Incorporate IMU data
-    *  Online calibration
+    *  Incorporate GPS data for heave
 *  Basic obstacle tracking across frames; compute velocity vector
+    *  Incorporate GPS, fix ROS frame issues/add transforms
 *  Obstacle reporting node
 *  Obstacle ID node
-    *  Projection:  fix wasr/classifier offset, parent/child detections
+    *  Projection:  fix wasr/classifier offset, parent/child detections, visualization markers not disappearing on movement
     *  Refactor pointcloud filtering to nodelet
     *  Accurate height/depth obstacle estimation
         * Height:  estimate from projection/geometry

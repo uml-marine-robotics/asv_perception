@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import rospy
 import numpy as np
-from std_msgs.msg import Header
+from std_msgs.msg import Header, Empty
+from sensor_msgs.msg import Imu
+from tf.transformations import euler_from_quaternion
 from asv_perception_common.msg import Homography
 import asv_perception_utils as utils
 
-from calibrate import warpMatrix, get_radar_to_world_matrix
+from calibrate_utils import create_warp_matrix, get_radar_to_world_matrix
 
 class homography_node(object):
 
@@ -13,8 +15,7 @@ class homography_node(object):
         
         self.node_name = rospy.get_name()
         
-        # YPR in degrees
-        self.imu_yaw = 0.   
+        # pitch and roll, degrees   
         self.imu_pitch = 0.
         self.imu_roll = 0.
 
@@ -28,16 +29,26 @@ class homography_node(object):
         # subscriptions:
 
         # imu
-        #self.sub_imu = rospy.Subscriber(
-        #    rospy.get_param( "~sub_imu" )
-        #    , Something, self.publish, queue_size=1
-        #    )
+        self.sub_imu = rospy.Subscriber( "~imu", Imu, self.cb_imu, queue_size=1 )
 
-    def publishHomography( self, pub, M, t ):
+        # refresh notification from calibration tool; useful for visualization updates when rosbag is paused/stopped
+        self.sub_refresh = rospy.Subscriber( "~refresh", Empty, self.cb_refresh, queue_size=1 )
+    
+    def cb_refresh( self, msg ):
+        self.publish()
+
+    def cb_imu( self, msg ):
+        # imu.orientation is a normalized quaternion.  euler_from_quaternion returns radians
+        rpy = np.degrees( euler_from_quaternion( [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w] ) )
+        self.imu_roll, self.imu_pitch = rpy[:2]
+        self.publish()
+
+    # publish from rgb to other frame
+    def publish_homography( self, pub, M, t, frame_id, child_frame_id ):
         msg = Homography()
         msg.header.stamp = t
-        msg.header.frame_id = rospy.get_param("~frame_id")
-        msg.child_frame_id = rospy.get_param("~child_frame_id")
+        msg.header.frame_id = frame_id
+        msg.child_frame_id = child_frame_id
         msg.values = np.ravel( M )
         pub.publish( msg )
         self.has_published = True
@@ -49,20 +60,17 @@ class homography_node(object):
         if self.has_published and self.pub_rgb_radar.get_num_connections() < 1 and self.pub_radar_world.get_num_connections() < 1 and self.pub_rgb_world.get_num_connections() < 1:
             return
 
-        #if msg is not None:
-        #   todo: convert IMU data to YPR ( in degrees ), set self.imu_*
-
         # message time
         t = rospy.Time.now()
 
         # rgb to radar
-        #  warpMatrix computes radar to rgb, we want the inverse
-        M_rgb_radar = np.linalg.inv( warpMatrix( 
+        #  create_warp_matrix computes radar to rgb, we want the inverse
+        M_rgb_radar = np.linalg.inv( create_warp_matrix( 
             rospy.get_param('~radar_img_w') 
             , rospy.get_param('~radar_img_w')
-            , rospy.get_param('~yaw') + self.imu_yaw
-            , rospy.get_param('~pitch') + self.imu_pitch
-            , rospy.get_param('~roll') + self.imu_roll
+            , rospy.get_param('~yaw')
+            , rospy.get_param('~pitch') - self.imu_pitch
+            , rospy.get_param('~roll') - self.imu_roll
             , 1.
             , rospy.get_param('~fovy')
             , rospy.get_param('~tx')
@@ -71,15 +79,19 @@ class homography_node(object):
             ) 
             )
 
-        self.publishHomography( self.pub_rgb_radar, M_rgb_radar, t )
+        rgb_frame_id = rospy.get_param("~rgb_frame_id")
+        radar_frame_id = rospy.get_param("~radar_frame_id")
+        robot_frame_id = rospy.get_param("~robot_frame_id")
 
-        # radar to world
+        self.publish_homography( self.pub_rgb_radar, M_rgb_radar, t, rgb_frame_id, radar_frame_id )
+
+        # radar to robot
         M_radar_world = get_radar_to_world_matrix( rospy.get_param('~radar_img_w'), rospy.get_param('~radar_world_units') )
-        self.publishHomography( self.pub_radar_world, M_radar_world, t )
+        self.publish_homography( self.pub_radar_world, M_radar_world, t, radar_frame_id, robot_frame_id )
 
-        # rgb to world is (radar_to_world)*(rgb_to_radar)
+        # rgb to robot is (radar_to_world)*(rgb_to_radar)
         M_rgb_world = np.matmul( M_radar_world, M_rgb_radar )
-        self.publishHomography( self.pub_rgb_world, M_rgb_world, t )
+        self.publish_homography( self.pub_rgb_world, M_rgb_world, t, rgb_frame_id, robot_frame_id )
 
 if __name__ == "__main__":
 
