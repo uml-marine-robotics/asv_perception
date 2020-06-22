@@ -2,82 +2,80 @@
 import cv2
 import rospy
 import numpy as np
-from calibrate import create_unified_image
 from sensor_msgs.msg import Image, CompressedImage, Imu
-import asv_perception_utils as utils
-from asv_perception_common.msg import Homography
 from tf.transformations import euler_from_quaternion
+
+from asv_perception_common.msg import Homography
+import asv_perception_utils as utils
+from calibrate_utils import create_unified_image
 
 class homography_visualization(object):
 
     def __init__(self):
 
         self.node_name = rospy.get_name()
-        self.radarImg = None
+        self.radar_img = None
+        self.rgb_img = None
         self.homography = None
         self.imu = None
-        
+        self.pub_header = None
+
         # publisher
         self.pub = rospy.Publisher( "~image", Image, queue_size=1)
 
-        # subscribers
-        #  currently, not doing any time syncing of inputs.  assuming current information on all inputs
-        # todo:  approximatetimesync on radar and image, but not homography
-
-        # radar
-        self.sub_radar = rospy.Subscriber( "~radar", Image, self.processRadarImage, queue_size=1, buff_size=2**24 )
-
-        # rgb camera
-        self.sub_rgb = rospy.Subscriber( "~rgb", CompressedImage, self.processRGBImage, queue_size=1, buff_size=2**24 )
+        # subscribers; approximate time sync seems to fail when restarting a rosbag; just use latest of each msg
+        self.sub_rgb = rospy.Subscriber( "~rgb", CompressedImage, self.cb_rgb, queue_size=1, buff_size=2**24 )
+        self.sub_radar = rospy.Subscriber( "~radar", Image, self.cb_radar, queue_size=1, buff_size=2**24 )
 
         # homography matrix
-        self.sub_homography = rospy.Subscriber( "~rgb_radar", Homography, self.processHomography, queue_size=1 )
+        self.sub_homography = rospy.Subscriber( "~rgb_radar", Homography, self.cb_homography, queue_size=1 )
 
         # imu
-        self.sub_imu = rospy.Subscriber( "~imu", Imu, self.processImu, queue_size=1 )
+        self.sub_imu = rospy.Subscriber( "~imu", Imu, self.cb_imu, queue_size=1 )
 
-    def processImu( self, msg ):
+    def cb_imu( self, msg ):
         self.imu = msg
+        self.publish()
 
-    def processRadarImage(self, image_msg):
-        self.radarImg = utils.convert_ros_msg_to_cv2(image_msg)
+    def cb_rgb( self, msg ):
+        self.rgb_img = utils.convert_ros_msg_to_cv2( msg )
+        self.pub_header = msg.header
+        self.publish()
+    
+    def cb_radar(self, msg ):
+        self.radar_img = utils.convert_ros_msg_to_cv2( msg )
+        self.publish()
 
-    def processHomography( self, msg ):
+    def cb_homography( self, msg ):
         # convert float[9] to numpy 3x3
-        #   then invert the homography, since we want radar --> image for create_unified_image
+        #   then invert the homography, since we want radar --> rgb for image creation
         self.homography = np.linalg.inv( np.array(msg.values).reshape((3,3)) )
+        self.publish()
 
-    def processRGBImage(self, image_msg):
+    def publish(self):
 
-        # no subscribers, no work
-        if self.pub.get_num_connections() < 1:
+        # no subscribers/data, no work
+        if self.pub.get_num_connections() < 1 or self.radar_img is None or self.rgb_img is None or self.homography is None:
             return
 
-        if self.radarImg is None:
-            rospy.loginfo('******** RADAR image not yet received, dropping rgb frame ********')
-            return
+        # using rgb msg header
+        assert self.pub_header is not None
 
-        if self.homography is None:
-            rospy.loginfo('******** Homography not yet received, dropping rgb frame ********')
-            return
-
-        image = utils.convert_ros_msg_to_cv2(image_msg)
-
-        result = create_unified_image( image, self.radarImg, self.homography )
+        img = create_unified_image( self.rgb_img, self.radar_img, self.homography )
 
         # print some text on the resulting image
-        printText = lambda text, position : cv2.putText( result, text, position, cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0,255,0), 2 )
+        print_text = lambda text, position : cv2.putText( img, text, position, cv2.FONT_HERSHEY_SIMPLEX, 1., (0,255,0), 2 )
 
         # convert imu orientation to euler angles, display
-        #  todo:  verify degrees/rads?
         if self.imu is not None:
-            q = [self.imu.orientation.x, self.imu.orientation.y, self.imu.orientation.z, self.imu.orientation.w]
-            rpy = euler_from_quaternion(q)
-            printText( "{}: {:.2f}".format( "Roll", rpy[0] ), ( 5, 25 ) )
-            printText( "{}: {:.2f}".format( "Pitch", rpy[1] ), ( 5, 50 ) )
+            # imu.orientation is a normalized quaternion.  euler_from_quaternion returns radians
+            rpy = euler_from_quaternion( [self.imu.orientation.x, self.imu.orientation.y, self.imu.orientation.z, self.imu.orientation.w] )
+            rpy = np.degrees( rpy )
+            print_text( "{}: {:.2f}".format( "Roll (deg)", rpy[0] ), ( 5, 50 ) )
+            print_text( "{}: {:.2f}".format( "Pitch (deg)", rpy[1] ), ( 5, 100 ) )
 
-        msg = utils.convert_cv2_to_ros_msg( result, 'bgr8' )
-        msg.header = image_msg.header # match timestamp
+        msg = utils.convert_cv2_to_ros_msg( img, 'bgr8' )
+        msg.header = self.pub_header # match timestamp
         self.pub.publish( msg )
 
 if __name__ == "__main__":

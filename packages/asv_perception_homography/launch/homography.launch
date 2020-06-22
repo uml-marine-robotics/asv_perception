@@ -5,55 +5,47 @@
 
     <group ns="left_camera">
 
+        <arg name="homography_calibration_file" default="$(find asv_perception_homography)/launch/calib_left_camera_homography.yaml" />
+
         <!-- 
-            Node to publish rgb-radar homography matrix (TODO:  adjust w/ IMU data) 
+            Node to publish homography matrices between rgb, radar, and robot frames
             Subscriptions: 
-                - ~imu:             [sensor_msgs/Imu] IMU data (TODO)
+                - ~imu:             [sensor_msgs/Imu] IMU data, east-north-up
+                - ~refresh:         [sensor_msgs/Empty]
             Publications:
                 - ~rgb_radar:       [asv_perception_common/Homography] Homography from rgb image to radar
-                - ~radar_world:     [asv_perception_common/Homography] Homography from radar to world units
-                - ~rgb_world:       [asv_perception_common/Homography] Homography from rgb image to world units
+                - ~radar_world:     [asv_perception_common/Homography] Homography from radar to world units (robot frame)
+                - ~rgb_world:       [asv_perception_common/Homography] Homography from rgb image to world units (robot frame)
         -->
         <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="homography_node.py" required="true" output="screen">
 
             <remap from="~imu" to="/imu/data/enu" />
 
             <rosparam>
-                <!-- parent and child frame ids for homography  ( parent/from -> child/to ) -->
-                frame_id: "left_camera"
-                child_frame_id: "radar_1"
+                <!-- frame ids for homography msgs -->
+                rgb_frame_id: "left_camera"
+                radar_frame_id: "radar_1"
+                robot_frame_id: "base_link"
 
-                <!-- 
-                    RADAR to rgb alignment parameter values.  Values generated from output of calibrate.py
-                    Values are specific to radar and rgb image shape
-                -->
-
-                <!-- 1024 x 768 -->
-                <!-- 
-                roll: -3.0
-                pitch: 76.02
-                yaw: 0
-                fovy: 46.3
-                tx: 2.5
-                ty: 4.1
-                tz: -4.4
-                radar_img_w: 1024
-                -->
-                
+                <!-- radar to rgb homography parameter defaults -->
                 <!-- 1280 x 1024 -->
                 roll: -2.96
                 pitch: 80.29
-                yaw: 8.19
+                yaw_: 8.19
+                yaw: 0.
                 fovy: 46.3
                 tx: 2.5
                 ty: 6.2
                 tz: -4.4
+
                 radar_img_w: 1024
 
                 <!-- radar img diameter equals how many world units (eg meters) -->
-                radar_world_units: 220.
-
+                <!-- sailboats.bag:  r=195 -->
+                radar_world_units: 390.
             </rosparam>
+
+            <rosparam file="$(arg homography_calibration_file)" />
 
         </node>
 
@@ -72,7 +64,7 @@
             <!-- remap from=sink to=source -->
             <remap from="~imu" to="/imu/data/enu" />
             <remap from="~rgb" to="image_color/compressed" />
-            <remap from="~radar" to="/radar/radar_1/image_raw" />
+            <remap from="~radar" to="/broadband_radar/channel_1/image_raw" />
             <remap from="~rgb_radar" to="$(arg node_name)/rgb_radar" />
         </node>
 
