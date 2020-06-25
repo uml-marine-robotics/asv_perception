@@ -6,18 +6,19 @@
   <group ns="$(arg namespace_name)">
 
     <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
-    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager"/>
+    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
 
     <!-- 
       Left camera classified extraction, unclassified projection
       See ObstacleProjectionNodelet.h
     -->
-    <node pkg="nodelet" type="nodelet" name="projection" args="load $(arg package_name)/ObstacleProjectionNodelet $(arg nodelet_name)" output="screen">
+    <node pkg="nodelet" type="nodelet" name="projection" respawn="true" output="screen"
+      args="load $(arg package_name)/ObstacleProjectionNodelet $(arg nodelet_name)" >
 
       <remap from="~segmentation" to="segmentation/output" />
       <remap from="~classification" to="classification/output" />
-      <remap from="~rgb_world" to="homography/rgb_world" />
       <remap from="~rgb_radar" to="homography/rgb_radar" />
+      <remap from="~rgb_radarimg" to="homography/rgb_radarimg" />
 
     </node>
 
@@ -34,7 +35,9 @@
     </node>
 
     <!-- cluster extraction to obstacles -->
-    <node pkg="nodelet" type="nodelet" name="extraction" args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" output="screen">
+    <node pkg="nodelet" type="nodelet" name="extraction" respawn="true" output="screen"
+      args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" >
+
       <remap from="~input" to="voxel_grid/output" />
       
       <rosparam>

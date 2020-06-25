@@ -22,8 +22,9 @@ namespace obstacle_id
     Input topics:
     - segmentation:       [sensor_msgs/Image] 2d obstacle map, all pixels with value > 0 are considered obstacle pixels
     - classification:     [asv_perception_common/ClassificationArray]  Classifications
-    - rgb_world:          [asv_perception_common/Homography] rgb to world homography matrix
+    - rgb_radarimg:       [asv_perception_common/Homography] rgb to radar image homography matrix
     - rgb_radar:          [asv_perception_common/Homography] rgb to radar homography matrix
+    
     Output topics:
     - obstacles:          [asv_perception_common/ObstacleArray] Classified obstacles
     - cloud:              [sensor_msgs/PointCloud2]  Unclassified obstacle pointcloud
@@ -57,8 +58,8 @@ namespace obstacle_id
         );
 
         // homography callback
+        void cb_homography_rgb_radarimg ( const typename homography_msg_type::ConstPtr& );
         void cb_homography_rgb_radar ( const typename homography_msg_type::ConstPtr& );
-        void cb_homography_rgb_world ( const typename homography_msg_type::ConstPtr& );
         
     private:
 
@@ -70,8 +71,8 @@ namespace obstacle_id
 
         // subscriptions
         ros::Subscriber 
-            _sub_rgb_radar
-            , _sub_rgb_world
+            _sub_rgb_radarimg
+            , _sub_rgb_radar
             ;
         message_filters::Subscriber<segmentation_msg_type> _sub_segmentation;
         message_filters::Subscriber<classification_msg_type> _sub_classification;
@@ -83,8 +84,8 @@ namespace obstacle_id
 
         // homography msg storage
         typename asv_perception_common::Homography::ConstPtr 
-            _h_rgb_world
-            , _h_rgb_radar
+            _h_rgb_radar
+            , _h_rgb_radarimg
             ;
 
     public:

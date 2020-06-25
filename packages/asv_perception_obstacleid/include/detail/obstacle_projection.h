@@ -24,15 +24,15 @@ namespace impl {
 
     // compute the image row (y) value which approximates the horizon at image column (x)
     //  see compute_horizon in calibrate.py, asv_perception_homography 
-    inline std::uint32_t compute_rgb_horizon( const std::uint32_t x, const Homography& radar_to_rgb ) {
+    inline std::uint32_t compute_rgb_horizon( const std::uint32_t x, const Homography& radar_to_rgbimg ) {
 
         //  todo:  use rgb to/from world to transform two arbitrary points along x axis world coordinates as y -> inf, compute slope
         //      currently, doing this underestimates horizon, results vary depending on start x
         //      need more rigorous way to solve vs line/slope approach
 
         const auto 
-            p0 = radar_to_rgb( 0.f, 0.f )
-            , p1 = radar_to_rgb( 1.f, 0.f )
+            p0 = radar_to_rgbimg( 0.f, 0.f )
+            , p1 = radar_to_rgbimg( 1.f, 0.f )
             ;
         const auto             
             dx = p1.first - p0.first
@@ -84,8 +84,8 @@ namespace impl {
     inline void project_scanline( 
         const std::uint32_t x
         , const image_type& img
-        , const Homography& rgb_to_world
-        , const Homography& radar_to_rgb
+        , const Homography& rgb_to_radar
+        , const Homography& radar_to_rgbimg
         , const float max_height
         , const float max_depth
         , const float resolution
@@ -96,12 +96,12 @@ namespace impl {
         // at the current x and start_y, create an obstacle
         //  param is placeholder for future height estimation: using start_y - (param)
         const auto transform_append = [&]( int ) {
-            const auto world_pt = rgb_to_world( (float)x, (float)start_y );
+            const auto world_pt = rgb_to_radar( (float)x, (float)start_y );
             // todo:  height/depth estimation.  for now, use max values
             append_points( world_pt.first, world_pt.second, max_height, max_depth, resolution, pc );
         };
 
-        for ( int y = img.rows - 1, horizon = (int)compute_rgb_horizon( x, radar_to_rgb ); y > horizon; --y ) {
+        for ( int y = img.rows - 1, horizon = (int)compute_rgb_horizon( x, radar_to_rgbimg ); y > horizon; --y ) {
 
             if ( img.at<std::uint8_t>( y, (int)x ) > 0 ) {   // pixel has obstacle class
                 if ( start_y < 0 )
@@ -126,8 +126,8 @@ Projects obstacles in a single channel obstacle img to point cloud
 */
 inline pointcloud_type project( 
     const image_type& img
-    , const Homography& rgb_to_world
-    , const Homography& radar_to_rgb
+    , const Homography& rgb_to_radar
+    , const Homography& radar_to_rgbimg
     , const float max_height = 1.f
     , const float max_depth = 1.f
     , const float resolution = 0.25f
@@ -140,7 +140,7 @@ inline pointcloud_type project(
     pointcloud_type result = {};
 
     for ( int x = 0; x < img.cols; ++x )
-        impl::project_scanline( x, img, rgb_to_world, radar_to_rgb, max_height, max_depth, resolution, result );
+        impl::project_scanline( x, img, rgb_to_radar, radar_to_rgbimg, max_height, max_depth, resolution, result );
 
     return result;
 }

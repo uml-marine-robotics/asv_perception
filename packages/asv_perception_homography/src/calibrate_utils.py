@@ -144,10 +144,11 @@ def transform_pt( mtx, pt ):
     return (r / r[2,0])[:2]
 
 # returns radar to world matrix for provided radar image width and real-world unit measurement
+#  converts to x=forward, y=left, z=up IAW rep 103
 def get_radar_to_world_matrix( radar_img_side, radar_world_diameter_units ):
     return np.array([
-        [1.,0.,-(radar_img_side/2.)]
-        , [0.,-1.,(radar_img_side/2.)]
+        [0.,-1.,(radar_img_side/2.)]
+        , [-1.,0.,(radar_img_side/2.)]
         , [0.,0.,(radar_img_side/radar_world_diameter_units)]
         ])
 

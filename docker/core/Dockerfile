@@ -1,5 +1,13 @@
 FROM ros:melodic-perception-bionic
 
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install packages
+RUN apt-get update && \
+    apt-get -y install ros-melodic-robot-localization && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 # define workspace
 ARG CATKIN_WS="/catkin_ws"
 ENV CATKIN_WS=${CATKIN_WS}
