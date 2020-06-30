@@ -52,6 +52,7 @@
       <rosparam>
         marker_duration_secs: 0
         marker_duration_nsecs: 150000000
+        show_position_frame:  'utm'
       </rosparam>
     </node>
 

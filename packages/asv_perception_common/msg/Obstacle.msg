@@ -1,5 +1,8 @@
 # Represents a 3D obstacle
 
+# header timestamp should be acquisition time of source data
+Header header
+
 # polygon describing the obstacle, with first and last points connected
 geometry_msgs/Polygon shape
 

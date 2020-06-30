@@ -1,138 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
 
-    <!-- need to parameterize this -->
-    <param name="/use_sim_time" value="true" />
+    <!-- set to true to work around rosbag play/transformation time errors -->
+    <arg name="set_sim_time" default="false"/>
+
+    <!-- set to true to launch the localization+tf stack -->
+    <arg name="localization_enabled" default="false"/>
+    
+    <!-- set_sim_time -->
+    <group if="$(arg set_sim_time)">
+        <param name="/use_sim_time" value="true" />
+    </group>
+    
+    <!-- localization -->
+    <group if="$(arg localization_enabled)">
+        <include file="$(env CATKIN_WS)/src/localization.launch" />
+    </group>
 
     <!-- launch file for packages in the asv_perception_core image -->
     <include file="$(find asv_perception_homography)/launch/homography.launch" />
     <include file="$(find asv_perception_obstacleid)/launch/obstacleid.launch" />
 
-    
-    <!-- test -->
-    <!--
-    <node pkg="tf" type="tf_remap" name="tf_remapper" output="screen">
-        <rosparam param="mappings">
-        - {old: "/tf",
-            new: "/tf_old"}
-        </rosparam>
-    </node>
-    
-    -->
-    <!-- 
-    <node pkg="tf" type="static_transform_publisher" name="map_to_odom" args="0.0 0.0 0.0 0 0 0.0 map odom 1000"/>
-    
-    <node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform_node" clear_params="true">
-        
-        <rosparam>
-            map_frame: 'map'
-            odom_frame: 'odom'
-            base_link_frame: 'base_link'
-            world_frame: 'map'
-        </rosparam>
-
-        <remap from="imu/data" to="/imu/data/ned"/>
-        <remap from="odometry/filtered" to="/initialpose"/>
-        <remap from="gps/fix" to="/sensor/gps/fix"/>
-
-    </node>
-    -->
-
-    <!-- velodyne to base_link:  velodyne reports iaw right hand rule -->
-    <node pkg="tf" type="static_transform_publisher" name="velodyne_to_base" args="0 0 0 0 0 0 1 base_link velodyne 100"/>
-
-    <!-- 
-        setup based on http://docs.ros.org/melodic/api/robot_localization/html/integrating_gps.html#using-navsat-transform-node 
-        odom:  odometry frame based on imu
-        map:   map frame based on gps + imu
-        base_link:  robot frame
-    -->
-
-    <!-- base to odom transformation -->
-    <node pkg="robot_localization" type="ukf_localization_node" name="ukf_localization_local" clear_params="true">
-
-        <rosparam>
-            world_frame: 'odom'
-            frequency: 10
-            imu0: '/imu/data/enu'
-            imu0_differential: false
-            imu0_remove_gravitational_acceleration: false
-            print_diagnostics: true
-        </rosparam>
-        
-        <rosparam param="imu0_config">
-            [false, false, false,
-            true,  true,  true,
-            false, false, false,
-            true,  true,  true,
-            false, false, false]
-        </rosparam>
-    </node>
-
-    <node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform_node" respawn="true" output="screen">
-
-        <rosparam>
-            map_frame: 'map'
-            odom_frame: 'odom'
-            base_link_frame: 'base_link'
-            world_frame: 'map'
-            zero_altitude: false
-            <!-- node expects imu to have 0 yaw when facing east. if imu provides yaw=0 when facing north, set to pi/2 -->
-            ayaw_offset: 1.5707963 <!-- goes left -->
-            aayaw_offset: 0 <!-- goes backwards -->
-            aaayaw_offset: -1.5707963 <!-- goes right -->
-            yaw_offset: 3.14159 <!-- goes forward as expected... -->
-            <!-- 
-                locale-specific 
-                https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml#declination
-                boston ma:  14 deg 24 mins W
-            -->
-            magnetic_declination_radians: 0.251327412
-        </rosparam>
-
-        <remap from="imu/data" to="/imu/data/enu"/>
-        <remap from="odometry/filtered" to="/initialpose"/>
-        <remap from="gps/fix" to="/sensor/gps/fix"/>
-    </node>
-
-    <!-- odom to map transformation -->
-    <node pkg="robot_localization" type="ukf_localization_node" name="ukf_localization" clear_params="true">
-
-        <!-- odometry/gps published by navsat_transform_node -->
-        <rosparam>
-            world_frame: 'map'
-            frequency: 10
-            imu0: '/imu/data/enu'
-            imu0_differential: false
-            imu0_remove_gravitational_acceleration: false
-            odom0: 'odometry/gps'
-            odom0_differential: false
-        </rosparam>
-        
-        <rosparam param="imu0_config">
-            [false, false, false,
-            true,  true,  true,
-            false, false, false,
-            true,  true,  true,
-            false, false, false]
-        </rosparam>
-
-        <rosparam param="odom0_config">
-            [true,  true,  true,
-            false, false, false,
-            true,  true,  true,
-            false, false, false,
-            true,  true,  true]
-        </rosparam>
-
-        <!-- 
-        <rosparam param="odom0_config">[true,  true,  true,
-                                    false, false, false,
-                                    false, false, false,
-                                    false, false, false,
-                                    false, false, false]</rosparam>
-        -->
-        
-    </node>
-    
 </launch> 

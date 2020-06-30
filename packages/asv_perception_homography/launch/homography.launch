@@ -3,9 +3,6 @@
     <arg name="pkg_name" value="asv_perception_homography"/>
     <arg name="node_name" default="homography"/>
 
-    <!-- test -->
-    <node name="initialpose_node" pkg="$(arg pkg_name)" type="initialpose_node.py" output="screen" />
-
     <group ns="left_camera">
 
         <arg name="homography_calibration_file" default="$(find asv_perception_homography)/launch/calib_left_camera_homography.yaml" />

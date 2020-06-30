@@ -37,7 +37,7 @@ inline std::vector<Obstacle> project(
     for ( const auto& cls : classifications.classifications ) 
         obstacles_2d.emplace_back( std::make_shared<ClassifiedObstacle2d>(cls) );
 
-    // todo:  expand bounding boxes
+    //  todo:  expand/contract bounding boxes
     //  todo:  estimate z offset via parent/child relationships
     //      depends on adjacent pixel class, known/unknown
     //      eg assume boat and person are known classes.  

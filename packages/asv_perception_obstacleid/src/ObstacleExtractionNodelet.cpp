@@ -26,7 +26,7 @@ void ObstacleExtractionNodelet::onInit ()
   base_type::onInit ();
 
   // Mandatory parameters
-  if ( !pnh_->getParamCached("cluster_tolerance", this->_cluster_tolerance ))
+  if ( !pnh_->getParam("cluster_tolerance", this->_cluster_tolerance ))
   {
     NODELET_ERROR ("[%s::onInit] Need a 'cluster_tolerance' parameter to be set before continuing!", getName ().c_str ()); 
     return;
@@ -34,10 +34,10 @@ void ObstacleExtractionNodelet::onInit ()
 
   // optional parameters
   int val = 0;  
-  if ( pnh_->getParamCached("max_cluster_size", val ) && ( val >= 0 ) )
+  if ( pnh_->getParam("max_cluster_size", val ) && ( val >= 0 ) )
     this->_max_cluster_sz = (std::uint32_t)val;
 
-  if ( pnh_->getParamCached("min_cluster_size", val ) && ( val >= 0 ) )
+  if ( pnh_->getParam("min_cluster_size", val ) && ( val >= 0 ) )
     this->_min_cluster_sz = (std::uint32_t)val;
 
   // publisher
@@ -101,13 +101,16 @@ void ObstacleExtractionNodelet::sub_callback (
 
     // perform obstacle extraction
     asv_perception_common::ObstacleArray msg = {};
-    msg.header = cloud->header;
 
     // todo:  refactor pointcloud filters into separate nodelet with parameters
     msg.obstacles = detail::obstacle_extraction::extract( 
       pc_ptr, this->_cluster_tolerance, this->_min_cluster_sz, this->_max_cluster_sz
       , -1.f, 2.f, 3.5f 
       );
+
+    // set header for obstacles
+    for ( auto& obs : msg.obstacles )
+      obs.header = cloud->header;
 
     this->_pub.publish( msg );
 

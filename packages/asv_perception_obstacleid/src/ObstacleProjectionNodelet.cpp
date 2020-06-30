@@ -164,9 +164,15 @@ void ObstacleProjectionNodelet::sub_callback (
 
         // get classified obstacles, publish obstacle message
         auto msg = asv_perception_common::ObstacleArray();
-        msg.header = cls_msg->header;
-        msg.header.frame_id = child_frame_id;
+        
         msg.obstacles = detail::classified_obstacle_projection::project( img, *cls_msg, h_rgb_to_radar );
+
+        // set header for obstacles
+        for ( auto& obs : msg.obstacles ) {
+            obs.header = cls_msg->header;
+            obs.header.frame_id = child_frame_id;
+        }
+            
         this->_pub.publish( msg );
 
         // debug img
