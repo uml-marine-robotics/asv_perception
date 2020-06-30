@@ -9,10 +9,15 @@
 namespace obstacle_id
 {
   /*
-  Nodelet for visualization of pointclouds in rviz
+  Nodelet for visualization of obstacles in rviz
   Topics:
-  - input:  [asv_perception_common/ObstacleArray.msg]
-  - output:  MarkerArray
+    - ~input:  [asv_perception_common/ObstacleArray.msg] obstacle messages
+    - ~output: [visualization_msgs/MarkerArray] obstacle markers
+  Parameters:
+    - ~marker_duration_secs:     [uint]    seconds to display a marker.  default: 0
+    - ~marker_duration_nsecs:    [uint]    nanoseconds to display a marker.  default:  1e+6*100 (100ms)
+    - ~show_position_frame:      [string]  If set, transforms the obstacle pose.position to this frame, and append the transformed position to the obstacle label.  
+                                           Currently will only show if obstacle already has a label assigned.  Default:  none
   */
   class ObstacleVisualizationNodelet 
     : public nodelet_topic_tools::NodeletLazy
@@ -42,6 +47,13 @@ namespace obstacle_id
 
       // markerarray
       ros::Publisher _out;
+
+      // params
+      std::string _show_position_frame;
+      int 
+        _marker_duration_secs = 0
+        , _marker_duration_nsecs = 0
+        ;
 
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW

@@ -1,7 +1,4 @@
-# This message represents an array of 3D obstacles
-
-# header timestamp should be acquisition time of source data
-Header header
+# This message represents an array of obstacles
 
 # The array of obstacles
 Obstacle[] obstacles

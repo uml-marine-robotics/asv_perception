@@ -25,10 +25,10 @@ class homography_visualization(object):
 
         # subscribers; approximate time sync seems to fail when restarting a rosbag; just use latest of each msg
         self.sub_rgb = rospy.Subscriber( "~rgb", CompressedImage, self.cb_rgb, queue_size=1, buff_size=2**24 )
-        self.sub_radar = rospy.Subscriber( "~radar", Image, self.cb_radar, queue_size=1, buff_size=2**24 )
+        self.sub_radar = rospy.Subscriber( "~radarimg", Image, self.cb_radar, queue_size=1, buff_size=2**24 )
 
         # homography matrix
-        self.sub_homography = rospy.Subscriber( "~rgb_radar", Homography, self.cb_homography, queue_size=1 )
+        self.sub_homography = rospy.Subscriber( "~rgb_radarimg", Homography, self.cb_homography, queue_size=1 )
 
         # imu
         self.sub_imu = rospy.Subscriber( "~imu", Imu, self.cb_imu, queue_size=1 )
@@ -73,6 +73,7 @@ class homography_visualization(object):
             rpy = np.degrees( rpy )
             print_text( "{}: {:.2f}".format( "Roll (deg)", rpy[0] ), ( 5, 50 ) )
             print_text( "{}: {:.2f}".format( "Pitch (deg)", rpy[1] ), ( 5, 100 ) )
+            print_text( "{}: {:.2f}".format( "Yaw (deg)", rpy[2] ), ( 5, 150 ) )
 
         msg = utils.convert_cv2_to_ros_msg( img, 'bgr8' )
         msg.header = self.pub_header # match timestamp

@@ -1,7 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
+
+    <!-- set to true to work around rosbag play/transformation time errors -->
+    <arg name="set_sim_time" default="false"/>
+
+    <!-- set to true to launch the localization+tf stack -->
+    <arg name="localization_enabled" default="false"/>
+    
+    <!-- set_sim_time -->
+    <group if="$(arg set_sim_time)">
+        <param name="/use_sim_time" value="true" />
+    </group>
+    
+    <!-- localization -->
+    <group if="$(arg localization_enabled)">
+        <include file="$(env CATKIN_WS)/src/localization.launch" />
+    </group>
+
     <!-- launch file for packages in the asv_perception_core image -->
     <include file="$(find asv_perception_homography)/launch/homography.launch" />
     <include file="$(find asv_perception_obstacleid)/launch/obstacleid.launch" />
-    
+
 </launch> 

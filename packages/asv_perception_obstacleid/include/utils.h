@@ -5,19 +5,37 @@
 #include <geometry_msgs/Point32.h>
 #include <geometry_msgs/Polygon.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/transform_listener.h>
 
 #include "defs.h"
 
 namespace obstacle_id {
 namespace utils {
 
+template <typename T>
+inline T ros_tf_transform( const T& what, const std::string& from, const std::string& to, const int time = 0, const float duration = 1.0 ) {
+
+    tf2_ros::Buffer tf_buffer = {};
+    tf2_ros::TransformListener tf2_listener(tf_buffer);
+    const auto lookup = tf_buffer.lookupTransform( to, from, ros::Time( time ), ros::Duration( duration ) );
+
+    T result = {};
+    tf2::doTransform( what, result, lookup );// transform 'what' to 'result'
+    return result;
+}   // ros_tf_transform
+
 // convert ros roi to opencv rect, clamped to image shape
 inline cv::Rect to_cv_rect( const sensor_msgs::RegionOfInterest& roi, const image_type& img ) {
+    
     cv::Rect result = {}; // cv::Rect( (int)roi.x_offset, (int)roi.y_offset, (int)roi.width, (int)roi.height );
-    result.x = std::min( (int)roi.x_offset, img.cols - 1);
-    result.y = std::min( (int)roi.y_offset, img.rows - 1);
-    result.width = std::min( (int)roi.width, img.cols - result.x );
-    result.height = std::min( (int)roi.height, img.rows - result.y );
+    if ( img.empty() )
+        return result;
+
+    result.x = std::max( std::min( (int)roi.x_offset, img.cols - 1), 0 );
+    result.y = std::max( std::min( (int)roi.y_offset, img.rows - 1), 0 );
+    result.width = std::max( std::min( (int)roi.width, img.cols - result.x ), 0 );
+    result.height = std::max( std::min( (int)roi.height, img.rows - result.y ), 0 );
     return result;
 }
 

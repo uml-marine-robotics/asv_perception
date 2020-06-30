@@ -22,9 +22,9 @@ class homography_node(object):
         self.has_published = False
         
         # publish with latch in case of no IMU/testing/etc
+        self.pub_rgb_radarimg = rospy.Publisher( "~rgb_radarimg", Homography, queue_size=1, latch=True)
+        self.pub_radarimg_radar = rospy.Publisher( "~radarimg_radar", Homography, queue_size=1, latch=True)
         self.pub_rgb_radar = rospy.Publisher( "~rgb_radar", Homography, queue_size=1, latch=True)
-        self.pub_radar_world = rospy.Publisher( "~radar_world", Homography, queue_size=1, latch=True)
-        self.pub_rgb_world = rospy.Publisher( "~rgb_world", Homography, queue_size=1, latch=True)
 
         # subscriptions:
 
@@ -57,7 +57,7 @@ class homography_node(object):
     def publish( self, msg = None ):
 
         # check for early exit
-        if self.has_published and self.pub_rgb_radar.get_num_connections() < 1 and self.pub_radar_world.get_num_connections() < 1 and self.pub_rgb_world.get_num_connections() < 1:
+        if self.has_published and self.pub_rgb_radarimg.get_num_connections() < 1 and self.pub_radarimg_radar.get_num_connections() < 1 and self.pub_rgb_radar.get_num_connections() < 1:
             return
 
         # message time
@@ -80,18 +80,19 @@ class homography_node(object):
             )
 
         rgb_frame_id = rospy.get_param("~rgb_frame_id")
+        radarimg_frame_id = rospy.get_param("~radarimg_frame_id")
         radar_frame_id = rospy.get_param("~radar_frame_id")
-        robot_frame_id = rospy.get_param("~robot_frame_id")
 
-        self.publish_homography( self.pub_rgb_radar, M_rgb_radar, t, rgb_frame_id, radar_frame_id )
+        self.publish_homography( self.pub_rgb_radarimg, M_rgb_radar, t, rgb_frame_id, radarimg_frame_id )
 
         # radar to robot
-        M_radar_world = get_radar_to_world_matrix( rospy.get_param('~radar_img_w'), rospy.get_param('~radar_world_units') )
-        self.publish_homography( self.pub_radar_world, M_radar_world, t, radar_frame_id, robot_frame_id )
+        #  multiply radar range by 2 to get diameter
+        M_radar_robot = get_radar_to_world_matrix( rospy.get_param('~radar_img_w'), 2. * rospy.get_param('~radar_range') )
+        self.publish_homography( self.pub_radarimg_radar, M_radar_robot, t, radarimg_frame_id, radar_frame_id )
 
-        # rgb to robot is (radar_to_world)*(rgb_to_radar)
-        M_rgb_world = np.matmul( M_radar_world, M_rgb_radar )
-        self.publish_homography( self.pub_rgb_world, M_rgb_world, t, rgb_frame_id, robot_frame_id )
+        # rgb to robot is (radar_to_robot)*(rgb_to_radar)
+        M_rgb_robot = np.matmul( M_radar_robot, M_rgb_radar )
+        self.publish_homography( self.pub_rgb_radar, M_rgb_robot, t, rgb_frame_id, radar_frame_id )
 
 if __name__ == "__main__":
 

@@ -21,14 +21,13 @@ namespace {
 
     // create marker, set common properties
     visualization_msgs::Marker _create_marker( 
-        const std_msgs::Header& hdr
-        , const asv_perception_common::Obstacle& obs
+        const asv_perception_common::Obstacle& obs
         , std::int32_t type 
         , const ros::Duration& lifetime
         ) {
 
         visualization_msgs::Marker marker = {};
-        marker.header = hdr;
+        marker.header = obs.header;
         
         marker.ns = MARKER_NS + "_" + std::to_string(type);
         marker.type = type;
@@ -40,7 +39,7 @@ namespace {
         marker.color.a = 1.0;
         marker.color.r = marker.color.g = marker.color.b = 0.5;
         
-        // if classified type, make it white, else gray
+        // if has label, make it white
         if ( !obs.label.empty() )
             marker.color.r = marker.color.g = marker.color.b = 1.;
 
@@ -57,13 +56,29 @@ namespace {
     
     
     visualization_msgs::Marker create_marker_text( 
-        const std_msgs::Header& hdr
-        , const asv_perception_common::Obstacle& obs
+        const asv_perception_common::Obstacle& obs
         , const ros::Duration& d
+        , const std::string& position_target_frame
         ) {
 
-        auto marker = _create_marker( hdr, obs, visualization_msgs::Marker::TEXT_VIEW_FACING, d );
-        marker.text = !obs.label.empty() ? obs.label : "Unknown";
+        auto marker = _create_marker( obs, visualization_msgs::Marker::TEXT_VIEW_FACING, d );
+
+        const bool has_label = !obs.label.empty();
+
+        marker.text = has_label ? obs.label : "Unknown";
+
+        // show position text in target frame?
+        if ( has_label && !position_target_frame.empty() ) {
+            // get point in target frame
+            //  tf may throw
+            try {
+                const auto position_tf = utils::ros_tf_transform( obs.pose.position, obs.header.frame_id, position_target_frame );
+                marker.text += " " + std::to_string(position_tf.x) + " " + std::to_string(position_tf.y) + " " + std::to_string(position_tf.z);
+            } catch ( const std::exception& ex ) {
+                ROS_ERROR( "[ObstacleVisualizationNodelet] %s", ex.what() );
+            }
+        }
+
         marker.scale.z = 2.;// height of uppercase "A"
         marker.pose.position = obs.pose.position;
         marker.pose.position.z += 1.;   // assuming fixed obstacle height
@@ -73,9 +88,9 @@ namespace {
     
 
     // create a marker for the provided obstacle
-    visualization_msgs::Marker create_marker_cube( const std_msgs::Header& hdr, const asv_perception_common::Obstacle& obs, const ros::Duration& d ) {
+    visualization_msgs::Marker create_marker_cube( const asv_perception_common::Obstacle& obs, const ros::Duration& d ) {
 
-        auto marker = _create_marker( hdr, obs, visualization_msgs::Marker::CUBE, d );
+        auto marker = _create_marker( obs, visualization_msgs::Marker::CUBE, d );
         
         const auto minmax = utils::minmax_3d( obs.shape.points );
 
@@ -102,6 +117,10 @@ void ObstacleVisualizationNodelet::onInit ()
     NODELET_DEBUG("[%s::onInit] Initializing node"
         , getName ().c_str()
     );
+    
+    pnh_->param( "marker_duration_secs", this->_marker_duration_secs, ::MARKER_DURATION_DEFAULT_SECS );
+    pnh_->param( "marker_duration_nsecs", this->_marker_duration_nsecs, ::MARKER_DURATION_DEFAULT_NSECS );
+    pnh_->param( "show_position_frame", this->_show_position_frame, std::string() );
 
     onInitPostProcess ();
 }
@@ -134,27 +153,20 @@ void ObstacleVisualizationNodelet::sub_callback (
         )
         return;
 
-    // get marker duration
-    auto marker_duration_secs = ::MARKER_DURATION_DEFAULT_SECS;
-    pnh_->getParamCached( "marker_duration_secs", marker_duration_secs );
-
-    auto marker_duration_nsecs = ::MARKER_DURATION_DEFAULT_NSECS;
-    pnh_->getParamCached( "marker_duration_nsecs", marker_duration_nsecs );
-
-    const auto d = ros::Duration( (std::int32_t)marker_duration_secs, (std::int32_t)marker_duration_nsecs );
+    const auto d = ros::Duration( (std::int32_t)this->_marker_duration_secs, (std::int32_t)this->_marker_duration_nsecs );
 
     // generate markers
     visualization_msgs::MarkerArray marker_array = {};
 
     for ( const auto& obs : obs_array->obstacles ) {
         marker_array.markers.emplace_back( 
-            create_marker_cube( obs_array->header, obs, d ) 
+            create_marker_cube( obs, d ) 
         );
 
         // text marker if not unknown
         if ( !obs.label.empty() )
             marker_array.markers.emplace_back( 
-                create_marker_text( obs_array->header, obs, d )
+                create_marker_text( obs, d, this->_show_position_frame )
             );
     }
 

@@ -10,22 +10,22 @@
         <!-- 
             Node to publish homography matrices between rgb, radar, and robot frames
             Subscriptions: 
-                - ~imu:             [sensor_msgs/Imu] IMU data, east-north-up
+                - ~imu:             [sensor_msgs/Imu] IMU data
                 - ~refresh:         [sensor_msgs/Empty]
             Publications:
-                - ~rgb_radar:       [asv_perception_common/Homography] Homography from rgb image to radar
-                - ~radar_world:     [asv_perception_common/Homography] Homography from radar to world units (robot frame)
-                - ~rgb_world:       [asv_perception_common/Homography] Homography from rgb image to world units (robot frame)
+                - ~rgb_radarimg:       [asv_perception_common/Homography] Homography from rgb image pixels to radar image pixels
+                - ~radarimg_radar:     [asv_perception_common/Homography] Homography from radar image pixels to radar frame in world units, iaw REP-103
+                - ~rgb_radar:          [asv_perception_common/Homography] Homography from rgb image pixels to radar frame in world units, iaw REP-103
         -->
-        <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="homography_node.py" required="true" output="screen">
+        <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="homography_node.py" output="screen" respawn="true">
 
             <remap from="~imu" to="/imu/data/enu" />
 
             <rosparam>
                 <!-- frame ids for homography msgs -->
                 rgb_frame_id: "left_camera"
-                radar_frame_id: "radar_1"
-                robot_frame_id: "base_link"
+                radarimg_frame_id: "radar_1"
+                radar_frame_id: "velodyne"
 
                 <!-- radar to rgb homography parameter defaults -->
                 <!-- 1280 x 1024 -->
@@ -38,11 +38,11 @@
                 ty: 6.2
                 tz: -4.4
 
+                <!-- the width of the radar image, in pixels -->
                 radar_img_w: 1024
 
-                <!-- radar img diameter equals how many world units (eg meters) -->
-                <!-- sailboats.bag:  r=195 -->
-                radar_world_units: 390.
+                <!-- the range of the radar (meters) -->
+                radar_range:  195.
             </rosparam>
 
             <rosparam file="$(arg homography_calibration_file)" />
@@ -53,19 +53,19 @@
             Node to visualize alignment between rgb and radar images
             Subscriptions: 
                 - ~rgb:                   [sensor_msgs/CompressedImage] Image from rgb camera
-                - ~radar:                 [sensor_msgs/Image] Image from radar
-                - ~rgb_radar:             [asv_perception_common/HomographyStamped] Homography from rgb image to radar
-                - ~imu:                   [sensor_msgs/Imu] IMU data, East-North-Up
+                - ~radarimg:              [sensor_msgs/Image] Image from radar
+                - ~rgb_radarimg           [asv_perception_common/HomographyStamped] Homography from rgb image to radar img
+                - ~imu:                   [sensor_msgs/Imu] IMU data
             Publications:
-                - ~image:                 [sensor_msgs/Image] Image which visualizes homography between rgb image and radar
+                - ~image:                 [sensor_msgs/Image] Image which visualizes homography between rgb image and radar image
         -->
-        <node name="$(arg node_name)_vis" pkg="$(arg pkg_name)" type="homography_vis_node.py" required="false" output="screen">
+        <node name="$(arg node_name)_vis" pkg="$(arg pkg_name)" type="homography_vis_node.py" output="screen">
 
             <!-- remap from=sink to=source -->
             <remap from="~imu" to="/imu/data/enu" />
             <remap from="~rgb" to="image_color/compressed" />
-            <remap from="~radar" to="/broadband_radar/channel_1/image_raw" />
-            <remap from="~rgb_radar" to="$(arg node_name)/rgb_radar" />
+            <remap from="~radarimg" to="/broadband_radar/channel_1/image_raw" />
+            <remap from="~rgb_radarimg" to="$(arg node_name)/rgb_radarimg" />
         </node>
 
     </group>
