@@ -13,28 +13,35 @@ class segmentation_node(object):
 
         self.node_name = rospy.get_name()
 
-        # wasr pixel value remapping
-        self.water_pixel_value = rospy.get_param("~water_pixel_value")
-        self.obstacle_pixel_value = rospy.get_param("~obstacle_pixel_value")
-        self.sky_pixel_value = rospy.get_param("~sky_pixel_value")
+        # pixel value remapping for output segmented image
+        self.pixel_remap_value = rospy.get_param("~pixel_remap_value")
 
         # init wasr
-        self.wasr = WASR_net( rospy.get_param("~model_path") )
+        self.wasr = WASR_net( rospy.get_param("~model_path"), rospy.get_param("~per_process_gpu_memory_fraction") )
         
-        # publisher
-        self.pub = rospy.Publisher( "~output", Image, queue_size=1)
+        # publishers
+        self.pub_obstacles = rospy.Publisher( "~obstacles", Image, queue_size=1 )
+        self.pub_water = rospy.Publisher( "~water", Image, queue_size=1 )
+        self.pub_sky = rospy.Publisher( "~sky", Image, queue_size=1 )
 
         # subscribers
-        self.sub = rospy.Subscriber( "~input", CompressedImage, self.processImage, queue_size=1, buff_size=2**24 )
-        
+        self.sub = rospy.Subscriber( "~input", CompressedImage, self.cb_img, queue_size=1, buff_size=2**24 )
 
-    def processImage(self, image_msg):
+    # remap pixel class, create ros msg from img
+    def remap_pixel_class( self, img, px_class, remap, orig_shape ):
+
+        img_remapped = np.zeros_like(img)
+        img_remapped = np.where( img==px_class, remap, img_remapped )
+        
+        # resize back to original, pad as needed
+        img_remapped = utils.resize( img_remapped, orig_shape, 'pad', interpolation=cv2.INTER_NEAREST )[0]
+        return utils.convert_cv2_to_ros_msg( img_remapped, 'mono8' )
+
+    def cb_img(self, image_msg):
 
         # no subscribers, no work
-        if self.pub.get_num_connections() <= 0:
+        if self.pub_obstacles.get_num_connections() < 1 and self.pub_water.get_num_connections() < 1 and self.pub_sky.get_num_connections() < 1:
             return
-
-        rospy.logdebug( 'Processing img with timestamp secs=%d, nsecs=%d', image_msg.header.stamp.secs, image_msg.header.stamp.nsecs )
 
         img = utils.convert_ros_msg_to_cv2( image_msg, 'bgr8' ) # wasr does bgr->rgb
 
@@ -44,22 +51,24 @@ class segmentation_node(object):
         img = utils.resize( img, wasr_img_shape )[0] # distortion-free crop/resize
 
         # run wasr
-        img = self.wasr.run_wasr_inference( img )
+        img = self.wasr.predict( img )
 
         # remap wasr classes iaw config
-        #  todo(?):  may need to publish separate outputs for each class (at least obstacles?)
-        #  obstacleid package expects only obstacle pixels to be > 0
         # wasr classes:  obstacles=0, water=1, sky=2
-        img = np.where( img==0, self.obstacle_pixel_value, img )  # obstacles 
-        img = np.where( img==1, self.water_pixel_value, img )  # water
-        img = np.where( img==2, self.sky_pixel_value, img )    # sky
+        if self.pub_obstacles.get_num_connections() > 0:
+            msg = self.remap_pixel_class( img, 0, self.pixel_remap_value, orig_shape )
+            msg.header = image_msg.header
+            self.pub_obstacles.publish( msg )
 
-        # resize back to original, pad as needed
-        img = utils.resize( img, orig_shape, 'pad' )[0]
+        if self.pub_water.get_num_connections() > 0:
+            msg = self.remap_pixel_class( img, 1, self.pixel_remap_value, orig_shape )
+            msg.header = image_msg.header
+            self.pub_water.publish( msg )
 
-        msg = utils.convert_cv2_to_ros_msg( img, 'mono8' )
-        msg.header = image_msg.header
-        self.pub.publish( msg )
+        if self.pub_sky.get_num_connections() > 0:
+            msg = self.remap_pixel_class( img, 2, self.pixel_remap_value, orig_shape )
+            msg.header = image_msg.header
+            self.pub_sky.publish( msg )
 
 if __name__ == "__main__":
 

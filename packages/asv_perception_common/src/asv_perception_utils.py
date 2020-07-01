@@ -117,7 +117,7 @@ def apply_offsets( img, offsets, method='center' ):
 
     return img
 
-def resize( img, shape, method='crop' ):
+def resize( img, shape, method='crop', interpolation=cv2.INTER_LINEAR ):
     """
     Center pads/crops and scales to desired shape (h,w)
     Returns resized img, offsets (y,x), and scale (float)
@@ -130,10 +130,10 @@ def resize( img, shape, method='crop' ):
 
     if method=='crop':
         img = apply_offsets( img, offsets ) # crop first
-        img = cv2.resize( img, (shape[1],shape[0]) )
+        img = cv2.resize( img, (shape[1],shape[0]), interpolation=interpolation )
     elif method=='pad':
         prepad_shape = shape[:2] - offsets  # resize to prepad shape, then pad
-        img = cv2.resize( img, (prepad_shape[1], prepad_shape[0] ) )
+        img = cv2.resize( img, (prepad_shape[1], prepad_shape[0] ), interpolation=interpolation )
         img = apply_offsets( img, offsets )
     else:
         raise NotImplementedError(method)

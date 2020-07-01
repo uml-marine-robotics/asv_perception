@@ -11,6 +11,8 @@ find_package(catkin REQUIRED COMPONENTS
   asv_perception_common
   std_msgs
   sensor_msgs
+  nmea_msgs
+  rospy
   roscpp
   nodelet
   pcl_conversions
