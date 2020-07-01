@@ -39,6 +39,7 @@
   <depend>asv_perception_common</depend>
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>nmea_msgs</depend>
   <depend>roscpp</depend>
   <depend>nodelet</depend>
   <depend>pcl_conversions</depend>

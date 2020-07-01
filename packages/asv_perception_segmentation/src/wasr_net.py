@@ -7,7 +7,7 @@ Based on wasr_inference_noimu_general.py provided by Bovcon
 # import os
 # import sys
 # import time
-import cv2
+#import cv2
 #import scipy.io
 
 #from PIL import Image
@@ -41,7 +41,7 @@ IMG_SIZE = [384, 512]
 """ WASR network object for inference"""
 class WASR_net(object):
 
-    def __init__( self, weights_path ):
+    def __init__( self, weights_path, per_process_gpu_memory_fraction = 0 ):
 
         # Create network
         self.img_input = tf.placeholder(dtype=tf.uint8, shape=(IMG_SIZE[0], IMG_SIZE[1], 3))
@@ -76,8 +76,13 @@ class WASR_net(object):
 
         # Set up TF session and initialize variables.
         config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        
+
+        # limit gpu,if specified
+        if per_process_gpu_memory_fraction > 0:
+            config.gpu_options.per_process_gpu_memory_fraction=per_process_gpu_memory_fraction
+        else:
+            config.gpu_options.allow_growth = True
+
         self.sess = tf.Session(config=config)
         init = tf.global_variables_initializer()
 
@@ -87,7 +92,7 @@ class WASR_net(object):
         self.loader = tf.train.Saver(var_list=restore_var)
         self.loader.restore( self.sess, weights_path )
 
-    def run_wasr_inference( self, img_in ):
+    def predict( self, img_in ):
 
         # Run inference
         preds = self.sess.run( self.pred, feed_dict={self.img_input: img_in})

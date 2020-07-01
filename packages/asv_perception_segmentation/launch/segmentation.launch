@@ -6,18 +6,22 @@
         <!-- 
             Node to perform image segmentation
             Subscriptions: 
-                - /input:   [sensor_msgs/CompressedImage] rgb camera image
+                - ~input:   [sensor_msgs/CompressedImage] rgb camera image
             Publications:  
-                - /output:   [sensor_msgs/Image] segmented image, mono8/grayscale
+                - ~obstacles:   [sensor_msgs/Image] segmented obstacle image, mono8/grayscale
+                - ~water:       [sensor_msgs/Image] segmented water image, mono8/grayscale
+                - ~sky:         [sensor_msgs/Image] segmented sky image, mono8/grayscale
         -->
         <node name="segmentation" pkg="$(arg pkg_name)" type="segmentation_node.py" required="true" output="screen">
             <remap from="~input" to="/left_camera/image_color/compressed" />
             <rosparam>
                 model_path: "/data/arm8imu3_noimu.ckpt-80000"
+
+                <!-- gpu memory limit % of available; wasr requires at least ~1.2GB.  If zero, allows growth as needed -->
+                per_process_gpu_memory_fraction: 0.15
+
                 <!-- wasr class remapping values [0,255] -->
-                obstacle_pixel_value: 128
-                water_pixel_value: 0
-                sky_pixel_value: 0
+                pixel_remap_value: 128
             </rosparam>
         </node>
 

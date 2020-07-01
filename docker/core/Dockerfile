@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install packages
 RUN apt-get update && \
-    apt-get -y install ros-melodic-robot-localization && \
+    apt-get -y install ros-melodic-robot-localization ros-melodic-nmea-msgs && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

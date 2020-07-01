@@ -3,6 +3,9 @@
 # header timestamp should be acquisition time of source data
 Header header
 
+# obstacle identifier
+string id
+
 # polygon describing the obstacle, with first and last points connected
 geometry_msgs/Polygon shape
 

@@ -15,7 +15,7 @@
     <node pkg="nodelet" type="nodelet" name="projection" respawn="true" output="screen"
       args="load $(arg package_name)/ObstacleProjectionNodelet $(arg nodelet_name)" >
 
-      <remap from="~segmentation" to="segmentation/output" />
+      <remap from="~segmentation" to="segmentation/obstacles" />
       <remap from="~classification" to="classification/output" />
       <remap from="~rgb_radar" to="homography/rgb_radar" />
       <remap from="~rgb_radarimg" to="homography/rgb_radarimg" />
@@ -44,6 +44,24 @@
         cluster_tolerance: 2.0
         min_cluster_size: 5
       </rosparam>
+    </node>
+
+    <!-- 
+      NMEA reporting node, unclassified obstacles
+      Subscriptions:
+        ~input: [asv_perception_common/ObstacleArray.msg]  obstacles to report
+      Publications:
+        ~output: [nmea_msgs/Sentence]  NMEA sentence
+    -->
+    <node name="nmea_report_unclassified" pkg="$(arg package_name)" type="nmea_report_node.py" output="screen">
+      <remap from="~input" to="extraction/output" />
+    </node>
+    
+    <!-- 
+      NMEA reporting node, classified obstacles
+    -->
+    <node name="nmea_report_classified" pkg="$(arg package_name)" type="nmea_report_node.py" output="screen">
+      <remap from="~input" to="projection/obstacles" />
     </node>
     
     <!-- Rviz visualization markers:  classified obstacles -->
