@@ -2,7 +2,7 @@
 Perception for marine surface vehicles
 
 ## Installation
-*  `git clone https://github.com/uml-marine-robotics/asv_perception.git`
+*  `git clone --recursive https://github.com/uml-marine-robotics/asv_perception.git`
 *  `cd asv_perception`
 *  Put classifier data in `docker/classification/data`
 *  Put segmentation data in `docker/segmentation/data`

@@ -5,7 +5,7 @@ import cv2
 from wasr_net import WASR_net, IMG_SIZE as wasr_img_shape
 
 from sensor_msgs.msg import Image, CompressedImage
-import asv_perception_utils as utils
+from asv_perception_common import utils
 
 class segmentation_node(object):
 

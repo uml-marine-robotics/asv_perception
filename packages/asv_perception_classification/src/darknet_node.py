@@ -11,7 +11,7 @@ from darknet import (
 )
 from sensor_msgs.msg import Image, CompressedImage
 from asv_perception_common.msg import Classification, ClassificationArray
-import asv_perception_utils as utils
+from asv_perception_common import utils
 
 class darknet_node(object):
 

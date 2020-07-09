@@ -3,7 +3,7 @@
 import rospy
 from nmea_msgs.msg import Sentence
 from asv_perception_common.msg import ObstacleArray
-from NodeLazy import NodeLazy  # asv_perception_common
+from asv_perception_common.NodeLazy import NodeLazy
 
 # based on https://stackoverflow.com/q/35669182/882436
 def minmax_3d( pts ):

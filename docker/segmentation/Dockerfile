@@ -27,9 +27,6 @@ WORKDIR ${CATKIN_WS}
 # set entrypoint
 ENTRYPOINT [ "/ros_entrypoint.sh" ]
 
-# set common python scripts
-ENV PYTHONPATH "${PYTHONPATH}:${CATKIN_WS}/src/asv_perception_common/src"
-
 # set startup script
 CMD [ "sh", "-c", "roslaunch --wait ${CATKIN_WS}/src/asv_perception_segmentation/launch/segmentation.launch" ]
 

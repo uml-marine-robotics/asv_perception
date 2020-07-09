@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <arg name="pkg_name" value="asv_perception_obstacle_tracking"/>
+    <arg name="node_name" default="obstacle_tracking"/>
+
+    <!-- 
+        
+    -->
+    <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="obstacle_tracking.py" output="screen" respawn="false">
+        <rosparam>
+        </rosparam>
+    </node>
+</launch>
+
