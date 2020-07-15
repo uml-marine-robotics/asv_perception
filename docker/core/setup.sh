@@ -6,13 +6,14 @@ apt-get update
 apt-get -y install \
     ros-melodic-robot-localization \
     ros-melodic-nmea-msgs \
+    ros-melodic-tf2-sensor-msgs \
     python-pip
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 
 # python packages
-# ab3dmot:  don't use requirements.txt for py 2.7, default is for py 3+
+# ab3dmot:  don't use their requirements.txt for py 2.7
 pip install \
     numpy \
     numba==0.43.1 \

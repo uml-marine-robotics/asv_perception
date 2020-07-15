@@ -3,10 +3,9 @@
 
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
-#include <pcl/surface/convex_hull.h>    // convexHull
-#include <pcl/common/centroid.h>    // compute3DCentroid
-#include <pcl/filters/voxel_grid.h>
-#include <pcl/filters/conditional_removal.h>
+// #include <pcl/surface/convex_hull.h>    // convexHull
+// #include <pcl/common/centroid.h>    // compute3DCentroid
+#include <pcl_conversions/pcl_conversions.h>
 
 #include <asv_perception_common/Obstacle.h>
 
@@ -19,7 +18,7 @@ namespace obstacle_extraction {
 
 namespace impl {
 
-    // create Obstacle from points, append to vector on success. returns flag of success
+    // create Obstacle from points and indices
     inline asv_perception_common::Obstacle create_obstacle( 
         const pointcloud_type& pc
         , const pcl::PointIndices& pi
@@ -27,24 +26,29 @@ namespace impl {
 
         assert( !pi.indices.empty() );
 
-        // getting segfaults when trying to use convexhull with setIndices.
-        //  instead, make a new pointcloud based on provided pointindices
-        //  todo:  investigate.  only for organized pointcloud?
-        //  also, convex hull is slow; just populate obstacle points.  consumer can compute if needed
+        // getting segfaults when trying to use convexhull with setIndices. only for organized pointcloud?
+        //  make a new pointcloud based on provided pointindices
+        //  also, convex hull is slow; just populate obstacle points.  consumer can compute if needed.  2d faster?
 
         asv_perception_common::Obstacle result = {};
         
-        // convert pointcloud pts to shape.points
-        for ( const auto idx : pi.indices )
-            result.shape.points.emplace_back( utils::to_point32( pc[idx] ) );
+        // copy points
+        pointcloud_type pc_copy = {};
+        pcl::copyPointCloud( pc, pi, pc_copy );
 
-        // centroid to pose.position
-        Eigen::Vector4f centroid_pt = {};
-        pcl::compute3DCentroid( pc, pi, centroid_pt );
-        result.pose.position.x = centroid_pt.x();
-        result.pose.position.y = centroid_pt.y();
-        result.pose.position.z = centroid_pt.z();
+        const auto minmax = utils::minmax_3d( pc_copy.points );
 
+        result.dimensions.x = minmax.second.x - minmax.first.x;
+        result.dimensions.y = minmax.second.y - minmax.first.y;
+        result.dimensions.z = minmax.second.z - minmax.first.z;
+        
+        result.pose.pose.position.x = ( minmax.first.x + minmax.second.x ) / 2.;
+        result.pose.pose.position.y = ( minmax.first.y + minmax.second.y ) / 2.;
+        result.pose.pose.position.z = ( minmax.first.z + minmax.second.z ) / 2.;
+
+        result.points = sensor_msgs::PointCloud2();
+        pcl::toROSMsg ( pc_copy, result.points );   // this is another copy
+        
         return result;
     }   // create_obstacle
 }   // impl
@@ -58,50 +62,14 @@ inline std::vector<asv_perception_common::Obstacle> extract(
     , const float cluster_tolerance
     , const std::uint32_t min_cluster_size
     , const std::uint32_t max_cluster_size
-    , const float leaf_size
-    , const float min_x_distance
-    , const float min_y_distance
 )
 {
-    // downsampling
-    if ( leaf_size > 0.f ) {
-        pcl::VoxelGrid<point_type> vg = {};
-        vg.setInputCloud( pc_ptr );
-        vg.setLeafSize( leaf_size, leaf_size, leaf_size );
-        vg.filter( *pc_ptr );
-    }
-
-    // self return filter
-    //  todo: refactor this + leaf size filter into separate nodelet
-
-    // Filter out all points within threshold box from vehicle (origin)
-    
-    using PointType = point_type;
-    pcl::ConditionOr<PointType>::Ptr range_cond (new pcl::ConditionOr<PointType> ());
-    
-    range_cond->addComparison (pcl::FieldComparison<PointType>::ConstPtr (new
-                                    pcl::FieldComparison<PointType> ("x", pcl::ComparisonOps::GT, min_x_distance)));
-    range_cond->addComparison (pcl::FieldComparison<PointType>::ConstPtr (new
-                                    pcl::FieldComparison<PointType> ("x", pcl::ComparisonOps::LT, -min_x_distance)));
-    range_cond->addComparison (pcl::FieldComparison<PointType>::ConstPtr (new
-                                    pcl::FieldComparison<PointType> ("y", pcl::ComparisonOps::GT, min_y_distance)));
-    range_cond->addComparison (pcl::FieldComparison<PointType>::ConstPtr (new
-                                    pcl::FieldComparison<PointType> ("y", pcl::ComparisonOps::LT, -min_y_distance)));
-
-    pointcloud_type::Ptr cloud_post_filter (new pointcloud_type);
-    pcl::ConditionalRemoval<PointType> condrem;
-    condrem.setCondition(range_cond);
-    condrem.setInputCloud(pc_ptr);
-    condrem.filter(*cloud_post_filter);
-    
-    auto pc = cloud_post_filter;
-
     // do extraction from pointcloud
-    pcl::search::Search<point_type>::Ptr tree( new pcl::search::KdTree<point_type> );
-    tree->setInputCloud( pc );
+    pcl::search::Search<point_type>::Ptr tree( new pcl::search::KdTree<point_type>( false ) );
+    tree->setInputCloud( pc_ptr );
 
     std::vector<pcl::PointIndices> clusters = {};
-    pcl::extractEuclideanClusters( *pc, tree, cluster_tolerance, clusters, min_cluster_size, max_cluster_size );
+    pcl::extractEuclideanClusters( *pc_ptr, tree, cluster_tolerance, clusters, min_cluster_size, max_cluster_size );
 
     std::vector<asv_perception_common::Obstacle> results = {};
 
@@ -110,7 +78,7 @@ inline std::vector<asv_perception_common::Obstacle> extract(
         if ( cluster.indices.empty() )
             continue;
         results.emplace_back(
-            impl::create_obstacle( *pc, cluster )
+            impl::create_obstacle( *pc_ptr, cluster )
         );
     }
 

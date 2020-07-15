@@ -26,6 +26,10 @@ inline std::vector<Obstacle> project(
     image_type& obstacle_map
     , const asv_perception_common::ClassificationArray& classifications
     , const Homography& h
+    , const float min_height
+    , const float max_height
+    , const float min_depth
+    , const float max_depth
 )
 {
     // check inputs
@@ -51,7 +55,7 @@ inline std::vector<Obstacle> project(
         const auto rect = utils::to_cv_rect( obs->cls.roi, obstacle_map );
 
         obstacle_map( rect ) = 0;    // set roi to black in obstacle_map
-        result.emplace_back( obs->project(h) );
+        result.emplace_back( obs->project(h, min_height, max_height, min_depth, max_depth ) );
     }
 
     return result;

@@ -20,17 +20,36 @@
       <remap from="~rgb_radar" to="homography/rgb_radar" />
       <remap from="~rgb_radarimg" to="homography/rgb_radarimg" />
 
+      <rosparam>
+        min_height: 1.
+        max_height: 2.
+        min_depth: 1.
+        max_depth: 2.
+        resolution: 0.5
+      </rosparam>
     </node>
 
-    <!-- voxel grid + z filter -->
-    <node pkg="nodelet" type="nodelet" name="voxel_grid" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
-      <remap from="~input" to="projection/cloud" /> <!-- remap from=sink to=source -->
+    <!-- minimum distance filter -->
+    <node pkg="nodelet" type="nodelet" name="distance_filter" respawn="true" output="screen"
+      args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)" >
+    >
+      <remap from="~input" to="projection/cloud" />
+      <rosparam>
+        min_distance_x: 6.
+        min_distance_y: 5.
+      </rosparam>
+    </node>
+
+    <!-- voxel grid, z filter, transform points to fixed frame -->
+    <node pkg="nodelet" type="nodelet" name="pc_filter" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
+      <remap from="~input" to="distance_filter/output" /> <!-- remap from=sink to=source -->
       <rosparam>
         filter_field_name: z
         filter_limit_min: -0.0
         filter_limit_max: 2.0
         filter_limit_negative: False
-        leaf_size: 0.1
+        leaf_size: 0.5
+        output_frame:  'odom'
       </rosparam>
     </node>
 
@@ -38,51 +57,13 @@
     <node pkg="nodelet" type="nodelet" name="extraction" respawn="true" output="screen"
       args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" >
 
-      <remap from="~input" to="voxel_grid/output" />
+      <remap from="~input" to="pc_filter/output" />
       
       <rosparam>
-        cluster_tolerance: 2.0
-        min_cluster_size: 5
+        cluster_tolerance: 4.
+        min_cluster_size: 75
       </rosparam>
     </node>
-
-    <!-- 
-      NMEA reporting node, unclassified obstacles
-      Subscriptions:
-        ~input: [asv_perception_common/ObstacleArray.msg]  obstacles to report
-      Publications:
-        ~output: [nmea_msgs/Sentence]  NMEA sentence
-    -->
-    <node name="nmea_report_unclassified" pkg="$(arg package_name)" type="nmea_report_node.py" output="screen">
-      <remap from="~input" to="extraction/output" />
-    </node>
-    
-    <!-- 
-      NMEA reporting node, classified obstacles
-    -->
-    <node name="nmea_report_classified" pkg="$(arg package_name)" type="nmea_report_node.py" output="screen">
-      <remap from="~input" to="projection/obstacles" />
-    </node>
-    
-    <!-- Rviz visualization markers:  classified obstacles -->
-    <node pkg="nodelet" type="nodelet" name="visualization_classified" args="load $(arg package_name)/ObstacleVisualizationNodelet $(arg nodelet_name)" output="screen">
-      <remap from="~input" to="projection/obstacles" />
-      <rosparam>
-        marker_duration_secs: 0
-        marker_duration_nsecs: 150000000
-        show_position_frame:  'utm'
-      </rosparam>
-    </node>
-
-    <!-- Rviz visualization markers:  unclassified obstacles -->
-    <node pkg="nodelet" type="nodelet" name="visualization_unclassified" args="load $(arg package_name)/ObstacleVisualizationNodelet $(arg nodelet_name)" output="screen">
-      <remap from="~input" to="extraction/output" />
-      <rosparam>
-        marker_duration_secs: 0
-        marker_duration_nsecs: 400000000
-      </rosparam>
-    </node>
-    
   </group>
 
 </launch>

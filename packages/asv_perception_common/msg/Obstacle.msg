@@ -3,20 +3,26 @@
 # header timestamp should be acquisition time of source data
 Header header
 
-# obstacle identifier
+# unique obstacle identifier
 string id
 
-# polygon describing the obstacle, with first and last points connected
-geometry_msgs/Polygon shape
+# initial observation time
+time observed_initial
 
 # classification label
 string label
 
 # classification label probability
-float32 probability
+float32 label_probability
 
 # centroid and orientation
-geometry_msgs/Pose pose
+geometry_msgs/PoseWithCovariance pose
 
-# velocity
-geometry_msgs/Accel velocity
+# estimated rectangular dimensions
+geometry_msgs/Vector3 dimensions
+
+# estimated velocity [m/s]
+geometry_msgs/TwistWithCovariance velocity
+
+# point representation of the object
+sensor_msgs/PointCloud2 points

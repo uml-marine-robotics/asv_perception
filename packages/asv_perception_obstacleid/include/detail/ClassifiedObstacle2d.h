@@ -14,6 +14,7 @@ namespace impl {
     using namespace asv_perception_common;
 
     // projects a roi to a vector of points using homography
+    //  rep-105/right hand rule for depth, width, height
     inline std::vector<geometry_msgs::Point32> roi_to_polygon( 
         const sensor_msgs::RegionOfInterest& roi
         , const float depth
@@ -43,12 +44,12 @@ namespace impl {
         // bottom 4 points, counter-clockwise from bottom left front
         result.emplace_back( make_point( blf.first, blf.second, z_offset ) );   // blf
         result.emplace_back( make_point( brf.first, brf.second, z_offset ) );   // brf
-        result.emplace_back( make_point( brf.first, brf.second + depth, z_offset ) );   // brr
-        result.emplace_back( make_point( blf.first, blf.second + depth, z_offset ) );   // blr
+        result.emplace_back( make_point( brf.first + depth, brf.second, z_offset ) );   // brr
+        result.emplace_back( make_point( blf.first + depth, blf.second, z_offset ) );   // blr
 
         // top 4 points, clockwise from top left rear
-        result.emplace_back( make_point( blf.first, blf.second + depth, z_offset + height ) );   // tlr
-        result.emplace_back( make_point( brf.first, brf.second + depth, z_offset + height ) );   // trr
+        result.emplace_back( make_point( blf.first + depth, blf.second, z_offset + height ) );   // tlr
+        result.emplace_back( make_point( brf.first + depth, brf.second, z_offset + height ) );   // trr
         result.emplace_back( make_point( brf.first, brf.second, z_offset + height ) );   // trf
         result.emplace_back( make_point( blf.first, blf.second, z_offset + height ) );   // tlf
 
@@ -71,35 +72,44 @@ class ClassifiedObstacle2d {
         {}
 
         // projects to 3D using homography and creates Obstacle message 
-        asv_perception_common::Obstacle project( const Homography& h ) const {
-
-            // default obstacle real world height, in world units
-            static const float OBSTACLE_RW_HEIGHT_DEFAULT = 1.f;
+        asv_perception_common::Obstacle project( 
+            const Homography& h
+            , const float min_height
+            , const float max_height
+            , const float min_depth
+            , const float max_depth
+        ) const {
 
             asv_perception_common::Obstacle result = {};
 
             result.label = this->cls.label;
-            result.probability = this->cls.probability;
+            result.label_probability = this->cls.probability;
             
             // todo:  compute z offset based on parent(s)
             const float z_offset = 0.f;
             
             // real-world height in world units
             //  todo:  estimate real world height based on img bb, location
-            const auto height = OBSTACLE_RW_HEIGHT_DEFAULT;
+            const auto height = max_height;
 
-            // estimate a real-world depth based on height
+            // estimate a real-world depth
             const auto depth = height;
             
-            // create points; first point connects to last point
-            result.shape.points = impl::roi_to_polygon( this->cls.roi, depth, height, z_offset, h );
+            // project roi to points
+            const auto points = impl::roi_to_polygon( this->cls.roi, depth, height, z_offset, h );
 
             // compute centroid for pose.position
-            const auto minmax = utils::minmax_3d( result.shape.points );
+            const auto minmax = utils::minmax_3d( points );
 
-            result.pose.position.x = ( minmax.first.x + minmax.second.x ) / 2.;
-            result.pose.position.y = ( minmax.first.y + minmax.second.y ) / 2.;
-            result.pose.position.z = ( minmax.first.z + minmax.second.z ) / 2.;
+            result.pose.pose.position.x = ( minmax.first.x + minmax.second.x ) / 2.;
+            result.pose.pose.position.y = ( minmax.first.y + minmax.second.y ) / 2.;
+            result.pose.pose.position.z = ( minmax.first.z + minmax.second.z ) / 2.;
+
+            result.pose.pose.orientation.w = 1.;
+
+            result.dimensions.x = minmax.second.x - minmax.first.x;
+            result.dimensions.y = minmax.second.y - minmax.first.y;
+            result.dimensions.z = minmax.second.z - minmax.first.z;
 
             return result;
 

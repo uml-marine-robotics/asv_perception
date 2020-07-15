@@ -42,11 +42,29 @@ void ObstacleProjectionNodelet::onInit ()
     // Call the super onInit ()
     base_type::onInit ();
 
+    NODELET_DEBUG("[%s::onInit] Initializing node", getName().c_str() );
+
     // advertise publishers
     this->_pub = advertise<asv_perception_common::ObstacleArray>( *pnh_, TOPIC_NAME_OUTPUT_OBSTACLES, 1 );
     this->_pub_cloud = advertise<sensor_msgs::PointCloud2> (*pnh_, TOPIC_NAME_OUTPUT_CLOUD, 1 );
 
-    NODELET_DEBUG("[%s::onInit] Initializing node", getName().c_str() );
+    // get parameters
+    float val = 0;  
+
+    if ( pnh_->getParam("min_height", val ) && ( val > 0. ) )
+        this->_min_height = val;
+
+    if ( pnh_->getParam("max_height", val ) && ( val > 0. ) )
+        this->_max_height = val;
+
+    if ( pnh_->getParam("min_depth", val ) && ( val > 0. ) )
+        this->_min_depth = val;
+
+    if ( pnh_->getParam("max_depth", val ) && ( val > 0. ) )
+        this->_max_depth = val;
+
+    if ( pnh_->getParam("resolution", val ) && ( val > 0. ) )
+        this->_resolution = val;
 
     onInitPostProcess ();
 }
@@ -55,6 +73,8 @@ void ObstacleProjectionNodelet::onInit ()
 void ObstacleProjectionNodelet::subscribe ()
 {
     static const std::uint32_t SYNC_QUEUE_SIZE = 10;
+
+    std::lock_guard<std::mutex> lg( this->_mtx );
 
     this->_sub_rgb_radarimg = pnh_->subscribe<homography_msg_type>( 
         TOPIC_NAME_INPUT_HOMOGRAPHY_RGB_TO_RADARIMG
@@ -85,6 +105,8 @@ void ObstacleProjectionNodelet::subscribe ()
 //////////////////////////////////////////////////////////////////////////////////////////////
 void ObstacleProjectionNodelet::unsubscribe ()
 {
+    std::lock_guard<std::mutex> lg( this->_mtx );
+
     this->_sub_segmentation.unsubscribe();
     this->_sub_classification.unsubscribe();
     this->_sub_rgb_radarimg.shutdown();
@@ -97,6 +119,8 @@ void ObstacleProjectionNodelet::cb_homography_rgb_radarimg( const typename homog
         NODELET_WARN( "Invalid homography received, ignoring" );
         return;
     }
+
+    std::lock_guard<std::mutex> lg( this->_mtx );
     this->_h_rgb_radarimg = h;
 }
 
@@ -106,6 +130,7 @@ void ObstacleProjectionNodelet::cb_homography_rgb_radar( const typename homograp
         NODELET_WARN( "Invalid homography received, ignoring" );
         return;
     }
+    std::lock_guard<std::mutex> lg( this->_mtx );
     this->_h_rgb_radar = h;
 }
 
@@ -115,6 +140,8 @@ void ObstacleProjectionNodelet::sub_callback (
     )
 {
 
+    std::lock_guard<std::mutex> lg( this->_mtx );
+    
     // No subscribers/data, no work
     if (
         !seg_msg
@@ -160,18 +187,27 @@ void ObstacleProjectionNodelet::sub_callback (
             , h_radar_to_rgbimg = detail::Homography( this->_h_rgb_radarimg->values.data() ).inverse()
             ;
         // obstacles projected to frame
-        const auto& child_frame_id = this->_h_rgb_radar->child_frame_id;
+        const auto child_frame_id = this->_h_rgb_radar->child_frame_id;
 
         // get classified obstacles, publish obstacle message
         auto msg = asv_perception_common::ObstacleArray();
         
-        msg.obstacles = detail::classified_obstacle_projection::project( img, *cls_msg, h_rgb_to_radar );
+        msg.obstacles = detail::classified_obstacle_projection::project( 
+            img
+            , *cls_msg
+            , h_rgb_to_radar 
+            , this->_min_height
+            , this->_max_height
+            , this->_min_depth
+            , this->_max_depth
+            );
 
-        // set header for obstacles
-        for ( auto& obs : msg.obstacles ) {
-            obs.header = cls_msg->header;
-            obs.header.frame_id = child_frame_id;
-        }
+        // set headers
+        msg.header = cls_msg->header;
+        msg.header.frame_id = child_frame_id;
+
+        for ( auto& obs : msg.obstacles )
+            obs.header = msg.header;
             
         this->_pub.publish( msg );
 
@@ -191,10 +227,17 @@ void ObstacleProjectionNodelet::sub_callback (
         // unclass pointcloud
         if ( this->_pub_cloud.getNumSubscribers() > 0 ) {
 
-            auto cloud = detail::obstacle_projection::project( img, h_rgb_to_radar, h_radar_to_rgbimg );
+            auto cloud = detail::obstacle_projection::project( 
+                img
+                , h_rgb_to_radar
+                , h_radar_to_rgbimg 
+                , this->_max_height
+                , this->_max_depth
+                , this->_resolution
+                );
 
             sensor_msgs::PointCloud2::Ptr output_blob( new sensor_msgs::PointCloud2() );
-            
+
             pcl::toROSMsg ( cloud, *output_blob );
             output_blob->header = cls_msg->header;
             output_blob->header.frame_id = child_frame_id;
@@ -202,10 +245,11 @@ void ObstacleProjectionNodelet::sub_callback (
             // publish
             this->_pub_cloud.publish( output_blob );
         }
-    }
-    catch ( const std::exception& ex ) {
-        NODELET_ERROR( "[ObstacleProjectionNodelet] %s", ex.what() );
-    }
+  } catch ( const std::exception& ex ) {
+    ROS_ERROR("std::exception: %s", ex.what() );
+  } catch ( ... ) {
+    ROS_ERROR("unknown exception type");
+  }
     
 }
 
