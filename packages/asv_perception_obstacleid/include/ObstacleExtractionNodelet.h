@@ -11,12 +11,13 @@ namespace obstacle_id
   Obstacle extraction nodelet performs euclidean clustering and constructs Obstacle messages
 
   Parameters:
-  - cluster_tolerance: (required)  clustering tolerance, type=float
-  - min_cluster_size:  minimum number of points in a cluster.  type=uint, default=1
-  - max_cluster_size:  maximum number of points in a cluster.  type=uint, default=(max value)
+  - cluster_tolerance: [float]                    clustering tolerance
+  - min_cluster_size:  [uint, default=1]          minimum number of points in a cluster
+  - max_cluster_size:  [uint, default=uint_max]   maximum number of points in a cluster
+  
   Topics:
-  - input:  [sensor_msgs/PointCloud2] input pointcloud
-  - output: [asv_perception_common/ObstacleArray]  output obstacles
+  - input:      [sensor_msgs/PointCloud2]               input pointcloud
+  - obstacles:  [asv_perception_common/ObstacleArray]   output obstacles
   */
   class ObstacleExtractionNodelet 
     : public nodelet_topic_tools::NodeletLazy

@@ -1,0 +1,3 @@
+[submodule "packages/asv_perception_obstacle_tracking/src/AB3DMOT"]
+	path = packages/asv_perception_obstacle_tracking/src/AB3DMOT
+	url = https://github.com/xinshuoweng/AB3DMOT.git

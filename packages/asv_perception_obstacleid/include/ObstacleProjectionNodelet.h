@@ -1,6 +1,7 @@
 #ifndef OBSTACLEPROJECTIONNODELET_H
 #define OBSTACLEPROJECTIONNODELET_H
 
+#include <mutex>
 #include <ros/ros.h>
 #include <nodelet_topic_tools/nodelet_lazy.h>
 #include <sensor_msgs/Image.h>
@@ -19,15 +20,22 @@ namespace obstacle_id
     In 2D, combines segmented/unknown obstacle map with classified obstacle bounding boxes
     Expands classified obstacle bounding boxes as needed, estimates 3d properties, then creates Obstacle messages for the classified obstacles
     Projects remaining unclassified obstacle pixels to pointcloud
-    Input topics:
-    - segmentation:       [sensor_msgs/Image] 2d obstacle map, all pixels with value > 0 are considered obstacle pixels
-    - classification:     [asv_perception_common/ClassificationArray]  Classifications
-    - rgb_radarimg:       [asv_perception_common/Homography] rgb to radar image homography matrix
-    - rgb_radar:          [asv_perception_common/Homography] rgb to radar homography matrix
+    Subscriptions:
+        ~segmentation:      [sensor_msgs/Image] 2d obstacle map, all pixels with value > 0 are considered obstacle pixels
+        ~classification:    [asv_perception_common/ClassificationArray]  Classifications
+        ~rgb_radarimg:      [asv_perception_common/Homography] rgb to radar image homography matrix
+        ~rgb_radar:         [asv_perception_common/Homography] rgb to radar homography matrix
     
-    Output topics:
-    - obstacles:          [asv_perception_common/ObstacleArray] Classified obstacles
-    - cloud:              [sensor_msgs/PointCloud2]  Unclassified obstacle pointcloud
+    Publications:
+        ~obstacles:         [asv_perception_common/ObstacleArray] Classified obstacles
+        ~cloud:             [sensor_msgs/PointCloud2]  Unclassified obstacle pointcloud
+
+    Parameters:
+        ~min_height         [float, default=1.0]  Minimum projected obstacle height
+        ~max_height         [float, default=1.0]  Maximum projected obstacle height
+        ~min_depth          [float, default=1.0]  Minimum projected obstacle depth
+        ~max_height         [float, default=1.0]  Maximum projected obstacle height
+        ~resolution         [float, default=0.25]  Obstacle pointcloud resolution (space between points)
     */
     class ObstacleProjectionNodelet 
     : public nodelet_topic_tools::NodeletLazy
@@ -63,6 +71,9 @@ namespace obstacle_id
         
     private:
 
+        // state protection mutex
+        std::mutex _mtx;
+
         // publishers
         ros::Publisher 
             _pub
@@ -86,6 +97,15 @@ namespace obstacle_id
         typename asv_perception_common::Homography::ConstPtr 
             _h_rgb_radar
             , _h_rgb_radarimg
+            ;
+
+        // parameters
+        float 
+            _min_height = 1.f
+            , _max_height = 1.f
+            , _min_depth = 1.f
+            , _max_depth = 1.f
+            , _resolution = 0.25f
             ;
 
     public:

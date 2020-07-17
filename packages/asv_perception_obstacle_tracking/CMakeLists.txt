@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(asv_perception_common)
+project(asv_perception_obstacle_tracking)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -8,11 +8,10 @@ project(asv_perception_common)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  rospy
-  message_generation
   std_msgs
-  sensor_msgs
   geometry_msgs
+  sensor_msgs
+  rospy
 )
 
 ## System dependencies are found with CMake's conventions
@@ -49,14 +48,9 @@ catkin_python_setup()
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  Homography.msg
-  Classification.msg
-  ClassificationArray.msg
-  Obstacle.msg
-  ObstacleArray.msg
-)
+#add_message_files(
+#  FILES
+#)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -73,12 +67,10 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  sensor_msgs
-  geometry_msgs
-)
+#generate_messages(
+#  DEPENDENCIES
+#  std_msgs
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -112,7 +104,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES basic_duckiebot_move
-   CATKIN_DEPENDS std_msgs sensor_msgs geometry_msgs
+#  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 
