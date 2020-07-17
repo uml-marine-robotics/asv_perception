@@ -6,6 +6,7 @@ import sensor_msgs.point_cloud2 as pc2
 from nmea_msgs.msg import Sentence
 from asv_perception_common.msg import ObstacleArray
 from asv_perception_common.NodeLazy import NodeLazy
+from asv_perception_common.FrameTransformer import FrameTransformer
 
 class NMEAReportNode(NodeLazy):
     """
@@ -29,14 +30,18 @@ class NMEAReportNode(NodeLazy):
         self.tf_frame = rospy.get_param( '~tf_frame', None )
         self.pub = self.advertise( '~output', Sentence, queue_size=100 )
         self.sub = None
+        self.ft = None
         
     def subscribe( self ):
+
+        self.ft = FrameTransformer()
         self.sub = rospy.Subscriber( '~input', ObstacleArray, self.cb_sub, queue_size=1, buff_size=2**24 )
 
     def unsubscribe( self ):
         if not self.sub is None:
             self.sub.unregister()
             self.sub = None
+        self.ft = None
 
     def cb_sub( self, msg ):
         
@@ -46,11 +51,14 @@ class NMEAReportNode(NodeLazy):
             # if not using convex hull (optional) from obstacle points (which may not exist)
             #   generate rectangle from centroid + dimensions
 
-            # todo:  tf_frame
+            # tf transform
+            if not self.tf_frame is None and len(self.tf_frame) > 0:
+                self.ft.transform_obstacle( obs, self.tf_frame )
             
             pts = []
             if self.convex_hull and not obs.points is None and obs.points.width > 0:
                 try:
+                    # 2d convex hull
                     hull = ConvexHull( [ (pt[0], pt[1] ) for pt in pc2.read_points( obs.points, skip_nans=True ) ] )
                     pts = hull.points[hull.vertices]
 
