@@ -1,12 +1,22 @@
 # asv_perception
 Perception for marine surface vehicles
 
+## System Requirements
+*  CPU:  i7 9th gen or later recommended
+*  RAM:  8GB+
+*  Video card:  5GB+ Video RAM, CUDA 10 compatible
+*  Storage:  ~20GB for docker images and ML models
+*  O/S:  Linux, Docker 18.03 or later, CUDA drivers
+
 ## Installation
 *  `git clone --recursive https://github.com/uml-marine-robotics/asv_perception.git`
 *  `cd asv_perception`
 *  Put classifier data in `docker/classification/data`
 *  Put segmentation data in `docker/segmentation/data`
 *  `./build.sh`
+
+## Setup/calibration
+* TODO
 
 ## Running
 `./run.sh` to start the `asv_perception` nodes, then run a `.bag` file or connect to asv sensors.  Use `rviz` and/or `rqt_image_view` to display output
@@ -19,12 +29,14 @@ Perception for marine surface vehicles
 *  `packages`:  ROS packages
 
 ## To-Do:
-*  Basic obstacle tracking across frames; compute velocity vector
+*  Obstacle tracking up to 500m
+    *  Camera: better stabilization/pitch handling.  wasr/classifier offset
+    *  RADAR:  obstacle id/tracking in radar frame
+    *  Fusion of camera + RADAR obstacles
 *  Homography:
     *  Incorporate GPS data for heave
 *  Obstacle ID node
     *  Projection:  fix wasr/classifier offset, parent/child detections
-    *  Refactor pointcloud filtering to nodelet
     *  Accurate height/depth obstacle estimation
         * Height:  estimate from projection/geometry
         * Depth:   radar?
