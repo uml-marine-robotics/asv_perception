@@ -7,7 +7,7 @@ from tf.transformations import euler_from_quaternion
 from asv_perception_common.msg import Homography
 from asv_perception_common import utils
 
-from calibrate_utils import create_warp_matrix, get_radar_to_world_matrix
+from asv_perception_homography.calibrate_utils import create_warp_matrix, get_radar_to_world_matrix
 
 class homography_node(object):
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     try:
         rospy.init_node(homography_node.__name__)
         n = homography_node()
-        n.publish()  # publish one time (with latch), subsequent publishes will be triggered by receipt of IMU data
+        n.publish()  # publish one time with latch, subsequent publishes will be triggered by receipt of IMU data
         rospy.spin()
     except rospy.ROSInterruptException:
         pass

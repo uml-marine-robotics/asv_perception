@@ -17,7 +17,7 @@
                 - ~radarimg_radar:     [asv_perception_common/Homography] Homography from radar image pixels to radar frame in world units, iaw REP-103
                 - ~rgb_radar:          [asv_perception_common/Homography] Homography from rgb image pixels to radar frame in world units, iaw REP-103
         -->
-        <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="homography_node.py" output="screen" respawn="true">
+        <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="homography.py" output="screen">
 
             <remap from="~imu" to="/imu/data/enu" />
 
@@ -59,7 +59,7 @@
             Publications:
                 - ~image:                 [sensor_msgs/Image] Image which visualizes homography between rgb image and radar image
         -->
-        <node name="$(arg node_name)_vis" pkg="$(arg pkg_name)" type="homography_vis_node.py" output="screen">
+        <node name="$(arg node_name)_vis" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
 
             <!-- remap from=sink to=source -->
             <remap from="~imu" to="/imu/data/enu" />
