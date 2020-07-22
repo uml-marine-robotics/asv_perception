@@ -7,6 +7,10 @@ Perception for marine surface vehicles
 *  Video card:  5GB+ Video RAM, CUDA 10 compatible
 *  Storage:  ~20GB for docker images and ML models
 *  O/S:  Linux, Docker 18.03 or later, CUDA drivers
+*  ROS Melodic host/image with a TF tree defined, including a fixed frame (eg, `odom`)
+*  IMU publisher, ENU
+*  RADAR image publisher
+*  Camera image publisher, color
 
 ## Installation
 *  `git clone --recursive https://github.com/uml-marine-robotics/asv_perception.git`
@@ -30,11 +34,12 @@ Perception for marine surface vehicles
 
 ## To-Do:
 *  Obstacle tracking up to 500m
-    *  Camera: better stabilization/pitch handling.  wasr/classifier offset
+    *  Camera: wasr/classifier offset
     *  RADAR:  obstacle id/tracking in radar frame
     *  Fusion of camera + RADAR obstacles
 *  Homography:
-    *  Incorporate GPS data for heave
+    *  Camera-radar-pointcloud calibration (?)
+    *  Heave via GPS data
 *  Obstacle ID node
     *  Projection:  fix wasr/classifier offset, parent/child detections
     *  Accurate height/depth obstacle estimation

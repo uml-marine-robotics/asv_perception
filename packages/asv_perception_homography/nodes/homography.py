@@ -7,17 +7,18 @@ from tf.transformations import euler_from_quaternion
 from asv_perception_common.msg import Homography
 from asv_perception_common import utils
 
-from calibrate_utils import create_warp_matrix, get_radar_to_world_matrix
+from asv_perception_homography.calibrate_utils import create_warp_matrix, get_radar_to_world_matrix
+from asv_perception_homography.FeedforwardImuController import FeedforwardImuController
 
 class homography_node(object):
 
     def __init__(self):
         
         self.node_name = rospy.get_name()
-        
-        # pitch and roll, degrees   
-        self.imu_pitch = 0.
-        self.imu_roll = 0.
+
+        # feed forward imu controller
+        self.ctrl = FeedforwardImuController()
+        self.last_imu_msg = None
 
         self.has_published = False
         
@@ -38,9 +39,7 @@ class homography_node(object):
         self.publish()
 
     def cb_imu( self, msg ):
-        # imu.orientation is a normalized quaternion.  euler_from_quaternion returns radians
-        rpy = np.degrees( euler_from_quaternion( [msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w] ) )
-        self.imu_roll, self.imu_pitch = rpy[:2]
+        self.last_imu_msg = msg
         self.publish()
 
     # publish from rgb to other frame
@@ -54,7 +53,7 @@ class homography_node(object):
         self.has_published = True
 
 
-    def publish( self, msg = None ):
+    def publish( self ):
 
         # check for early exit
         if self.has_published and self.pub_rgb_radarimg.get_num_connections() < 1 and self.pub_radarimg_radar.get_num_connections() < 1 and self.pub_rgb_radar.get_num_connections() < 1:
@@ -63,14 +62,30 @@ class homography_node(object):
         # message time
         t = rospy.Time.now()
 
+        # update ff ctrl params, update
+        self.ctrl.yaw_alpha = rospy.get_param('~imu_yaw_alpha', 0. )
+        self.ctrl.yaw_beta = rospy.get_param('~imu_yaw_beta', 0. )
+        self.ctrl.yaw_gamma = rospy.get_param('~imu_yaw_gamma', 0. )
+
+        self.ctrl.pitch_alpha = rospy.get_param('~imu_pitch_alpha', 1. )
+        self.ctrl.pitch_beta = rospy.get_param('~imu_pitch_beta', 0. )
+        self.ctrl.pitch_gamma = rospy.get_param('~imu_pitch_gamma', 0. )
+
+        self.ctrl.roll_alpha = rospy.get_param('~imu_roll_alpha', 1. )
+        self.ctrl.roll_beta = rospy.get_param('~imu_roll_beta', 0. )
+        self.ctrl.roll_gamma = rospy.get_param('~imu_roll_gamma', 0. )
+
+        if not self.last_imu_msg is None:
+            self.ctrl.update( self.last_imu_msg )
+
         # rgb to radar
         #  create_warp_matrix computes radar to rgb, we want the inverse
         M_rgb_radar = np.linalg.inv( create_warp_matrix( 
             rospy.get_param('~radar_img_w') 
             , rospy.get_param('~radar_img_w')
-            , rospy.get_param('~yaw')
-            , rospy.get_param('~pitch') - self.imu_pitch
-            , rospy.get_param('~roll') - self.imu_roll
+            , rospy.get_param('~yaw') - np.degrees( self.ctrl.yaw )
+            , rospy.get_param('~pitch') - np.degrees( self.ctrl.pitch )
+            , rospy.get_param('~roll') - np.degrees( self.ctrl.roll )
             , 1.
             , rospy.get_param('~fovy')
             , rospy.get_param('~tx')
@@ -99,7 +114,7 @@ if __name__ == "__main__":
     try:
         rospy.init_node(homography_node.__name__)
         n = homography_node()
-        n.publish()  # publish one time (with latch), subsequent publishes will be triggered by receipt of IMU data
+        n.publish()  # publish one time with latch, subsequent publishes will be triggered by receipt of IMU data
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
