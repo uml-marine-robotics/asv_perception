@@ -31,12 +31,15 @@
                 <!-- 1280 x 1024 -->
                 roll: -2.96
                 pitch: 80.29
-                yaw_: 8.19
-                yaw: 0.
+                yaw_: 0.
+                yaw: 4.
                 fovy: 46.3
                 tx: 2.5
                 ty: 6.2
                 tz: -4.4
+                imu_pitch_alpha: 1.4
+                imu_pitch_beta: 0.2
+                imu_pitch_gamma: 0.02
 
                 <!-- the width of the radar image, in pixels -->
                 radar_img_w: 1024
