@@ -69,6 +69,23 @@
             </rosparam>
         </node>
 
+        <!-- 
+            socket reporting sample
+        -->
+        <!-- 
+        <node name="udp_reporting" pkg="$(arg pkg_name)" type="socket_reporting.py" output="screen">
+
+            <remap from="~input" to="mux/obstacles" />
+            
+            <rosparam>
+                host_ip: '127.0.0.1'
+                port: 5555
+                proto:  'udp'
+                tf_frame: 'base_link'
+            </rosparam>
+        </node>
+        -->
+        
     </group>
 </launch>
 
