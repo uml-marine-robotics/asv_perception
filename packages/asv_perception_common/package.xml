@@ -40,6 +40,10 @@
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>nodelet</depend>
+  <depend>pcl_ros</depend>
+  <depend>pcl_conversions</depend>
 
   <!-- Use build_depend for packages you need at compile time: -->
   <build_depend>message_generation</build_depend>
@@ -57,7 +61,8 @@
   
   <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <!-- Other tools can request additional information be placed here -->
+    <!-- nodelet info -->
+    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
 
   </export>
 </package>
