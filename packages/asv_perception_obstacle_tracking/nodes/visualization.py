@@ -3,6 +3,8 @@
 import copy, rospy, math
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
+import sensor_msgs.point_cloud2 as pc2
+from geometry_msgs.msg import Point
 from tf.transformations import *
 from asv_perception_common.msg import Obstacle, ObstacleArray
 from asv_perception_common.NodeLazy import NodeLazy
@@ -43,6 +45,24 @@ def create_marker( t, type, lifetime ):
 
     return marker
 
+def create_marker_linestrip( t, lifetime ):
+    ''' create a linestrip marker for the provided pointcloud, which should be a convex hull '''
+
+    marker = create_marker( t, Marker.LINE_STRIP, lifetime )
+
+    marker.color.g = 1.
+    
+    # points are relative to marker.pose.position
+    centroid = marker.pose.position
+    for pt in pc2.read_points( t.points, skip_nans=True ):     
+        marker.points.append( Point( centroid.x - pt[0], centroid.y - pt[1], centroid.z - pt[2] ) )
+    
+    # connect first and last point
+    if len(marker.points) > 0:
+        marker.points.append(marker.points[0])
+    
+    return marker
+
 def create_marker_cube( t, lifetime ):
     
     marker = create_marker( t, Marker.CUBE, lifetime )
@@ -75,7 +95,8 @@ def create_tracked_object_markers( t, lifetime ):
     """ create marker(s) for tracked object t """
     
     result = [ 
-        create_marker_cube( t, lifetime )
+        create_marker_linestrip( t, lifetime )
+        # , create_marker_cube( t, lifetime )
         , create_marker_text( t, lifetime )
     ]
     if len(t.label) > 0 and get_mag_linear( t ) > 0:

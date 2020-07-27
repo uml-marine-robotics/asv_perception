@@ -1,0 +1,26 @@
+<launch>
+
+  <arg name="package_name" value="asv_perception_obstacleid"/>
+  <arg name="namespace_name" value="radar1"/>
+  
+  <group ns="$(arg namespace_name)">
+
+    <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
+    <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
+
+    <!-- cluster extraction to obstacles -->
+    <node pkg="nodelet" type="nodelet" name="extraction" respawn="true" output="screen"
+      args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" >
+
+      <remap from="~input" to="concat/full" />
+      
+      <rosparam>
+        cluster_tolerance: 2.
+        min_cluster_size: 100
+        max_cluster_size: 25000
+      </rosparam>
+    </node>
+
+  </group>
+
+</launch>

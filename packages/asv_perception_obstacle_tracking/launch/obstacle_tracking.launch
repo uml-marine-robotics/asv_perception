@@ -85,6 +85,18 @@
             </rosparam>
         </node>
         -->
+
+        <!-- 
+            radar obstacle visualization
+        -->
+        <node name="radar_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+
+            <remap from="~input" to="/radar1/extraction/obstacles" />
+
+            <rosparam>
+                marker_duration_secs: 1.
+            </rosparam>
+        </node>
         
     </group>
 </launch>

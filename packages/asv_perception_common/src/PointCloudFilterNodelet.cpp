@@ -8,7 +8,7 @@
 #include <pcl/filters/conditional_removal.h>
 
 namespace {
-  using namespace obstacle_id;
+  using namespace asv_perception_common;
 
   static const std::string 
     TOPIC_NAME_INPUT = "input"
@@ -119,4 +119,4 @@ void PointCloudFilterNodelet::sub_callback (
 }
 
 
-PLUGINLIB_EXPORT_CLASS( obstacle_id::PointCloudFilterNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS( asv_perception_common::PointCloudFilterNodelet, nodelet::Nodelet)

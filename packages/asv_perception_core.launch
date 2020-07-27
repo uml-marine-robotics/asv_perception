@@ -20,7 +20,8 @@
     <!-- launch file for packages in the asv_perception_core image -->
     <include file="$(find asv_perception_common)/launch/radar_concat.launch" />
     <include file="$(find asv_perception_homography)/launch/homography.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/obstacleid.launch" />
+    <include file="$(find asv_perception_obstacleid)/launch/obstacleid_camera.launch" />
+    <include file="$(find asv_perception_obstacleid)/launch/obstacleid_radar.launch" />
     <include file="$(find asv_perception_obstacle_tracking)/launch/obstacle_tracking.launch" />
 
 </launch> 

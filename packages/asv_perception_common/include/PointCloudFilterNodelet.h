@@ -4,7 +4,7 @@
 #include <pcl_ros/pcl_nodelet.h>
 #include <ros/ros.h>
 
-namespace obstacle_id
+namespace asv_perception_common
 {
   /*
     Description

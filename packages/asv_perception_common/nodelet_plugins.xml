@@ -6,4 +6,10 @@
     </description>
   </class>
 
+  <class name="asv_perception_common/PointCloudFilterNodelet" type="asv_perception_common::PointCloudFilterNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Point cloud filtering nodelet
+    </description>
+  </class>
+
 </library>

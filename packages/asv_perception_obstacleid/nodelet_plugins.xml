@@ -12,10 +12,4 @@
     </description>
   </class>
 
-  <class name="asv_perception_obstacleid/PointCloudFilterNodelet" type="obstacle_id::PointCloudFilterNodelet" base_class_type="nodelet::Nodelet">
-    <description>
-      Point cloud filtering nodelet
-    </description>
-  </class>
-
 </library>

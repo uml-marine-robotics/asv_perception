@@ -31,7 +31,7 @@
 
     <!-- minimum distance filter -->
     <node pkg="nodelet" type="nodelet" name="distance_filter" respawn="true" output="screen"
-      args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)" >
+      args="load asv_perception_common/PointCloudFilterNodelet $(arg nodelet_name)" >
     >
       <remap from="~input" to="projection/cloud" />
       <rosparam>
