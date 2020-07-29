@@ -18,11 +18,11 @@
     </group>
 
     <!-- launch file for packages in the asv_perception_core image -->
-    <include file="$(find asv_perception_common)/launch/radar_concat.launch" />
     <include file="$(find asv_perception_homography)/launch/homography.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/obstacleid_camera.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/obstacleid_radar.launch" />
+    <include file="$(find asv_perception_obstacleid)/launch/camera.launch" />
+    <include file="$(find asv_perception_obstacleid)/launch/radar0.launch" />
+    <include file="$(find asv_perception_obstacleid)/launch/radar1.launch" />
     <include file="$(find asv_perception_obstacle_tracking)/launch/camera.launch" />
-    <include file="$(find asv_perception_obstacle_tracking)/launch/radar.launch" />
+    <include file="$(find asv_perception_obstacle_tracking)/launch/radar0.launch" />
 
 </launch> 

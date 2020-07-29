@@ -5,7 +5,7 @@
 #include <pcl_ros/pcl_nodelet.h>
 #include <ros/ros.h>
 
-namespace asv_perception_common
+namespace obstacle_id
 {
   /*
     Concatenates multiple partial pointcloud segments received over time into a single pointcloud

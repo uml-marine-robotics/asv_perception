@@ -6,7 +6,7 @@
     <group ns="$(arg ns_name)">
 
         <!-- 
-            extracted radar obstacle visualization
+            (debug) extracted radar obstacle visualization
         -->
         <node name="extraction_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
 
@@ -34,7 +34,7 @@
         <!-- 
             tracked obstacle visualization
         -->
-        <node name="tracking_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+        <node name="visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
 
             <remap from="~input" to="tracking/obstacles" />
 

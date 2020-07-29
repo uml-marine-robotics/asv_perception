@@ -1,5 +1,5 @@
-
 #include "PointCloudFilterNodelet.h"
+#include <math.h> // pow
 
 #include <pcl/pcl_base.h>
 #include <pcl/point_types.h>
@@ -7,9 +7,10 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/filters/conditional_removal.h>
 #include <pcl/filters/radius_outlier_removal.h>
+#include <pcl/filters/extract_indices.h>
 
 namespace {
-  using namespace asv_perception_common;
+  using namespace obstacle_id;
 
   static const std::string 
     TOPIC_NAME_INPUT = "input"
@@ -25,10 +26,10 @@ void PointCloudFilterNodelet::onInit ()
   base_type::onInit ();
 
   // parameters
+  pnh_->getParam("min_distance", this->min_distance_ );
   pnh_->getParam("min_distance_x", this->min_distance_x_ );
   pnh_->getParam("min_distance_y", this->min_distance_y_ );
   pnh_->getParam("min_distance_z", this->min_distance_z_ );
-
   pnh_->getParam( "outlier_min_neighbors", this->outlier_min_neighbors_ );
   pnh_->getParam( "outlier_radius", this->outlier_radius_ );
 
@@ -76,7 +77,27 @@ void PointCloudFilterNodelet::sub_callback (
     if ( pc_ptr->empty() )
       return;
 
-    // min distance filter
+    // min distance filter (radius from origin)
+    if ( this->min_distance_ > 0.f ) {
+
+        const auto d_2 = std::pow( this->min_distance_, 2. );
+
+        // https://stackoverflow.com/a/48595186/882436
+        pointcloud_type::Ptr filtered( new pointcloud_type{} );
+        pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+        pcl::ExtractIndices<point_type> extract = {};
+        for ( std::size_t i = 0; i < pc_ptr->points.size(); ++i ) {
+          const auto& pt = pc_ptr->points[i];
+          if ( ( std::pow(pt.x,2.) + std::pow(pt.y,2.) + std::pow(pt.z,2.) ) < d_2 )
+            inliers->indices.push_back(i);
+        }
+        extract.setInputCloud( pc_ptr );
+        extract.setIndices(inliers);
+        extract.setNegative(true);
+        extract.filter(*pc_ptr);
+    }
+
+    // dimensional min distance filter
     if ( ( this->min_distance_x_ > 0.f ) || ( this->min_distance_y_ > 0.f ) || ( this->min_distance_z_ > 0.f ) ) {
 
         using PointType = point_type;
@@ -132,4 +153,4 @@ void PointCloudFilterNodelet::sub_callback (
 }
 
 
-PLUGINLIB_EXPORT_CLASS( asv_perception_common::PointCloudFilterNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS( obstacle_id::PointCloudFilterNodelet, nodelet::Nodelet)

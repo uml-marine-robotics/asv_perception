@@ -4,7 +4,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 
 namespace {
-  using namespace asv_perception_common;
+  using namespace obstacle_id;
 
   static const std::string 
     TOPIC_NAME_INPUT = "input"
@@ -101,4 +101,4 @@ void PointCloudConcatNodelet::sub_callback (
 }
 
 
-PLUGINLIB_EXPORT_CLASS( asv_perception_common::PointCloudConcatNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS( obstacle_id::PointCloudConcatNodelet, nodelet::Nodelet)

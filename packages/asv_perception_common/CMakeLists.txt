@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(asv_perception_common)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -g)
+#add_compile_options(-std=c++11 -g)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -13,10 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   sensor_msgs
   geometry_msgs
-  roscpp
-  nodelet
-  pcl_conversions
-  pcl_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -126,25 +122,25 @@ catkin_package(
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
+#include_directories(
+#  include
+#  ${catkin_INCLUDE_DIRS}
+#)
 
-set(LINK_LIBS
-  ${catkin_LIBRARIES}
-)
+#set(LINK_LIBS
+#  ${catkin_LIBRARIES}
+#)
 
-set (NODELET_NAME
-  ${PROJECT_NAME}_nodelet
-)
+#set (NODELET_NAME
+#  ${PROJECT_NAME}_nodelet
+#)
 
 ## Declare a C++ library
 # nodelet library
-file(GLOB SRC_CPP src/*.cpp)
-add_library( ${NODELET_NAME} ${SRC_CPP} )
+#file(GLOB SRC_CPP src/*.cpp)
+#add_library( ${NODELET_NAME} ${SRC_CPP} )
 
-target_link_libraries( ${NODELET_NAME} ${LINK_LIBS} )
+#target_link_libraries( ${NODELET_NAME} ${LINK_LIBS} )
 
 #############
 ## Install ##
