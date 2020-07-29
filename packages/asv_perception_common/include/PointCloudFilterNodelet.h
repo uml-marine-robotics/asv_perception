@@ -17,7 +17,9 @@ namespace asv_perception_common
 
     Parameters:
         ~min_distance_[x,y,z]:   [float, default=0]  minimum distance filter, ignored if <= 0
-
+        ~outlier_min_neighbors:  [int, default=0]    minimum number of neighbors within `outlier_radius` for a point to be excluded from removal.  0 means ignored
+        ~outlier_radius:         [float, default=0]  radius for outlier removal
+        
   */
   class PointCloudFilterNodelet
     : public nodelet_topic_tools::NodeletLazy
@@ -45,10 +47,14 @@ namespace asv_perception_common
 
         // parameters
         float
-            _min_distance_x = 0.f
-            , _min_distance_y = 0.f
-            , _min_distance_z = 0.f
+            min_distance_x_ = 0.f
+            , min_distance_y_ = 0.f
+            , min_distance_z_ = 0.f
+            , outlier_radius_ = 0.f
             ;
+        int 
+          outlier_min_neighbors_ = 0
+          ;
 
         ros::Subscriber sub_;
         ros::Publisher pub_;

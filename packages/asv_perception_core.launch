@@ -22,6 +22,7 @@
     <include file="$(find asv_perception_homography)/launch/homography.launch" />
     <include file="$(find asv_perception_obstacleid)/launch/obstacleid_camera.launch" />
     <include file="$(find asv_perception_obstacleid)/launch/obstacleid_radar.launch" />
-    <include file="$(find asv_perception_obstacle_tracking)/launch/obstacle_tracking.launch" />
+    <include file="$(find asv_perception_obstacle_tracking)/launch/camera.launch" />
+    <include file="$(find asv_perception_obstacle_tracking)/launch/radar.launch" />
 
 </launch> 

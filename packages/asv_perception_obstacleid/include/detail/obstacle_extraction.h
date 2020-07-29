@@ -80,6 +80,9 @@ inline std::vector<asv_perception_common::Obstacle> extract(
     , const std::uint32_t max_cluster_size
 )
 {
+    if ( !pc_ptr || pc_ptr->empty() )
+        return {};
+
     // do extraction from pointcloud
     pcl::search::Search<point_type>::Ptr tree( new pcl::search::KdTree<point_type>( false ) );
     tree->setInputCloud( pc_ptr );

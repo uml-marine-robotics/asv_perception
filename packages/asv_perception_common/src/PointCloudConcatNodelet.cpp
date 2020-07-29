@@ -83,6 +83,9 @@ void PointCloudConcatNodelet::sub_callback (
     for ( auto& pc : this->segments_ )
       if ( pc != nullptr && !pcl::concatenatePointCloud( result, *pc, result ) )
         ROS_ERROR("Error concatenating point clouds");
+    
+    // use latest header
+    result.header = cloud->header;
 
     if ( this->pub_current_.getNumSubscribers() > 0 )
       this->pub_current_.publish( result );

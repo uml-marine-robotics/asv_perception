@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <arg name="pkg_name" value="asv_perception_obstacle_tracking"/>
+    <arg name="ns_name" default="radar1"/>
+
+    <group ns="$(arg ns_name)">
+
+        <!-- 
+            extracted radar obstacle visualization
+        -->
+        <node name="extraction_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+
+            <remap from="~input" to="extraction/obstacles" />
+
+            <rosparam>
+                marker_duration_secs: 1.
+            </rosparam>
+        </node>
+
+        <!-- 
+            radar obstacle tracking
+        -->
+        <node name="tracking" pkg="$(arg pkg_name)" type="tracking.py" output="screen">
+            
+            <remap from="~input" to="extraction/obstacles" />
+
+            <rosparam>
+                max_age: 4
+                min_hits: 3
+                tf_frame: 'odom'
+            </rosparam>
+        </node>
+
+        <!-- 
+            tracked obstacle visualization
+        -->
+        <node name="tracking_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+
+            <remap from="~input" to="tracking/obstacles" />
+
+            <rosparam>
+                marker_duration_secs: 1.
+            </rosparam>
+        </node>
+        
+    </group>
+</launch>
+
