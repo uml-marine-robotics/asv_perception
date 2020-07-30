@@ -9,7 +9,7 @@ Perception for marine surface vehicles
 *  O/S:  Linux, Docker 18.03 or later, CUDA drivers
 *  ROS Melodic host/image with a TF tree defined, including a fixed frame (eg, `odom`)
 *  IMU publisher, ENU
-*  RADAR image publisher
+*  RADAR image and pointcloud publisher
 *  Camera image publisher, color
 
 ## Installation
@@ -33,10 +33,9 @@ Perception for marine surface vehicles
 *  `packages`:  ROS packages
 
 ## To-Do:
-*  Obstacle tracking up to 500m
+*  Obstacle tracking
+    *  Fusion of camera + RADAR obstacles (classification label association)
     *  Camera: wasr/classifier offset
-    *  RADAR:  obstacle id/tracking in radar frame
-    *  Fusion of camera + RADAR obstacles
 *  Homography:
     *  Camera-radar-pointcloud calibration (?)
     *  Heave via GPS data
