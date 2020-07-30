@@ -18,40 +18,29 @@ namespace obstacle_extraction {
 
 namespace impl {
 
-    // create n-dimensional convex hull from pointcloud
-    inline pointcloud_type create_convex_hull( 
+    // create/return n-dimensional convex hull from pointcloud and its area (2d) or volume (3d)
+    inline std::pair<pointcloud_type, double> create_convex_hull( 
         const typename pointcloud_type::Ptr& pc_ptr
-        , const int ndimensions = 2 ) {
+        , const int ndimensions = 2 
+    ) {
 
         pcl::ConvexHull<point_type> chull = {};
         chull.setInputCloud( pc_ptr );
-
+        chull.setComputeAreaVolume( true );
         chull.setDimension( ndimensions );
 
         pointcloud_type hull = {};
         chull.reconstruct( hull );
 
-        return hull;
+        return { std::move( hull ), ( ndimensions == 2 ) ? chull.getTotalArea() : chull.getTotalVolume() };
     }   // create_convex_hull
 
-    // create Obstacle from points and indices
+    // create Obstacle from pointcloud
     inline asv_perception_common::Obstacle create_obstacle( 
-        const typename pointcloud_type::Ptr& pc_ptr
-        , const pcl::PointIndices& pi
-        ) {
-
-        assert( !pi.indices.empty() );
-
-        // getting segfaults when trying to use convexhull with setIndices. only for organized pointcloud?
-        //  make a new pointcloud based on provided pointindices
-
+        const pointcloud_type& pc
+    ) {
         asv_perception_common::Obstacle result = {};
-        
-        // copy points from src pointcloud
-        pointcloud_type::Ptr pc_copy_ptr( new pointcloud_type() );
-        pcl::copyPointCloud( *pc_ptr, pi, *pc_copy_ptr );
-
-        const auto minmax = utils::minmax_3d( pc_copy_ptr->points );
+        const auto minmax = utils::minmax_3d( pc.points );
 
         result.dimensions.x = minmax.second.x - minmax.first.x;
         result.dimensions.y = minmax.second.y - minmax.first.y;
@@ -61,10 +50,6 @@ namespace impl {
         result.pose.pose.position.y = ( minmax.first.y + minmax.second.y ) / 2.;
         result.pose.pose.position.z = ( minmax.first.z + minmax.second.z ) / 2.;
 
-        // 2d convex hull
-        result.points = {};
-        pcl::toROSMsg( create_convex_hull( pc_copy_ptr, 2 ), result.points );
-        
         return result;
     }   // create_obstacle
 }   // impl
@@ -78,6 +63,7 @@ inline std::vector<asv_perception_common::Obstacle> extract(
     , const float cluster_tolerance
     , const std::uint32_t min_cluster_size
     , const std::uint32_t max_cluster_size
+    , const float max_area
 )
 {
     if ( !pc_ptr || pc_ptr->empty() )
@@ -94,11 +80,23 @@ inline std::vector<asv_perception_common::Obstacle> extract(
 
     // convert clusters to obstacles
     for ( const auto& cluster : clusters ) {
+        
         if ( cluster.indices.empty() )
             continue;
-        results.emplace_back(
-            impl::create_obstacle( pc_ptr, cluster )
-        );
+
+        // copy cluster points from src pointcloud
+        pointcloud_type::Ptr cluster_pc( new pointcloud_type() );
+        pcl::copyPointCloud( *pc_ptr, cluster, *cluster_pc );
+
+        auto hull_area = impl::create_convex_hull( cluster_pc );
+
+        // max area check
+        if ( ( max_area > 0.f ) && ( hull_area.second > max_area ) )
+            continue;
+
+        auto obs = impl::create_obstacle( hull_area.first );
+        pcl::toROSMsg( hull_area.first, obs.points );
+        results.emplace_back( std::move( obs ) );
     }
 
     return results;

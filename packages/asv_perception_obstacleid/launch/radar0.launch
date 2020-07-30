@@ -15,7 +15,7 @@
       <remap from="~input" to="/broadband_radar/channel_0/pointcloud" />
 
       <rosparam>
-        min_distance: 130.
+        min_distance: 200.
         outlier_radius:  2.
         outlier_min_neighbors: 10
       </rosparam>
@@ -39,7 +39,7 @@
       <remap from="~input" to="grid_filter/output" />
 
       <rosparam>
-        segments: 10
+        segments: 11
       </rosparam>
     </node>
 
@@ -50,9 +50,9 @@
       <remap from="~input" to="concat/full" />
       
       <rosparam>
-        cluster_tolerance: 2.
-        min_cluster_size: 50
-        max_cluster_size: 5000
+        cluster_tolerance: 15.
+        min_cluster_size: 25
+        max_area:  2000
       </rosparam>
     </node>
 
