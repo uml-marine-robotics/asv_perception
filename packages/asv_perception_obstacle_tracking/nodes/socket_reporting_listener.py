@@ -1,19 +1,24 @@
 #!/usr/bin/env python
-import socket
+import socket, json, io
 
 class UdpReceiver( object ):
 
-    def __init__( self, host, port, buf_sz=1024 ):
+    def __init__( self, host, port, buf_sz=4096 ):
         self.buf_sz = buf_sz
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.bind( (host,port) )
         
-
     def receive( self ):
         
         while True:
-            data = self.sock.recvfrom( self.buf_sz )
-            print("received message: %s" % data[0] )
+            data, _ = self.sock.recvfrom( self.buf_sz )     # get data
+            decoded = data.decode('utf-8')
+            print( 'received data: %s' % decoded )
+
+            obs = json.loads( decoded )        # deserialize
+            
+            # now use obstacle data
+            print( 'received obstacle id=%s, position=%s' % ( obs['id'], obs['pose']['pose'] ) )
 
 if __name__ == "__main__":
     '''
