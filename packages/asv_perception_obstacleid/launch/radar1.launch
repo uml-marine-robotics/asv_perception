@@ -47,12 +47,13 @@
     <node pkg="nodelet" type="nodelet" name="extraction" respawn="true" output="screen"
       args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" >
 
-      <remap from="~input" to="outlier_filter/output" />
+      <remap from="~input" to="concat/full" />
       
       <rosparam>
         cluster_tolerance: 2.
         min_cluster_size: 100
         max_cluster_size: 10000
+        max_area: 500
       </rosparam>
     </node>
 

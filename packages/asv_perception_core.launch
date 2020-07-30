@@ -24,5 +24,6 @@
     <include file="$(find asv_perception_obstacleid)/launch/radar1.launch" />
     <include file="$(find asv_perception_obstacle_tracking)/launch/camera.launch" />
     <include file="$(find asv_perception_obstacle_tracking)/launch/radar0.launch" />
+    <include file="$(find asv_perception_obstacle_tracking)/launch/radar1.launch" />
 
 </launch> 

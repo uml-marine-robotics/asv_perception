@@ -34,7 +34,7 @@
         <!-- 
             tracked obstacle visualization
         -->
-        <node name="visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+        <node name="tracking_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
 
             <remap from="~input" to="tracking/obstacles" />
 
@@ -47,7 +47,7 @@
             socket reporting sample
         -->
         <!--
-        <node name="udp_reporting" pkg="$(arg pkg_name)" type="socket_reporting.py" output="screen">
+        <node name="tracking_udp_reporting" pkg="$(arg pkg_name)" type="socket_reporting.py" output="screen">
 
             <remap from="~input" to="tracking/obstacles" />
             

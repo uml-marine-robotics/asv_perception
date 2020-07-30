@@ -34,7 +34,7 @@
         <!-- 
             tracked obstacle visualization
         -->
-        <node name="visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+        <node name="tracking_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
 
             <remap from="~input" to="tracking/obstacles" />
 
