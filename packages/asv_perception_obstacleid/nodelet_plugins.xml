@@ -1,5 +1,17 @@
 <library path="lib/libasv_perception_obstacleid_nodelet">
 
+  <class name="asv_perception_obstacleid/PointCloudConcatNodelet" type="obstacle_id::PointCloudConcatNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Point cloud concat nodelet
+    </description>
+  </class>
+
+  <class name="asv_perception_obstacleid/PointCloudFilterNodelet" type="obstacle_id::PointCloudFilterNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Point cloud filtering nodelet
+    </description>
+  </class>
+
   <class name="asv_perception_obstacleid/ObstacleProjectionNodelet" type="obstacle_id::ObstacleProjectionNodelet" base_class_type="nodelet::Nodelet">
     <description>
       2D to 3D obstacle backprojection of classified bounding boxes and unclassified pixel backprojection to pointcloud
@@ -9,12 +21,6 @@
   <class name="asv_perception_obstacleid/ObstacleExtractionNodelet" type="obstacle_id::ObstacleExtractionNodelet" base_class_type="nodelet::Nodelet">
     <description>
       Obstacle extraction from Euclidean cluster extraction within a pointcloud
-    </description>
-  </class>
-
-  <class name="asv_perception_obstacleid/PointCloudFilterNodelet" type="obstacle_id::PointCloudFilterNodelet" base_class_type="nodelet::Nodelet">
-    <description>
-      Point cloud filtering nodelet
     </description>
   </class>
 

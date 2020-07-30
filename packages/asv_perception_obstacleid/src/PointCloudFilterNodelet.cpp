@@ -1,11 +1,13 @@
-
 #include "PointCloudFilterNodelet.h"
+#include <math.h> // pow
 
 #include <pcl/pcl_base.h>
 #include <pcl/point_types.h>
 #include <pluginlib/class_list_macros.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/filters/conditional_removal.h>
+#include <pcl/filters/radius_outlier_removal.h>
+#include <pcl/filters/extract_indices.h>
 
 namespace {
   using namespace obstacle_id;
@@ -24,9 +26,12 @@ void PointCloudFilterNodelet::onInit ()
   base_type::onInit ();
 
   // parameters
-  pnh_->getParam("min_distance_x", this->_min_distance_x );
-  pnh_->getParam("min_distance_y", this->_min_distance_y );
-  pnh_->getParam("min_distance_z", this->_min_distance_z );
+  pnh_->getParam("min_distance", this->min_distance_ );
+  pnh_->getParam("min_distance_x", this->min_distance_x_ );
+  pnh_->getParam("min_distance_y", this->min_distance_y_ );
+  pnh_->getParam("min_distance_z", this->min_distance_z_ );
+  pnh_->getParam( "outlier_min_neighbors", this->outlier_min_neighbors_ );
+  pnh_->getParam( "outlier_radius", this->outlier_radius_ );
 
   // publisher
   this->pub_ = advertise<sensor_msgs::PointCloud2>( *pnh_, TOPIC_NAME_OUTPUT, 1 );
@@ -72,31 +77,51 @@ void PointCloudFilterNodelet::sub_callback (
     if ( pc_ptr->empty() )
       return;
 
-    // min distance filter
-    if ( ( this->_min_distance_x > 0.f ) || ( this->_min_distance_y > 0.f ) || ( this->_min_distance_z > 0.f ) ) {
+    // min distance filter (radius from origin)
+    if ( this->min_distance_ > 0.f ) {
+
+        const auto d_2 = std::pow( this->min_distance_, 2. );
+
+        // https://stackoverflow.com/a/48595186/882436
+        pointcloud_type::Ptr filtered( new pointcloud_type{} );
+        pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+        pcl::ExtractIndices<point_type> extract = {};
+        for ( std::size_t i = 0; i < pc_ptr->points.size(); ++i ) {
+          const auto& pt = pc_ptr->points[i];
+          if ( ( std::pow(pt.x,2.) + std::pow(pt.y,2.) + std::pow(pt.z,2.) ) < d_2 )
+            inliers->indices.push_back(i);
+        }
+        extract.setInputCloud( pc_ptr );
+        extract.setIndices(inliers);
+        extract.setNegative(true);
+        extract.filter(*pc_ptr);
+    }
+
+    // dimensional min distance filter
+    if ( ( this->min_distance_x_ > 0.f ) || ( this->min_distance_y_ > 0.f ) || ( this->min_distance_z_ > 0.f ) ) {
 
         using PointType = point_type;
         pcl::ConditionOr<PointType>::Ptr range_cond (new pcl::ConditionOr<PointType> ());
         
-        if ( this->_min_distance_x > 0.f ) {
+        if ( this->min_distance_x_ > 0.f ) {
             range_cond->addComparison (pcl::FieldComparison<PointType>::ConstPtr (new
-                                            pcl::FieldComparison<PointType> ("x", pcl::ComparisonOps::GT, this->_min_distance_x )));
+                                            pcl::FieldComparison<PointType> ("x", pcl::ComparisonOps::GT, this->min_distance_x_ )));
             range_cond->addComparison (pcl::FieldComparison<PointType>::ConstPtr (new
-                                            pcl::FieldComparison<PointType> ("x", pcl::ComparisonOps::LT, -this->_min_distance_x )));
+                                            pcl::FieldComparison<PointType> ("x", pcl::ComparisonOps::LT, -this->min_distance_x_ )));
         }
 
-        if ( this->_min_distance_y > 0.f ) {
+        if ( this->min_distance_y_ > 0.f ) {
             range_cond->addComparison (pcl::FieldComparison<PointType>::ConstPtr (new
-                                            pcl::FieldComparison<PointType> ("y", pcl::ComparisonOps::GT, this->_min_distance_y )));
+                                            pcl::FieldComparison<PointType> ("y", pcl::ComparisonOps::GT, this->min_distance_y_ )));
             range_cond->addComparison (pcl::FieldComparison<PointType>::ConstPtr (new
-                                            pcl::FieldComparison<PointType> ("y", pcl::ComparisonOps::LT, -this->_min_distance_y )));
+                                            pcl::FieldComparison<PointType> ("y", pcl::ComparisonOps::LT, -this->min_distance_y_ )));
         }
 
-        if ( this->_min_distance_z > 0.f ) {
+        if ( this->min_distance_z_ > 0.f ) {
             range_cond->addComparison (pcl::FieldComparison<PointType>::ConstPtr (new
-                                            pcl::FieldComparison<PointType> ("z", pcl::ComparisonOps::GT, this->_min_distance_z )));
+                                            pcl::FieldComparison<PointType> ("z", pcl::ComparisonOps::GT, this->min_distance_z_ )));
             range_cond->addComparison (pcl::FieldComparison<PointType>::ConstPtr (new
-                                            pcl::FieldComparison<PointType> ("z", pcl::ComparisonOps::LT, -this->_min_distance_z )));
+                                            pcl::FieldComparison<PointType> ("z", pcl::ComparisonOps::LT, -this->min_distance_z_ )));
         }
 
         pointcloud_type::Ptr cloud_post_filter (new pointcloud_type);
@@ -104,8 +129,17 @@ void PointCloudFilterNodelet::sub_callback (
         condrem.setCondition(range_cond);
         condrem.setInputCloud(pc_ptr);
         condrem.filter(*cloud_post_filter);
-
         pc_ptr = cloud_post_filter;
+
+        // radius outlier removal
+        if ( !pc_ptr->empty() && ( this->outlier_min_neighbors_ > 0 ) && ( this->outlier_radius_ > 0. ) ) {
+            pcl::RadiusOutlierRemoval<point_type> outrem = {};
+            outrem.setInputCloud( pc_ptr );
+            outrem.setRadiusSearch( this->outlier_radius_ );
+            outrem.setMinNeighborsInRadius( this->outlier_min_neighbors_ );
+            outrem.filter (*pc_ptr );
+        }
+
     }
     
     // publish

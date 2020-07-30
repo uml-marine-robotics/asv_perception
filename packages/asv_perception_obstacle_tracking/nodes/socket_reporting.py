@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import socket
+import socket, json
 import rospy
 import sensor_msgs.point_cloud2 as pc2
 from asv_perception_common.msg import ObstacleArray
@@ -13,9 +13,10 @@ class UdpPublisher( object ):
         self.host = host
         self.port = port
 
-    def publish( self, s ):
-        ''' publish a utf-8 string '''
-        self.sock.sendto( bytes( s ), ( self.host, self.port ) )
+    def publish( self, b ):
+        ''' publish bytes '''
+        if ( self.sock.sendto( b, ( self.host, self.port ) ) < len(b) ):
+            rospy.logwarn('Unable to send all %d bytes of message' % len(b) )
 
 class SocketReportingNode( object ):
     """
@@ -52,30 +53,18 @@ class SocketReportingNode( object ):
         
         for obs in msg.obstacles:
 
-            # tf transform
+            # tf transform to correct frame
             if not self.tf_frame is None and len(self.tf_frame) > 0:
                 self.ft.transform_obstacle( obs, self.tf_frame )
             
-            l,w = obs.dimensions.x,obs.dimensions.y
-            x,y = obs.pose.pose.position.x, obs.pose.pose.position.y
+            # define list of obstacle attributes to ignore (binary data, etc)
+            ignored_attrs = [ 'points' ]
 
-            pts = [
-                ( x-l/2., y-w/2. )
-                , ( x-l/2.,y+w/2. )
-                , ( x+l/2., y+w/2. )
-                , ( x+l/2., y-w/2. )
-            ]
+            serialized = json.dumps( obs
+                , default=lambda o: { s: getattr(o, s) for s in o.__slots__ if hasattr(o, s) and s not in ignored_attrs }
+                , ensure_ascii=False )
 
-            # generate hull string fragment
-            hull_frag = str()
-            for pt in pts:
-                hull_frag += "%f,%f" % ( pt[0], pt[1] )
-
-            # sec.nsec, id, 2d points ( x1,y1,x2,y2,...,xn,yn )*00\n
-            obs_id = "0" if not obs.id else obs.id
-            s = '$PYOBP,%d.%d,%s,%s*00\n' % ( msg.header.stamp.to_sec(), msg.header.stamp.to_nsec(), obs_id, hull_frag )
-            self.pub.publish( s )
-            
+            self.pub.publish( bytes( serialized ) )
     
 if __name__ == "__main__":
 

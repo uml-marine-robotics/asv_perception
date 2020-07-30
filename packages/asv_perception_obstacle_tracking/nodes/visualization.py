@@ -3,6 +3,8 @@
 import copy, rospy, math
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
+import sensor_msgs.point_cloud2 as pc2
+from geometry_msgs.msg import Point
 from tf.transformations import *
 from asv_perception_common.msg import Obstacle, ObstacleArray
 from asv_perception_common.NodeLazy import NodeLazy
@@ -38,9 +40,22 @@ def create_marker( t, type, lifetime ):
     marker.pose = copy.deepcopy( t.pose.pose )
     marker.scale.x = marker.scale.y = marker.scale.z = 1.   # default scale
 
-    if len(t.label) > 0:
-        marker.color.r = marker.color.g = marker.color.b = 1.
+    return marker
 
+def create_marker_linestrip( t, lifetime ):
+    ''' create a linestrip marker for the provided pointcloud, which should be a convex hull '''
+
+    marker = create_marker( t, Marker.LINE_STRIP, lifetime )
+    
+    # points are relative to marker.pose.position
+    centroid = marker.pose.position
+    for pt in pc2.read_points( t.points, skip_nans=True ):     
+        marker.points.append( Point( centroid.x - pt[0], centroid.y - pt[1], centroid.z - pt[2] ) )
+    
+    # connect first and last point
+    if len(marker.points) > 0:
+        marker.points.append(marker.points[0])
+    
     return marker
 
 def create_marker_cube( t, lifetime ):
@@ -65,21 +80,34 @@ def create_marker_text( t, lifetime ):
     
     marker = create_marker( t, Marker.TEXT_VIEW_FACING, lifetime )
     marker.pose.position.z = t.dimensions.z + 1.5  # above cube
+    marker.color.r = marker.color.g = marker.color.b = 1.
     
     # id, label, linear velocity, lifetime (s)
     marker.text = '%s [%s] |v|: %.2f, t: %.2f' % ( t.id, t.label, get_mag_linear( t ), ( t.header.stamp - t.observed_initial ).to_sec() )
 
     return marker
 
-def create_tracked_object_markers( t, lifetime ):
-    """ create marker(s) for tracked object t """
+def create_obstacle_markers( t, lifetime ):
+    """ create marker(s) for obstacle t """
     
-    result = [ 
-        create_marker_cube( t, lifetime )
-        , create_marker_text( t, lifetime )
-    ]
-    if len(t.label) > 0 and get_mag_linear( t ) > 0:
+    # always create convex hull
+    hull = create_marker_linestrip( t, lifetime )
+
+    result = [ hull ]#, create_marker_cube( t, lifetime ) ]
+
+    # tracked
+    if not t.id is None and len(t.id) > 0:
+        result.append( create_marker_text( t, lifetime ) )
+        hull.color.g = 1.
+
+    # velocity arrow
+    if get_mag_linear( t ) > 0.1:
         result.append( create_marker_arrow( t, lifetime ) )
+
+    # classified obstacle
+    if not t.label is None and len(t.label) > 0:
+        hull.color.b = 1.
+
     return result
 
 
@@ -110,7 +138,7 @@ class VisualizationNode(NodeLazy):
             
         arr = MarkerArray()
         for obs in msg.obstacles:
-            arr.markers.extend( create_tracked_object_markers( obs, self.marker_lifetime ) )
+            arr.markers.extend( create_obstacle_markers( obs, self.marker_lifetime ) )
 
         self.pub.publish(arr)
     

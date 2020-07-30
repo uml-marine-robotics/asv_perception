@@ -17,28 +17,30 @@ from AB3DMOT_libs.model import AB3DMOT
 
 def create_ab3dmot_detection( obstacle, min_dim=1. ):
     """ 
-    Convert obstacle to [h,w,l,x,y,z,theta] for ab3dmot 
+    Convert obstacle to [h,w,l,x,y,z,theta] (in camera frame) for ab3dmot 
     ensures each of (h,w,l) >= min_dim (so volume > 0)
+    obstacle frame to camera frame:  y --> x/l;  x --> z/w;  z --> y/h
     """
     return [
         max( min_dim, obstacle.dimensions.z )
-        , max( min_dim, obstacle.dimensions.y )
         , max( min_dim, obstacle.dimensions.x )
-        , obstacle.pose.pose.position.x
+        , max( min_dim, obstacle.dimensions.y )
         , obstacle.pose.pose.position.y
         , obstacle.pose.pose.position.z
+        , obstacle.pose.pose.position.x
         , 0  # not using input orientation
     ]
 
 class TrackerState( object ):
     """ represents tracker state """
 
-    def __init__( self, max_age, min_hits, tf_frame ):
+    def __init__( self, max_age, min_hits, tf_frame, tf_time_current ):
         
         self.ft = None  # FrameTransformer
 
         if not tf_frame is None and len(tf_frame) > 0:
             self.ft = FrameTransformer()
+            self.ft.use_most_recent_tf = tf_time_current
         
         self.mot_tracker = AB3DMOT( max_age=max_age, min_hits=min_hits )
         self.tracked_obstacles = {}
@@ -68,7 +70,6 @@ class ObstacleTrackingNode( NodeLazy ):
         ~min_hits:  [int, default=3]  AB3DMOT param:  minimum number of hits before an object is reported
         ~tf_frame:          [string, default=None]  Transform the input into this frame via TF2.  If None, no transform is performed
         ~tf_time_current:   [bool, default=False]  Perform transforms using current time rather than original time
-        ~tf_points:         [bool, default=False]  Transform obstacle points with tf2
     """
 
     def __init__( self ):
@@ -79,7 +80,6 @@ class ObstacleTrackingNode( NodeLazy ):
         # tf stuff
         self.tf_frame = rospy.get_param('~tf_frame', None )
         self.tf_time_current = rospy.get_param('tf_time_current', False )
-        self.tf_points = rospy.get_param('tf_points', False )
         self.max_age = rospy.get_param( '~max_age', 2 )
         self.min_hits = rospy.get_param( '~min_hits', 3 )
 
@@ -89,9 +89,7 @@ class ObstacleTrackingNode( NodeLazy ):
 
     def subscribe( self ):
 
-        self.state = TrackerState( self.max_age, self.min_hits, self.tf_frame )
-        self.state.ft.use_most_recent_tf = self.tf_time_current
-
+        self.state = TrackerState( self.max_age, self.min_hits, self.tf_frame, self.tf_time_current )
         self.sub = rospy.Subscriber( '~input', ObstacleArray, callback=self.cb_sub, queue_size=1, buff_size=2**24 )
 
     def unsubscribe( self ):
@@ -112,7 +110,7 @@ class ObstacleTrackingNode( NodeLazy ):
         msg.header.frame_id = self.tf_frame
 
         for obs in msg.obstacles:
-            self.state.ft.transform_obstacle( obs, self.tf_frame, self.tf_points )
+            self.state.ft.transform_obstacle( obs, self.tf_frame )
 
     def create_obstacle_estimate( self, tracker, prev ):
         """ create a new obstacle estimate using the current obstacle data, the estimate from ab3dmot, and previous estimate """
@@ -140,30 +138,42 @@ class ObstacleTrackingNode( NodeLazy ):
         # get state data from tracker
         s = tracker.kf.x
 
+        # camera frame to obstacle frame:  x/l --> y;  z/w --> x;  y/h --> z
+        # order in s:  [x,y,z,theta,l,w,h,xdot,ydot,zdot]
+
         # posewithcovariance
-        result.pose.pose.position=Point( float(s[0]), float(s[1]), float(s[2]) )
+        result.pose.pose.position=Point( float(s[2]), float(s[0]), float(s[1]) )
         pose_covar = np.zeros((6,6))
-        pose_covar[:3,:3] = tracker.kf.P[:3,:3]
+        # reorder covariance vals; only generated on the diagonal
+        pp = tracker.kf.P[:3,:3]
+        pose_covar[0][0] = pp[2][2]
+        pose_covar[1][1] = pp[0][0]
+        pose_covar[2][2] = pp[1][1]
         result.pose.covariance = np.ravel( pose_covar )
 
         # estimated dimensions
-        result.dimensions = Vector3( float(s[4]), float(s[5]), float(s[6]))  # l, w, h --> x, y, z
+        result.dimensions = Vector3( float(s[5]), float(s[4]), float(s[6]) )
 
         # linear velocity and orientation
         #   convert linear velocity to m/s; currently measured in whatever frequency we get a frame change in cb_sub
         #   don't report for initial observation
         if dt > 0:
             lv = np.copy( s[7:10] )
-            lv[2] = -lv[2]  # invert z
-            lv *= float(tracker.age) / dt
-            result.velocity.twist.linear = Vector3( float(lv[0]), float(lv[1]), float(lv[2]) )
+            lv *= float(tracker.age) / dt       # convert to m/s
+            result.velocity.twist.linear = Vector3( float(lv[2]), float(lv[0]), float(lv[1]) )  # reorder
             twist_covar = np.zeros((6,6))
-            twist_covar[:3,:3] = tracker.kf.P[7:10,7:10]
+            #twist_covar[:3,:3] = tracker.kf.P[7:10,7:10]
+            # reorder covariance vals; only generated on the diagonal
+            vp = tracker.kf.P[7:10,7:10]
+            twist_covar[0][0] = vp[2][2]
+            twist_covar[1][1] = vp[0][0]
+            twist_covar[2][2] = vp[1][1]
             result.velocity.covariance = np.ravel( twist_covar )
 
             # orientation:  assume in direction of linear velocity
-            pitch = np.arctan2( lv[2], abs( lv[0] ) )
-            yaw = np.arctan2( lv[1], lv[0] )
+            v = result.velocity.twist.linear
+            pitch = np.arctan2( v.z, abs( v.x ) )
+            yaw = np.arctan2( v.y, v.x )
 
             result.pose.pose.orientation = Quaternion( *quaternion_from_euler( 0, pitch, yaw ) )
 

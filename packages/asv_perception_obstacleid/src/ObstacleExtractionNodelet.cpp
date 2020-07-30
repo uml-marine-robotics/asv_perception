@@ -26,7 +26,7 @@ void ObstacleExtractionNodelet::onInit ()
   base_type::onInit ();
 
   // Mandatory parameters
-  if ( !pnh_->getParam("cluster_tolerance", this->_cluster_tolerance ))
+  if ( !pnh_->getParam("cluster_tolerance", this->cluster_tolerance_ ))
   {
     NODELET_ERROR ("[%s::onInit] Need a 'cluster_tolerance' parameter to be set before continuing!", getName ().c_str ()); 
     return;
@@ -35,20 +35,15 @@ void ObstacleExtractionNodelet::onInit ()
   // optional parameters
   int val = 0;  
   if ( pnh_->getParam("max_cluster_size", val ) && ( val >= 0 ) )
-    this->_max_cluster_sz = (std::uint32_t)val;
+    this->max_cluster_sz_ = (std::uint32_t)val;
 
   if ( pnh_->getParam("min_cluster_size", val ) && ( val >= 0 ) )
-    this->_min_cluster_sz = (std::uint32_t)val;
+    this->min_cluster_sz_ = (std::uint32_t)val;
+
+  pnh_->getParam("max_area", this->max_area_);
 
   // publisher
-  this->_pub = advertise<asv_perception_common::ObstacleArray>( *pnh_, TOPIC_NAME_OUTPUT, 1 );
-
-  NODELET_DEBUG("[%s::onInit] Initializing node with parameters: cluster_tolerance=%f, max_cluster_size=%u, min_cluster_size=%u"
-    , getName ().c_str()
-    , this->_cluster_tolerance
-    , this->_max_cluster_sz
-    , this->_min_cluster_sz
-  );
+  this->pub_ = advertise<asv_perception_common::ObstacleArray>( *pnh_, TOPIC_NAME_OUTPUT, 1 );
 
   onInitPostProcess ();
 }
@@ -56,7 +51,7 @@ void ObstacleExtractionNodelet::onInit ()
 //////////////////////////////////////////////////////////////////////////////////////////////
 void ObstacleExtractionNodelet::subscribe ()
 {
-  this->_sub = pnh_->subscribe<sensor_msgs::PointCloud2> (
+  this->sub_ = pnh_->subscribe<sensor_msgs::PointCloud2> (
     TOPIC_NAME_INPUT
     , 1
     , bind (&ObstacleExtractionNodelet::sub_callback, this, _1 )
@@ -66,7 +61,7 @@ void ObstacleExtractionNodelet::subscribe ()
 //////////////////////////////////////////////////////////////////////////////////////////////
 void ObstacleExtractionNodelet::unsubscribe ()
 {
-  this->_sub.shutdown();
+  this->sub_.shutdown();
 }
 
 void ObstacleExtractionNodelet::sub_callback (
@@ -74,7 +69,7 @@ void ObstacleExtractionNodelet::sub_callback (
 )
 {
   // No subscribers, no work
-  if ( this->_pub.getNumSubscribers () < 1 )
+  if ( this->pub_.getNumSubscribers () < 1 )
     return;
 
   // If cloud is given, check if it's valid
@@ -104,14 +99,14 @@ void ObstacleExtractionNodelet::sub_callback (
     msg.header = cloud->header;
 
     msg.obstacles = detail::obstacle_extraction::extract( 
-      pc_ptr, this->_cluster_tolerance, this->_min_cluster_sz, this->_max_cluster_sz
+      pc_ptr, this->cluster_tolerance_, this->min_cluster_sz_, this->max_cluster_sz_, this->max_area_
       );
 
     // set header for obstacles
     for ( auto& obs : msg.obstacles )
       obs.header = cloud->header;
 
-    this->_pub.publish( msg );
+    this->pub_.publish( msg );
 
   } catch ( const std::exception& ex ) {  // pcl exceptions inherit from std::runtime_error
     ROS_ERROR("std::exception: %s", ex.what() );

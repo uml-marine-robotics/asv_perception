@@ -11,13 +11,14 @@ namespace obstacle_id
   Obstacle extraction nodelet performs euclidean clustering and constructs Obstacle messages
 
   Parameters:
-  - cluster_tolerance: [float]                    clustering tolerance
-  - min_cluster_size:  [uint, default=1]          minimum number of points in a cluster
-  - max_cluster_size:  [uint, default=uint_max]   maximum number of points in a cluster
+    ~cluster_tolerance: [float]                    clustering tolerance
+    ~min_cluster_size:  [uint, default=1]          minimum number of points in a cluster
+    ~max_cluster_size:  [uint, default=uint_max]   maximum number of points in a cluster
+    ~max_area:          [float, default=0]         maximum convex hull area
   
   Topics:
-  - input:      [sensor_msgs/PointCloud2]               input pointcloud
-  - obstacles:  [asv_perception_common/ObstacleArray]   output obstacles
+    ~input:      [sensor_msgs/PointCloud2]               input pointcloud
+    ~obstacles:  [asv_perception_common/ObstacleArray]   output obstacles
   */
   class ObstacleExtractionNodelet 
     : public nodelet_topic_tools::NodeletLazy
@@ -32,12 +33,13 @@ namespace obstacle_id
     protected:
 
       std::uint32_t 
-        _min_cluster_sz = 1
-        , _max_cluster_sz = std::numeric_limits<std::uint32_t>::max()
+        min_cluster_sz_ = 1
+        , max_cluster_sz_ = std::numeric_limits<std::uint32_t>::max()
         ;
 
       float 
-        _cluster_tolerance = 0.f
+        cluster_tolerance_ = 0.f
+        , max_area_ = 0.f
         ;
 
       /** \brief Nodelet initialization routine. */
@@ -52,12 +54,8 @@ namespace obstacle_id
       
     private:
 
-      /** \brief The input PointCloud subscriber. */
-      ros::Subscriber _sub;
-      
-      ros::Publisher
-        _pub
-        ;
+      ros::Subscriber sub_;
+      ros::Publisher pub_;
 
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW

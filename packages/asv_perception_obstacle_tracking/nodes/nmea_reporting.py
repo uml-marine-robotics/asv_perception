@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import rospy
-from scipy.spatial import ConvexHull
 import sensor_msgs.point_cloud2 as pc2
 from nmea_msgs.msg import Sentence
 from asv_perception_common.msg import ObstacleArray
@@ -57,13 +56,8 @@ class NMEAReportNode(NodeLazy):
             
             pts = []
             if self.convex_hull and not obs.points is None and obs.points.width > 0:
-                try:
-                    # 2d convex hull
-                    hull = ConvexHull( [ (pt[0], pt[1] ) for pt in pc2.read_points( obs.points, skip_nans=True ) ] )
-                    pts = hull.points[hull.vertices]
-
-                except Exception as e:
-                    rospy.logerr( e )
+                #obs.points is already 2d convex hull
+                pts = [ pt for pt in pc2.read_points( obs.points, skip_nans=True ) ] 
         
             if len( pts ) == 0:
                 l,w = obs.dimensions.x,obs.dimensions.y
@@ -83,11 +77,11 @@ class NMEAReportNode(NodeLazy):
             # generate hull string fragment
             hull_frag = str()
             for pt in pts:
-                hull_frag += "%f,%f" % ( pt[0], pt[1] )
+                hull_frag += ",%f,%f" % ( pt[0], pt[1] )
 
             # sec.nsec, id, 2d convex hull( x1,y1,x2,y2,...,xn,yn )*00\n
             obs_id = "0" if not obs.id else obs.id
-            s.sentence = '$PYOBP,%d.%d,%s,%s*00\n' % ( s.header.stamp.to_sec(), s.header.stamp.to_nsec(), obs_id, hull_frag )
+            s.sentence = '$PYOBP,%d.%d,%s%s*00\n' % ( s.header.stamp.to_sec(), s.header.stamp.to_nsec(), obs_id, hull_frag )
             self.pub.publish(s)
 
     
