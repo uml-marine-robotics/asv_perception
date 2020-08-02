@@ -66,6 +66,9 @@ void ObstacleProjectionNodelet::onInit ()
     if ( pnh_->getParam("resolution", val ) && ( val > 0. ) )
         this->_resolution = val;
 
+    if ( pnh_->getParam("max_distance", val ) && ( val > 0. ) )
+        this->_max_distance = val;
+
     onInitPostProcess ();
 }
 
@@ -206,8 +209,10 @@ void ObstacleProjectionNodelet::sub_callback (
         msg.header = cls_msg->header;
         msg.header.frame_id = child_frame_id;
 
-        for ( auto& obs : msg.obstacles )
+        for ( auto& obs : msg.obstacles ) {
             obs.header = msg.header;
+            obs.points.header = msg.header;
+        }
             
         this->_pub.publish( msg );
 
@@ -227,6 +232,7 @@ void ObstacleProjectionNodelet::sub_callback (
         // unclass pointcloud
         if ( this->_pub_cloud.getNumSubscribers() > 0 ) {
 
+            // todo:  max_distance; remove radar_to_rgbimg
             auto cloud = detail::obstacle_projection::project( 
                 img
                 , h_rgb_to_radar

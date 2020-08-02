@@ -80,8 +80,7 @@ class NMEAReportNode(NodeLazy):
                 hull_frag += ",%f,%f" % ( pt[0], pt[1] )
 
             # sec.nsec, id, 2d convex hull( x1,y1,x2,y2,...,xn,yn )*00\n
-            obs_id = "0" if not obs.id else obs.id
-            s.sentence = '$PYOBP,%d.%d,%s%s*00\n' % ( s.header.stamp.to_sec(), s.header.stamp.to_nsec(), obs_id, hull_frag )
+            s.sentence = '$PYOBP,%d.%d,%s%s*00\n' % ( s.header.stamp.to_sec(), s.header.stamp.to_nsec(), obs.id, hull_frag )
             self.pub.publish(s)
 
     

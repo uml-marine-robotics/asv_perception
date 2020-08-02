@@ -6,6 +6,7 @@
 
 #include "defs.h"
 #include "Homography.h"
+#include "obstacle_extraction.h"
 
 namespace obstacle_id {
 namespace detail {
@@ -13,9 +14,9 @@ namespace impl {
 
     using namespace asv_perception_common;
 
-    // projects a roi to a vector of points using homography
+    // projects a roi to a point cloud using homography
     //  rep-105/right hand rule for depth, width, height
-    inline std::vector<geometry_msgs::Point32> roi_to_polygon( 
+    inline typename pointcloud_type::Ptr roi_to_pointcloud( 
         const sensor_msgs::RegionOfInterest& roi
         , const float depth
         , const float height
@@ -24,11 +25,7 @@ namespace impl {
         ) 
     {
         const auto make_point = []( float x, float y, float z ) { 
-            auto pt = geometry_msgs::Point32();
-            pt.x = x;
-            pt.y = y;
-            pt.z = z;
-            return pt;
+            return point_type(x,y,z);
         };  // make_point
 
         // construct 2 points at base of detection, other points are built from those
@@ -38,23 +35,25 @@ namespace impl {
             , brf = h( roi.x_offset + roi.width, roi.y_offset + roi.height )
             ;
         
-        auto result = std::vector<geometry_msgs::Point32>();
-        result.reserve(8);
+        auto result = typename pointcloud_type::Ptr{ new pointcloud_type{} };
+
+        // todo(?):  blf and brf x values may differ significantly (eg, 80+ m) as bounding boxes approach horizon
+        //  average them or something so that the two bottom points have the same x value, then ensure depth is at least some minimum
 
         // bottom 4 points, counter-clockwise from bottom left front
-        result.emplace_back( make_point( blf.first, blf.second, z_offset ) );   // blf
-        result.emplace_back( make_point( brf.first, brf.second, z_offset ) );   // brf
-        result.emplace_back( make_point( brf.first + depth, brf.second, z_offset ) );   // brr
-        result.emplace_back( make_point( blf.first + depth, blf.second, z_offset ) );   // blr
+        result->push_back( make_point( blf.first, blf.second, z_offset ) );   // blf
+        result->push_back( make_point( brf.first, brf.second, z_offset ) );   // brf
+        result->push_back( make_point( brf.first + depth, brf.second, z_offset ) );   // brr
+        result->push_back( make_point( blf.first + depth, blf.second, z_offset ) );   // blr
 
         // top 4 points, clockwise from top left rear
-        result.emplace_back( make_point( blf.first + depth, blf.second, z_offset + height ) );   // tlr
-        result.emplace_back( make_point( brf.first + depth, brf.second, z_offset + height ) );   // trr
-        result.emplace_back( make_point( brf.first, brf.second, z_offset + height ) );   // trf
-        result.emplace_back( make_point( blf.first, blf.second, z_offset + height ) );   // tlf
+        result->push_back( make_point( blf.first + depth, blf.second, z_offset + height ) );   // tlr
+        result->push_back( make_point( brf.first + depth, brf.second, z_offset + height ) );   // trr
+        result->push_back( make_point( brf.first, brf.second, z_offset + height ) );   // trf
+        result->push_back( make_point( blf.first, blf.second, z_offset + height ) );   // tlf
 
         return result;
-    }   // roi_to_polygon    
+    }   // roi_to_pointcloud
 } // impl
 
 // represents a 2d obstacle defined by a classification message
@@ -79,11 +78,6 @@ class ClassifiedObstacle2d {
             , const float min_depth
             , const float max_depth
         ) const {
-
-            asv_perception_common::Obstacle result = {};
-
-            result.label = this->cls.label;
-            result.label_probability = this->cls.probability;
             
             // todo:  compute z offset based on parent(s)
             const float z_offset = 0.f;
@@ -95,21 +89,13 @@ class ClassifiedObstacle2d {
             // estimate a real-world depth
             const auto depth = height;
             
-            // project roi to points
-            const auto points = impl::roi_to_polygon( this->cls.roi, depth, height, z_offset, h );
+            // project roi to pointcloud
+            auto pc_ptr = impl::roi_to_pointcloud( this->cls.roi, depth, height, z_offset, h );
 
-            // compute centroid for pose.position
-            const auto minmax = utils::minmax_3d( points );
+            auto result = obstacle_extraction::impl::create_obstacle( pc_ptr );
 
-            result.pose.pose.position.x = ( minmax.first.x + minmax.second.x ) / 2.;
-            result.pose.pose.position.y = ( minmax.first.y + minmax.second.y ) / 2.;
-            result.pose.pose.position.z = ( minmax.first.z + minmax.second.z ) / 2.;
-
-            result.pose.pose.orientation.w = 1.;
-
-            result.dimensions.x = minmax.second.x - minmax.first.x;
-            result.dimensions.y = minmax.second.y - minmax.first.y;
-            result.dimensions.z = minmax.second.z - minmax.first.z;
+            result.label = this->cls.label;
+            result.label_probability = this->cls.probability;
 
             return result;
 
