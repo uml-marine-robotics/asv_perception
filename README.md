@@ -34,7 +34,6 @@ Perception for marine surface vehicles
 
 ## To-Do:
 *  Obstacle tracking
-    *  Fusion of camera + RADAR obstacles (classification label association)
     *  Camera: wasr/classifier offset
 *  Homography:
     *  Camera-radar-pointcloud calibration (?)
