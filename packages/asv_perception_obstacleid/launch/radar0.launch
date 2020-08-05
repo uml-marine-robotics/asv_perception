@@ -8,14 +8,14 @@
     <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
 
-    <!-- radius outlier, radar1 radius filter -->
+    <!-- radius outlier, radar1 radius filter (leave some overlap with radar1 for tracking continuity) -->
     <node pkg="nodelet" type="nodelet" name="outlier_filter" respawn="true" output="screen"
       args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)" >
     >
       <remap from="~input" to="/broadband_radar/channel_0/pointcloud" />
 
       <rosparam>
-        min_distance: 200.
+        min_distance: 180.
         outlier_radius:  2.
         outlier_min_neighbors: 10
       </rosparam>

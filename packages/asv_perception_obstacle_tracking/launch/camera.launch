@@ -21,7 +21,7 @@
             </node>
 
             <!-- 
-                unclassified obstacle tracking
+                unclassified obstacle tracking  (unstable!)
             -->
             <!-- 
             <node name="tracking_unclassified" pkg="$(arg pkg_name)" type="tracking.py" output="screen">
@@ -61,37 +61,6 @@
                 </rosparam>
             </node>
 
-            <!-- 
-                NMEA reporting node
-            -->
-            <!-- 
-            <node name="nmea_reporting" pkg="$(arg pkg_name)" type="nmea_reporting.py" output="screen">
-
-                <remap from="~input" to="mux/obstacles" />
-                
-                <rosparam>
-                    convex_hull: True
-                    tf_frame: 'base_link'
-                </rosparam>
-            </node>
-            -->
-
-            <!-- 
-                socket reporting sample
-            -->
-            <!-- 
-            <node name="udp_reporting" pkg="$(arg pkg_name)" type="socket_reporting.py" output="screen">
-
-                <remap from="~input" to="mux/obstacles" />
-                
-                <rosparam>
-                    host_ip: '127.0.0.1'
-                    port: 5555
-                    proto:  'udp'
-                    tf_frame: 'base_link'
-                </rosparam>
-            </node>
-            -->
         </group>
     </group>
 </launch>

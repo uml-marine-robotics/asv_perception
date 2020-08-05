@@ -15,11 +15,16 @@
         -->
         <node name="fusion" pkg="$(arg pkg_name)" type="fusion.py" output="screen">
             
-            <remap from="~input0" to="/radar1/tracking/obstacles" />
-            <remap from="~input1" to="/left_camera/tracking/classified/obstacles" />
+            <remap from="~input0" to="/radar0/tracking/obstacles" />
+            <remap from="~input1" to="/radar1/tracking/obstacles" />
+            <remap from="~input2" to="/left_camera/tracking/classified/obstacles" />
 
             <rosparam>
-                max_subs: 2
+                n_subs: 3
+                cost_fn: 'euclidean'
+                cost_fn_max: 15
+                _cost_fn: 'hellinger'
+                _cost_fn_max: 0.99999
             </rosparam>
         </node>
 
@@ -34,7 +39,38 @@
                 marker_duration_secs: 1.
             </rosparam>
         </node>
-        
+
+        <!-- 
+            NMEA reporting node
+        -->
+        <!-- 
+        <node name="nmea_reporting" pkg="$(arg pkg_name)" type="nmea_reporting.py" output="screen">
+
+            <remap from="~input" to="fusion/obstacles" />
+            
+            <rosparam>
+                convex_hull: True
+                tf_frame: 'base_link'
+            </rosparam>
+        </node>
+        -->
+
+        <!-- 
+            socket reporting sample
+        -->
+        <!--
+        <node name="udp_reporting" pkg="$(arg pkg_name)" type="socket_reporting.py" output="screen">
+
+            <remap from="~input" to="fusion/obstacles" />
+            
+            <rosparam>
+                host_ip: '127.0.0.1'
+                port: 5555
+                proto:  'udp'
+                tf_frame: 'base_link'
+            </rosparam>
+        </node>
+        -->
     </group>
 </launch>
 
