@@ -117,7 +117,7 @@ class ObstacleTrackingNode( NodeLazy ):
 
         # tracker.info[0]:  most recent observation, could be in the past if obstacle is being extrapolated
         result = tracker.info[0]
-        result.id = str(tracker.id)
+        result.id = tracker.id
         
         # merge best data from prev, current
         if not prev is None:

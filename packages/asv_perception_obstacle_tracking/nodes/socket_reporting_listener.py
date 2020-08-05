@@ -14,11 +14,11 @@ class UdpReceiver( object ):
             data, _ = self.sock.recvfrom( self.buf_sz )     # get data
             decoded = data.decode('utf-8')
             print( 'received data: %s' % decoded )
-
-            obs = json.loads( decoded )        # deserialize
             
-            # now use obstacle data
-            print( 'received obstacle id=%s, position=%s' % ( obs['id'], obs['pose']['pose'] ) )
+            # deserialize
+            # obs = json.loads( decoded )        
+            # use obstacle data
+            # print( 'received obstacle id=%s, position=%s' % ( obs['id'], obs['pose']['pose'] ) )
 
 if __name__ == "__main__":
     '''

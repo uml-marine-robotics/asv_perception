@@ -36,6 +36,7 @@ namespace obstacle_id
         ~min_depth          [float, default=1.0]  Minimum projected obstacle depth
         ~max_height         [float, default=1.0]  Maximum projected obstacle height
         ~resolution         [float, default=0.25]  Obstacle pointcloud resolution (space between points)
+        ~max_distance       [float, default=100.0]  Maximum projected obstacle distance
     */
     class ObstacleProjectionNodelet 
     : public nodelet_topic_tools::NodeletLazy
@@ -106,6 +107,7 @@ namespace obstacle_id
             , _min_depth = 1.f
             , _max_depth = 1.f
             , _resolution = 0.25f
+            , _max_distance = 100.f
             ;
 
     public:

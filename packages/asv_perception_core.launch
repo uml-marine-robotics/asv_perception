@@ -18,12 +18,13 @@
     </group>
 
     <!-- launch file for packages in the asv_perception_core image -->
+    <!-- rgb-radar homography -->
     <include file="$(find asv_perception_homography)/launch/homography.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/camera.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/radar0.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/radar1.launch" />
-    <include file="$(find asv_perception_obstacle_tracking)/launch/camera.launch" />
-    <include file="$(find asv_perception_obstacle_tracking)/launch/radar0.launch" />
-    <include file="$(find asv_perception_obstacle_tracking)/launch/radar1.launch" />
+
+    <!-- obstacle generation -->
+    <include file="$(find asv_perception_obstacleid)/launch/obstacleid.launch" />
+
+    <!-- obstacle tracking -->
+    <include file="$(find asv_perception_obstacle_tracking)/launch/tracking.launch" />
 
 </launch> 

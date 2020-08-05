@@ -26,7 +26,7 @@ def create_marker( t, type, lifetime ):
     marker.action = marker.ADD
 
     id = t.id
-    if id is None or len(id) == 0:
+    if id == 0:
         id = counter
         counter += 1
 
@@ -82,8 +82,8 @@ def create_marker_text( t, lifetime ):
     marker.pose.position.z = t.dimensions.z + 1.5  # above cube
     marker.color.r = marker.color.g = marker.color.b = 1.
     
-    # id, label, linear velocity, lifetime (s)
-    marker.text = '%s [%s] |v|: %.2f, t: %.2f' % ( t.id, t.label, get_mag_linear( t ), ( t.header.stamp - t.observed_initial ).to_sec() )
+    # id, label, pose covar, linear velocity, lifetime (s)
+    marker.text = '%s [%s], c: %.2f, |v|: %.2f, t: %.2f' % ( t.id, t.label, t.pose.covariance[0], get_mag_linear( t ), ( t.header.stamp - t.observed_initial ).to_sec() )
 
     return marker
 
@@ -96,13 +96,12 @@ def create_obstacle_markers( t, lifetime ):
     result = [ hull ]#, create_marker_cube( t, lifetime ) ]
 
     # tracked
-    if not t.id is None and len(t.id) > 0:
-        result.append( create_marker_text( t, lifetime ) )
-        hull.color.g = 1.
+    result.append( create_marker_text( t, lifetime ) )
 
     # velocity arrow
     if get_mag_linear( t ) > 0.1:
         result.append( create_marker_arrow( t, lifetime ) )
+        hull.color.g = 1.
 
     # classified obstacle
     if not t.label is None and len(t.label) > 0:

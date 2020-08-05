@@ -4,7 +4,7 @@
 Header header
 
 # unique obstacle identifier
-string id
+uint32 id
 
 # initial observation time
 time observed_initial
@@ -15,6 +15,9 @@ string label
 # classification label probability
 float32 label_probability
 
+# area
+float32 area
+
 # centroid and orientation
 geometry_msgs/PoseWithCovariance pose
 
@@ -24,5 +27,5 @@ geometry_msgs/Vector3 dimensions
 # estimated velocity [m/s]
 geometry_msgs/TwistWithCovariance velocity
 
-# point representation of the object
+# 2d convex hull points
 sensor_msgs/PointCloud2 points

@@ -35,12 +35,13 @@ namespace impl {
         return { std::move( hull ), ( ndimensions == 2 ) ? chull.getTotalArea() : chull.getTotalVolume() };
     }   // create_convex_hull
 
-    // create Obstacle from pointcloud
+    // create Obstacle from pointcloud.  input pointcloud may be modified
     inline asv_perception_common::Obstacle create_obstacle( 
-        const pointcloud_type& pc
+        typename pointcloud_type::Ptr& pc_ptr
     ) {
         asv_perception_common::Obstacle result = {};
-        const auto minmax = utils::minmax_3d( pc.points );
+
+        const auto minmax = utils::minmax_3d( pc_ptr->points );
 
         result.dimensions.x = minmax.second.x - minmax.first.x;
         result.dimensions.y = minmax.second.y - minmax.first.y;
@@ -49,6 +50,18 @@ namespace impl {
         result.pose.pose.position.x = ( minmax.first.x + minmax.second.x ) / 2.;
         result.pose.pose.position.y = ( minmax.first.y + minmax.second.y ) / 2.;
         result.pose.pose.position.z = ( minmax.first.z + minmax.second.z ) / 2.;
+
+        result.pose.pose.orientation.w = 1.;
+
+        // flatten the pointcloud so convexhull is created for x, y dimensions
+        for ( auto& pt : pc_ptr->points )
+            pt.z = minmax.first.z;
+
+        // compute 2d hull, area
+        auto hull_area = create_convex_hull( pc_ptr );
+
+        pcl::toROSMsg( hull_area.first, result.points );
+        result.area = hull_area.second;        
 
         return result;
     }   // create_obstacle
@@ -88,14 +101,12 @@ inline std::vector<asv_perception_common::Obstacle> extract(
         pointcloud_type::Ptr cluster_pc( new pointcloud_type() );
         pcl::copyPointCloud( *pc_ptr, cluster, *cluster_pc );
 
-        auto hull_area = impl::create_convex_hull( cluster_pc );
+        auto obs = impl::create_obstacle( cluster_pc );
 
         // max area check
-        if ( ( max_area > 0.f ) && ( hull_area.second > max_area ) )
+        if ( ( max_area > 0.f ) && ( obs.area > max_area ) )
             continue;
 
-        auto obs = impl::create_obstacle( hull_area.first );
-        pcl::toROSMsg( hull_area.first, obs.points );
         results.emplace_back( std::move( obs ) );
     }
 

@@ -11,7 +11,7 @@
     <!-- radius outlier, self-return filter -->
     <node pkg="nodelet" type="nodelet" name="outlier_filter" respawn="true" output="screen"
       args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)" >
-    >
+    
       <remap from="~input" to="/broadband_radar/channel_1/pointcloud" />
 
       <rosparam>
