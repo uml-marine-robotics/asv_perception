@@ -34,7 +34,7 @@ TEST( TEST_CASE_NAME, create_obstacles_basic )
     c.probability = 0.5;
     v.classifications.emplace_back( c );
 
-    const auto projs = classified_obstacle_projection::project( img, v, h );
+    const auto projs = classified_obstacle_projection::project( img, v, h, 1.f, 1.f, 0.1f, 1.f, -0.f );
 
     // get the roi of the classification from the image, ensure it's been cleared    
     const auto cv_roi = utils::to_cv_rect( c.roi, img );
@@ -44,21 +44,11 @@ TEST( TEST_CASE_NAME, create_obstacles_basic )
     ASSERT_TRUE( !projs.empty() );
     const auto proj0 = projs[0];
     EXPECT_EQ( proj0.label, c.label );
-    EXPECT_DOUBLE_EQ( proj0.probability, c.probability );
-    EXPECT_EQ( proj0.shape.points.size(), 8 );
-
-    // first point is bottom-left-front, second point is bottom-right-front.  check vs verified homography in previous test
-    EXPECT_EQ( (int)proj0.shape.points[0].x, -11 );
-    EXPECT_EQ( (int)proj0.shape.points[0].y, 22 );
-    EXPECT_EQ( (int)proj0.shape.points[0].z, 0 );
-    
-    EXPECT_EQ( (int)proj0.shape.points[1].x, -8 );
-    EXPECT_EQ( (int)proj0.shape.points[1].y, 21 );
-    EXPECT_EQ( (int)proj0.shape.points[1].z, 0 );
+    EXPECT_DOUBLE_EQ( proj0.label_probability, c.probability );
 
     // centroid
-    EXPECT_EQ( (int)proj0.pose.position.x, -10 );
-    EXPECT_EQ( (int)proj0.pose.position.y, 22 );
-    EXPECT_DOUBLE_EQ( proj0.pose.position.z, 0.5 );    // height is (currently) always 1
+    EXPECT_EQ( (int)proj0.pose.pose.position.x, -9 );
+    EXPECT_EQ( (int)proj0.pose.pose.position.y, 22 );
+    EXPECT_DOUBLE_EQ( proj0.pose.pose.position.z, 0.5 );    // height is (currently) always 1
 
 }

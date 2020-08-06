@@ -25,6 +25,7 @@
         max_height: 2.
         min_depth: 1.
         max_depth: 2.
+        max_distance: 500.
         resolution: 0.5
       </rosparam>
     </node>

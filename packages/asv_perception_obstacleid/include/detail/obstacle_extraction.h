@@ -58,6 +58,7 @@ namespace impl {
             pt.z = minmax.first.z;
 
         // compute 2d hull, area
+        //  may fail if not enough dimensionality in x/y (ie, min x/y == max x/y)
         auto hull_area = create_convex_hull( pc_ptr );
 
         pcl::toROSMsg( hull_area.first, result.points );

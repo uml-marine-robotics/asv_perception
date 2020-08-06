@@ -30,6 +30,7 @@ inline std::vector<Obstacle> project(
     , const float max_height
     , const float min_depth
     , const float max_depth
+    , const float max_distance
 )
 {
     // check inputs
@@ -51,11 +52,27 @@ inline std::vector<Obstacle> project(
 
     // now project each to obstacle msg, remove bb from unknown obstacle map
     auto result = std::vector<Obstacle>{};
-    for ( const auto& obs : obstacles_2d ) {
-        const auto rect = utils::to_cv_rect( obs->cls.roi, obstacle_map );
+    const auto max_distance_squared = std::pow( max_distance, 2.f );
 
+    for ( const auto& obs2d : obstacles_2d ) {
+
+        auto obs = obs2d->project( h, min_height, max_height, min_depth, max_depth );
+
+        // max distance check, if supplied
+        if ( max_distance > 0.f ) {
+            const auto dist_squared = 
+                std::pow( obs.pose.pose.position.x, 2.f ) 
+                + std::pow(obs.pose.pose.position.y, 2.f )
+                + std::pow(obs.pose.pose.position.z, 2.f )
+            ;
+
+            if ( dist_squared > max_distance_squared )
+                continue;
+        }
+
+        const auto rect = utils::to_cv_rect( obs2d->cls.roi, obstacle_map );    // get opencv rect based on roi
         obstacle_map( rect ) = 0;    // set roi to black in obstacle_map
-        result.emplace_back( obs->project(h, min_height, max_height, min_depth, max_depth ) );
+        result.emplace_back( std::move(obs) );
     }
 
     return result;
