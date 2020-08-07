@@ -17,7 +17,7 @@ namespace obstacle_id
 {
     /*
     Nodelet for obstacle backprojection from 2D to 3D.  
-    In 2D, combines segmented/unknown obstacle map with classified obstacle bounding boxes
+    In 2D, combines segmented obstacle map with classified obstacle bounding boxes
     Expands classified obstacle bounding boxes as needed, estimates 3d properties, then creates Obstacle messages for the classified obstacles
     Projects remaining unclassified obstacle pixels to pointcloud
     Subscriptions:
@@ -36,6 +36,8 @@ namespace obstacle_id
         ~max_height         [float, default=1.0]  Maximum projected obstacle height
         ~resolution         [float, default=0.25]  Obstacle pointcloud resolution (space between points)
         ~max_distance       [float, default=100.0]  Maximum projected obstacle distance
+        ~roi_shrink_limit   [float, default=0]    Percentage limit of how much a classified obstacle ROI can shrink
+        ~roi_grow_limit     [float, default=0]    Percentage limit of how much a classified obstacle ROI can grow
     */
     class ObstacleProjectionNodelet 
     : public nodelet_topic_tools::NodeletLazy
@@ -104,6 +106,8 @@ namespace obstacle_id
             , _max_depth = 1.f
             , _resolution = 0.25f
             , _max_distance = 100.f
+            , _roi_grow_limit = 0.f
+            , _roi_shrink_limit = 0.f
             ;
 
     public:

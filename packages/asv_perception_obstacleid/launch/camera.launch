@@ -27,6 +27,8 @@
         max_depth: 2.
         max_distance: 500.
         resolution: 0.5
+        roi_grow_limit: 0.5
+        roi_shrink_limit: 0.5
       </rosparam>
     </node>
 

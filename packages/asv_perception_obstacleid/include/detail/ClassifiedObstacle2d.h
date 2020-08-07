@@ -14,6 +14,23 @@ namespace impl {
 
     using namespace asv_perception_common;
 
+    // compute area of intersection rectangles
+    //  https://stackoverflow.com/a/4549594/882436
+    inline float rect_intersection( float x0, float y0, float w0, float h0, float x1, float y1, float w1, float h1 ) {
+
+        // compute intersection rectangle coords
+        const float
+            left = std::max( x0, x1 )
+            , right = std::min( x0 + w0, x1 + w1 )
+            , bottom = std::min( y0 + h0, y1 + h1 )
+            , top = std::max( y0, y1 )
+            ;
+        return ( ( left < right ) && ( bottom > top ) )
+            ? ( bottom - top ) * ( right - left )
+            : 0.f
+        ;
+    }   // rect_intersection
+
     // projects a roi to a point cloud using homography
     //  rep-105/right hand rule for depth, width, height
     inline typename pointcloud_type::Ptr roi_to_pointcloud( 
@@ -69,6 +86,21 @@ class ClassifiedObstacle2d {
             : cls(std::move(cls))
             , parent()
         {}
+
+        // computes area of roi intersection between this obstacle and another
+        float roi_intersection_area( const ClassifiedObstacle2d& other ) const {
+
+            return impl::rect_intersection(
+                (float)this->cls.roi.x_offset
+                , (float)this->cls.roi.y_offset
+                , (float)this->cls.roi.width
+                , (float)this->cls.roi.height
+                , (float)other.cls.roi.x_offset
+                , (float)other.cls.roi.y_offset
+                , (float)other.cls.roi.width
+                , (float)other.cls.roi.height
+            );
+        }
 
         // projects to 3D using homography and creates Obstacle message 
         asv_perception_common::Obstacle project( 

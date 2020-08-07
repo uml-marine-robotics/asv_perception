@@ -68,6 +68,9 @@ void ObstacleProjectionNodelet::onInit ()
     if ( pnh_->getParam("max_distance", val ) && ( val > 0. ) )
         this->_max_distance = val;
 
+    pnh_->getParam("roi_grow_limit", this->_roi_grow_limit );
+    pnh_->getParam("roi_shrink_limit", this->_roi_shrink_limit );
+
     onInitPostProcess ();
 }
 
@@ -184,6 +187,8 @@ void ObstacleProjectionNodelet::sub_callback (
             , this->_min_depth
             , this->_max_depth
             , this->_max_distance
+            , this->_roi_grow_limit
+            , this->_roi_shrink_limit
             );
 
         // set headers
