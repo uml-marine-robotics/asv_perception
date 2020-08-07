@@ -3,7 +3,7 @@ import socket, json, io
 
 class UdpReceiver( object ):
 
-    def __init__( self, host, port, buf_sz=4096 ):
+    def __init__( self, host, port, buf_sz=2**16 ):
         self.buf_sz = buf_sz
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM )
         self.sock.bind( (host,port) )
