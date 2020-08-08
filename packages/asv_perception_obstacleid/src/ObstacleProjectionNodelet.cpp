@@ -1,16 +1,3 @@
-// class to take gs image
-//  (?) obstacle boundary expansion into unknown obstacle area on margins
-//  extract known obstacle types by class
-//      establish parent-child relationships so location is properly set (where is the man on the boat?)
-//  backproject to PC
-// unknown obstacles...logic is no different?  see rgb_to_pointcloud
-//  if no different, no need to expand/etc or set parent-child relationships
-
-// class takes wasr img and classifier bbs
-//  expands class bottom border (refines both bbs and wasr img)
-//  organizes classes into heirarchy as needed
-//  projects to pc.  known obstacles as a unit.  unknown via scanline method
-
 #include "ObstacleProjectionNodelet.h"
 
 #include <pluginlib/class_list_macros.h>

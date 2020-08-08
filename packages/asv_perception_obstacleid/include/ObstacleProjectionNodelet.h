@@ -33,7 +33,7 @@ namespace obstacle_id
         ~min_height         [float, default=1.0]  Minimum projected obstacle height
         ~max_height         [float, default=1.0]  Maximum projected obstacle height
         ~min_depth          [float, default=1.0]  Minimum projected obstacle depth
-        ~max_height         [float, default=1.0]  Maximum projected obstacle height
+        ~max_depth          [float, default=1.0]  Maximum projected obstacle depth
         ~resolution         [float, default=0.25]  Obstacle pointcloud resolution (space between points)
         ~max_distance       [float, default=100.0]  Maximum projected obstacle distance
         ~roi_shrink_limit   [float, default=0]    Percentage limit of how much a classified obstacle ROI can shrink

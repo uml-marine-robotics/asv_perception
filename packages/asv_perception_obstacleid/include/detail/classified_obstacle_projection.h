@@ -94,20 +94,15 @@ namespace impl {
         // vertically expand/contract bounding boxes
         //  make roi adjustments up to min/max percentage
 
-        //  do not adjust roi if contained within another roi
-        bool do_roi_adjust = true;
+        //  do not adjust obstacle roi if overlapping another obstacle roi
         for ( const auto& other_obs2d : obstacles_2d ) {
+            
             if ( obs2d.get() == other_obs2d.get() ) // same obj
                 continue;
 
-            if ( obs2d->roi_intersection_area( *other_obs2d ) > 0.f ) {
-                do_roi_adjust = false;
-                break;
-            }
+            if ( obs2d->roi_intersection_area( *other_obs2d ) > 0.f )
+                return false;
         }
-
-        if ( !do_roi_adjust )
-            return false;
 
         auto candidate_roi = impl::adjust_vertical_roi_to_image( obs2d->cls.roi, obstacle_map );
 
@@ -120,8 +115,8 @@ namespace impl {
         const auto delta = float(candidate_area) / float(std::max( (int)orig_area, 1 ));
 
         if ( 
-            ( ( delta > 1.f ) && ( roi_grow_limit >= ( delta - 1.f ) ) )
-            || ( ( delta < 1.f ) && ( roi_shrink_limit >= ( 1.f - delta ) ) )
+            ( ( delta > 1.f ) && ( roi_grow_limit >= ( delta - 1.f ) ) )    // roi has grown
+            || ( ( delta < 1.f ) && ( roi_shrink_limit >= ( 1.f - delta ) ) )   // roi has shrunk
         ) {
             obs2d->cls.roi = std::move( candidate_roi );
             return true;
@@ -173,7 +168,7 @@ inline std::vector<Obstacle> project(
 
     for ( auto& obs2d : obstacles_2d ) {
 
-        // vertically expand/contract bounding boxes
+        // vertically expand/contract classifier roi bounding boxes
         //  make roi adjustments up to min/max percentage
         if ( ( roi_grow_limit > 0.f ) || ( roi_shrink_limit > 0.f ) )
             impl::adjust_roi( obs2d, obstacles_2d, obstacle_map, roi_grow_limit, roi_shrink_limit );
