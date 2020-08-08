@@ -17,13 +17,12 @@ namespace obstacle_id
 {
     /*
     Nodelet for obstacle backprojection from 2D to 3D.  
-    In 2D, combines segmented/unknown obstacle map with classified obstacle bounding boxes
+    In 2D, combines segmented obstacle map with classified obstacle bounding boxes
     Expands classified obstacle bounding boxes as needed, estimates 3d properties, then creates Obstacle messages for the classified obstacles
     Projects remaining unclassified obstacle pixels to pointcloud
     Subscriptions:
         ~segmentation:      [sensor_msgs/Image] 2d obstacle map, all pixels with value > 0 are considered obstacle pixels
         ~classification:    [asv_perception_common/ClassificationArray]  Classifications
-        ~rgb_radarimg:      [asv_perception_common/Homography] rgb to radar image homography matrix
         ~rgb_radar:         [asv_perception_common/Homography] rgb to radar homography matrix
     
     Publications:
@@ -34,9 +33,11 @@ namespace obstacle_id
         ~min_height         [float, default=1.0]  Minimum projected obstacle height
         ~max_height         [float, default=1.0]  Maximum projected obstacle height
         ~min_depth          [float, default=1.0]  Minimum projected obstacle depth
-        ~max_height         [float, default=1.0]  Maximum projected obstacle height
+        ~max_depth          [float, default=1.0]  Maximum projected obstacle depth
         ~resolution         [float, default=0.25]  Obstacle pointcloud resolution (space between points)
         ~max_distance       [float, default=100.0]  Maximum projected obstacle distance
+        ~roi_shrink_limit   [float, default=0]    Percentage limit of how much a classified obstacle ROI can shrink
+        ~roi_grow_limit     [float, default=0]    Percentage limit of how much a classified obstacle ROI can grow
     */
     class ObstacleProjectionNodelet 
     : public nodelet_topic_tools::NodeletLazy
@@ -67,7 +68,6 @@ namespace obstacle_id
         );
 
         // homography callback
-        void cb_homography_rgb_radarimg ( const typename homography_msg_type::ConstPtr& );
         void cb_homography_rgb_radar ( const typename homography_msg_type::ConstPtr& );
         
     private:
@@ -83,8 +83,7 @@ namespace obstacle_id
 
         // subscriptions
         ros::Subscriber 
-            _sub_rgb_radarimg
-            , _sub_rgb_radar
+            _sub_rgb_radar
             ;
         message_filters::Subscriber<segmentation_msg_type> _sub_segmentation;
         message_filters::Subscriber<classification_msg_type> _sub_classification;
@@ -97,7 +96,6 @@ namespace obstacle_id
         // homography msg storage
         typename asv_perception_common::Homography::ConstPtr 
             _h_rgb_radar
-            , _h_rgb_radarimg
             ;
 
         // parameters
@@ -108,6 +106,8 @@ namespace obstacle_id
             , _max_depth = 1.f
             , _resolution = 0.25f
             , _max_distance = 100.f
+            , _roi_grow_limit = 0.f
+            , _roi_shrink_limit = 0.f
             ;
 
     public:

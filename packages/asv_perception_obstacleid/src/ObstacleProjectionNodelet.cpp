@@ -1,16 +1,3 @@
-// class to take gs image
-//  (?) obstacle boundary expansion into unknown obstacle area on margins
-//  extract known obstacle types by class
-//      establish parent-child relationships so location is properly set (where is the man on the boat?)
-//  backproject to PC
-// unknown obstacles...logic is no different?  see rgb_to_pointcloud
-//  if no different, no need to expand/etc or set parent-child relationships
-
-// class takes wasr img and classifier bbs
-//  expands class bottom border (refines both bbs and wasr img)
-//  organizes classes into heirarchy as needed
-//  projects to pc.  known obstacles as a unit.  unknown via scanline method
-
 #include "ObstacleProjectionNodelet.h"
 
 #include <pluginlib/class_list_macros.h>
@@ -28,7 +15,6 @@ namespace {
         TOPIC_NAME_INPUT_SEGMENTATION = "segmentation"
         , TOPIC_NAME_INPUT_CLASSIFICATION = "classification"
         , TOPIC_NAME_INPUT_HOMOGRAPHY_RGB_TO_RADAR = "rgb_radar"
-        , TOPIC_NAME_INPUT_HOMOGRAPHY_RGB_TO_RADARIMG = "rgb_radarimg"
         , TOPIC_NAME_OUTPUT_OBSTACLES = "obstacles"
         , TOPIC_NAME_OUTPUT_CLOUD = "cloud"
     ;
@@ -69,6 +55,9 @@ void ObstacleProjectionNodelet::onInit ()
     if ( pnh_->getParam("max_distance", val ) && ( val > 0. ) )
         this->_max_distance = val;
 
+    pnh_->getParam("roi_grow_limit", this->_roi_grow_limit );
+    pnh_->getParam("roi_shrink_limit", this->_roi_shrink_limit );
+
     onInitPostProcess ();
 }
 
@@ -78,12 +67,6 @@ void ObstacleProjectionNodelet::subscribe ()
     static const std::uint32_t SYNC_QUEUE_SIZE = 10;
 
     std::lock_guard<std::mutex> lg( this->_mtx );
-
-    this->_sub_rgb_radarimg = pnh_->subscribe<homography_msg_type>( 
-        TOPIC_NAME_INPUT_HOMOGRAPHY_RGB_TO_RADARIMG
-        , 1
-        , bind( &ObstacleProjectionNodelet::cb_homography_rgb_radarimg, this, _1 )
-    );
 
     this->_sub_rgb_radar = pnh_->subscribe<homography_msg_type>( 
         TOPIC_NAME_INPUT_HOMOGRAPHY_RGB_TO_RADAR
@@ -112,19 +95,7 @@ void ObstacleProjectionNodelet::unsubscribe ()
 
     this->_sub_segmentation.unsubscribe();
     this->_sub_classification.unsubscribe();
-    this->_sub_rgb_radarimg.shutdown();
     this->_sub_rgb_radar.shutdown();
-}
-
-void ObstacleProjectionNodelet::cb_homography_rgb_radarimg( const typename homography_msg_type::ConstPtr& h ) {
-
-    if ( !h ) {
-        NODELET_WARN( "Invalid homography received, ignoring" );
-        return;
-    }
-
-    std::lock_guard<std::mutex> lg( this->_mtx );
-    this->_h_rgb_radarimg = h;
 }
 
 void ObstacleProjectionNodelet::cb_homography_rgb_radar( const typename homography_msg_type::ConstPtr& h ) {
@@ -157,8 +128,8 @@ void ObstacleProjectionNodelet::sub_callback (
         return;
 
     // check we have homography, warn
-    if ( !this->_h_rgb_radarimg || !this->_h_rgb_radar ) {
-        NODELET_WARN( "Homographies not yet received, dropping frame" );
+    if ( !this->_h_rgb_radar ) {
+        NODELET_WARN( "Homography not yet received, dropping frame" );
         return;
     }
 
@@ -187,7 +158,6 @@ void ObstacleProjectionNodelet::sub_callback (
         // construct homography
         const auto 
             h_rgb_to_radar = detail::Homography( this->_h_rgb_radar->values.data() )
-            , h_radar_to_rgbimg = detail::Homography( this->_h_rgb_radarimg->values.data() ).inverse()
             ;
         // obstacles projected to frame
         const auto child_frame_id = this->_h_rgb_radar->child_frame_id;
@@ -203,6 +173,9 @@ void ObstacleProjectionNodelet::sub_callback (
             , this->_max_height
             , this->_min_depth
             , this->_max_depth
+            , this->_max_distance
+            , this->_roi_grow_limit
+            , this->_roi_shrink_limit
             );
 
         // set headers
@@ -232,14 +205,13 @@ void ObstacleProjectionNodelet::sub_callback (
         // unclass pointcloud
         if ( this->_pub_cloud.getNumSubscribers() > 0 ) {
 
-            // todo:  max_distance; remove radar_to_rgbimg
             auto cloud = detail::obstacle_projection::project( 
                 img
                 , h_rgb_to_radar
-                , h_radar_to_rgbimg 
                 , this->_max_height
                 , this->_max_depth
                 , this->_resolution
+                , this->_max_distance
                 );
 
             sensor_msgs::PointCloud2::Ptr output_blob( new sensor_msgs::PointCloud2() );

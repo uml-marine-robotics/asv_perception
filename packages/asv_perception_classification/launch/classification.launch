@@ -18,9 +18,9 @@
                 darknet_config_file: "/data/model.cfg"
                 darknet_weights_file: "/data/model.weights"
                 darknet_meta_file: "/data/model.data"
-                darknet_thresh: .5
-                darknet_hier_thresh: .5
-                darknet_nms: .45
+                darknet_thresh: .3
+                darknet_hier_thresh: .3
+                darknet_nms: .25
             </rosparam>
         </node>
 

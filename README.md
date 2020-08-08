@@ -34,12 +34,9 @@ Perception for marine surface vehicles
 
 ## To-Do:
 *  Obstacle tracking
-    *  Camera: wasr/classifier offset
+    *  Improve obstacle tracking across radar ranges
 *  Homography:
-    *  Camera-radar-pointcloud calibration (?)
+    *  Camera-radar-pointcloud calibration
     *  Heave via GPS data
 *  Obstacle ID node
-    *  Projection:  fix wasr/classifier offset, parent/child detections
-    *  Accurate height/depth obstacle estimation
-        * Height:  estimate from projection/geometry
-        * Depth:   radar?
+    *  Estimate height using homography

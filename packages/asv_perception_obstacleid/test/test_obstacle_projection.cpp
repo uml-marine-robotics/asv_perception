@@ -10,15 +10,10 @@ namespace {
 
 TEST( TEST_CASE_NAME, compute_rgb_horizon )
 {
-    const auto h = ::getRGBtoRadarHomography().inverse();   // radar --> rgb
+    const auto h = ::getRGBtoWorldHomography();
 
-    // https://www.wolframalpha.com/input/?i=%28inverse%28+%7B%7B0.47386%2C+-0.113292%2C+-291.825%7D%2C%7B+++++++++0.053203%2C+-0.387605%2C+674.903%7D%2C%7B+++++++++0.0163188%2C+0.311054%2C+-103.878%7D%7D+%29+.+%7B%7B0%7D%2C%7B3.40282347e%2B38%7D%2C%7B1%7D%7D%29+%2F+%285.70957+x+1e35%29
-
-    const auto horizon_expected = h( 512, 0 ); // radar (512,0) => rgb (691,315)
-    EXPECT_EQ( obstacle_projection::impl::compute_rgb_horizon( (std::uint32_t)horizon_expected.first, h ), 315 );
-
-    EXPECT_EQ( obstacle_projection::impl::compute_rgb_horizon( 0, h ), 350 );
-    EXPECT_EQ( obstacle_projection::impl::compute_rgb_horizon( 1280, h ), 285 );
+    EXPECT_EQ( obstacle_projection::impl::compute_rgb_horizon( 0, h ), 334 );
+    EXPECT_EQ( obstacle_projection::impl::compute_rgb_horizon( 1280, h ), 267 );
     
 }
 
@@ -58,7 +53,6 @@ TEST( TEST_CASE_NAME, create_obstacles_basic )
 {   
     const auto 
         h_rgb_world = ::getRGBtoWorldHomography()
-        , h_radar_rgb = ::getRGBtoRadarHomography().inverse()
         ;
 
     const int PX_VAL = 0;
@@ -66,7 +60,7 @@ TEST( TEST_CASE_NAME, create_obstacles_basic )
 
     const std::uint32_t 
         start_x = 1280 / 2
-        , start_y = obstacle_projection::impl::compute_rgb_horizon( start_x, h_radar_rgb ) + 20
+        , start_y = obstacle_projection::impl::compute_rgb_horizon( start_x, h_rgb_world ) + 20
         , w = 25
         , h = w
         ;
@@ -76,7 +70,7 @@ TEST( TEST_CASE_NAME, create_obstacles_basic )
     auto rect = cv::Rect( start_x, start_y, w, h );
     img(rect) = 255;    // make non-zero pixels
     
-    const auto pc = obstacle_projection::project( img, h_rgb_world, h_radar_rgb );
+    const auto pc = obstacle_projection::project( img, h_rgb_world );
 
     // check points
     const auto pt_exists = [&]( int x, int y, int z ) {

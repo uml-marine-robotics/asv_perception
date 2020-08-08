@@ -13,6 +13,7 @@ namespace {
 TEST( TEST_CASE_NAME, obstacle_extraction_basic )
 {   
     // use obstacle_projection to create a set of points, then extraction to verify
+    //  todo:  make 3d shape so we can generate/test convex hull
 
     pointcloud_type pc = {};
 
@@ -38,26 +39,14 @@ TEST( TEST_CASE_NAME, obstacle_extraction_basic )
 
     // pcl algos require shared_ptr
     const auto pc_ptr = typename pointcloud_type::Ptr( new pointcloud_type( pc ) );
-    const auto obstacles = obstacle_extraction::extract( pc_ptr, 10.f, 1, std::numeric_limits<std::uint32_t>::max()
-        , 0.1f, -0.f, -0.f );
+    const auto obstacles = obstacle_extraction::extract( pc_ptr, 10.f, 1, std::numeric_limits<std::uint32_t>::max(), -0.f );
 
     ASSERT_EQ( obstacles.size(), 1 );
     const auto obs0 = obstacles.front();
 
-    EXPECT_DOUBLE_EQ( obs0.pose.position.x, ( min.x + max.x ) / 2. );
-    EXPECT_DOUBLE_EQ( obs0.pose.position.y, ( min.y + max.y ) / 2. );
-    EXPECT_DOUBLE_EQ( obs0.pose.position.z, ( min.z + max.z ) / 2. );
+    EXPECT_DOUBLE_EQ( obs0.pose.pose.position.x, ( min.x + max.x ) / 2. );
+    EXPECT_DOUBLE_EQ( obs0.pose.pose.position.y, ( min.y + max.y ) / 2. );
+    EXPECT_DOUBLE_EQ( obs0.pose.pose.position.z, ( min.z + max.z ) / 2. );
 
 }
-
-/*
-TEST( TEST_CASE_NAME, from_pcd ) {
-
-    pointcloud_type::Ptr pc_ptr(new pointcloud_type());
-    pcl::io::loadPCDFile( "packages/asv_perception_obstacleid/test/cloud.pcd", *pc_ptr );
-    ASSERT_FALSE( pc_ptr->empty() );
-    const auto obstacles = obstacle_extraction::extract( pc_ptr, 4.f, 15, 25000, 0.1f );
-    EXPECT_FALSE( obstacles.empty() );
-}
-*/
 
