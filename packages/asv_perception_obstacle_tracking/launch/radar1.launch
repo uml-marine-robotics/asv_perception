@@ -25,8 +25,8 @@
             <remap from="~input" to="extraction/obstacles" />
 
             <rosparam>
-                max_age: 4
-                min_hits: 3
+                max_age: 5
+                min_hits: 2
                 tf_frame: 'odom'
             </rosparam>
         </node>

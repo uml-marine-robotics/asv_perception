@@ -11,10 +11,11 @@ namespace obstacle_id
   Obstacle extraction nodelet performs euclidean clustering and constructs Obstacle messages
 
   Parameters:
-    ~cluster_tolerance: [float]                    clustering tolerance
-    ~min_cluster_size:  [uint, default=1]          minimum number of points in a cluster
-    ~max_cluster_size:  [uint, default=uint_max]   maximum number of points in a cluster
-    ~max_area:          [float, default=0]         maximum convex hull area
+    ~cluster_tolerance: [float]               clustering tolerance
+    ~cluster_size_min:  [uint, default=1]     minimum number of points in a cluster
+    ~cluster_size_max:  [uint, default=max]   maximum number of points in a cluster
+    ~cluster_area_min:  [float, default=0]    minimum convex hull area
+    ~cluster_area_max:  [float, default=max]  maximum convex hull area
   
   Topics:
     ~input:      [sensor_msgs/PointCloud2]               input pointcloud
@@ -32,14 +33,15 @@ namespace obstacle_id
                                       
     protected:
 
-      std::uint32_t 
-        min_cluster_sz_ = 1
-        , max_cluster_sz_ = std::numeric_limits<std::uint32_t>::max()
+        std::uint32_t 
+          cluster_sz_min_ = 1
+          , cluster_sz_max_ = std::numeric_limits<std::uint32_t>::max()
         ;
 
-      float 
-        cluster_tolerance_ = 0.f
-        , max_area_ = 0.f
+        float
+            cluster_tolerance_ = 0.f
+            , cluster_area_min_ = 0.f
+            , cluster_area_max_ = std::numeric_limits<float>::max()
         ;
 
       /** \brief Nodelet initialization routine. */

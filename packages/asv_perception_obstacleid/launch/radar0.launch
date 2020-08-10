@@ -8,22 +8,11 @@
     <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
 
-    <!-- radius outlier, radar1 radius filter (leave some overlap with radar1 for tracking continuity) -->
-    <node pkg="nodelet" type="nodelet" name="outlier_filter" respawn="true" output="screen"
-      args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)" >
-    >
-      <remap from="~input" to="/broadband_radar/channel_0/pointcloud" />
-
-      <rosparam>
-        min_distance: 180.
-        outlier_radius:  2.
-        outlier_min_neighbors: 10
-      </rosparam>
-    </node>
-
     <!-- voxel grid, transform points to fixed frame -->
     <node pkg="nodelet" type="nodelet" name="grid_filter" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
-      <remap from="~input" to="outlier_filter/output" /> <!-- remap from=sink to=source -->
+
+      <remap from="~input" to="/broadband_radar/channel_0/pointcloud" /> <!-- remap from=sink to=source -->
+
       <rosparam>
         leaf_size: 0.1
         output_frame:  'odom'
@@ -43,16 +32,35 @@
       </rosparam>
     </node>
 
+    <!-- 
+      land mass/cluster filter:  filter out points which can be clustered into areas larger than cluster_area_max  
+      min_distance:  radar1 radius filter (leave some overlap with radar1 for tracking continuity)
+    -->
+    <node pkg="nodelet" type="nodelet" name="cluster_filter" respawn="true" output="screen"
+      args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)"
+    >
+      <remap from="~input" to="concat/full" />
+
+      <rosparam>
+        cluster_inliers: true
+        cluster_tolerance: 18.
+        cluster_size_min: 3
+        cluster_area_max:  8000
+
+        min_distance: 160.
+      </rosparam>
+    </node>
+
     <!-- cluster extraction to obstacles -->
     <node pkg="nodelet" type="nodelet" name="extraction" respawn="true" output="screen"
       args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" >
 
-      <remap from="~input" to="concat/full" />
+      <remap from="~input" to="cluster_filter/output" />
       
       <rosparam>
-        cluster_tolerance: 15.
-        min_cluster_size: 25
-        max_area:  2000
+        cluster_tolerance: 6.
+        cluster_size_min: 20
+        cluster_area_max: 1500
       </rosparam>
     </node>
 

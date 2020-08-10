@@ -22,7 +22,7 @@
             <rosparam>
                 n_subs: 3
                 cost_fn: 'euclidean'
-                cost_fn_max: 15
+                cost_fn_max: 20
                 _cost_fn: 'hellinger'
                 _cost_fn_max: 0.99999
             </rosparam>

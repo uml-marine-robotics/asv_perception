@@ -33,8 +33,6 @@ Perception for marine surface vehicles
 *  `packages`:  ROS packages
 
 ## To-Do:
-*  Obstacle tracking
-    *  Improve obstacle tracking across radar ranges
 *  Homography:
     *  Camera-radar-pointcloud calibration
     *  Heave via GPS data
