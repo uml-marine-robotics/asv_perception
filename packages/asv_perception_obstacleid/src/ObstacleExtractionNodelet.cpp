@@ -7,7 +7,7 @@
 // #include <pcl/io/pcd_io.h>  // debug
 
 #include "utils.h"
-#include "detail/obstacle_extraction.h"
+#include "detail/PointCluster.h"
 
 namespace {
   using namespace obstacle_id;
@@ -28,19 +28,20 @@ void ObstacleExtractionNodelet::onInit ()
   // Mandatory parameters
   if ( !pnh_->getParam("cluster_tolerance", this->cluster_tolerance_ ))
   {
-    NODELET_ERROR ("[%s::onInit] Need a 'cluster_tolerance' parameter to be set before continuing!", getName ().c_str ()); 
+    NODELET_ERROR ("[%s::onInit] Need a 'cluster_tolerance' parameter to be set before continuing!", getName().c_str ()); 
     return;
   }
 
   // optional parameters
   int val = 0;  
-  if ( pnh_->getParam("max_cluster_size", val ) && ( val >= 0 ) )
-    this->max_cluster_sz_ = (std::uint32_t)val;
+  if ( pnh_->getParam("cluster_size_max", val ) && ( val >= 0 ) )
+    this->cluster_sz_max_ = (std::uint32_t)val;
 
-  if ( pnh_->getParam("min_cluster_size", val ) && ( val >= 0 ) )
-    this->min_cluster_sz_ = (std::uint32_t)val;
+  if ( pnh_->getParam("cluster_size_min", val ) && ( val >= 0 ) )
+    this->cluster_sz_min_ = (std::uint32_t)val;
 
-  pnh_->getParam("max_area", this->max_area_);
+  pnh_->getParam("cluster_area_max", this->cluster_area_max_ );
+  pnh_->getParam("cluster_area_min", this->cluster_area_min_ );
 
   // publisher
   this->pub_ = advertise<asv_perception_common::ObstacleArray>( *pnh_, TOPIC_NAME_OUTPUT, 1 );
@@ -98,9 +99,17 @@ void ObstacleExtractionNodelet::sub_callback (
     asv_perception_common::ObstacleArray msg = {};
     msg.header = cloud->header;
 
-    msg.obstacles = detail::obstacle_extraction::extract( 
-      pc_ptr, this->cluster_tolerance_, this->min_cluster_sz_, this->max_cluster_sz_, this->max_area_
-      );
+    // extract clusters from pointcloud
+    const auto pclusters = detail::PointCluster::extract( 
+      pc_ptr
+      , this->cluster_tolerance_
+      , this->cluster_sz_min_, this->cluster_sz_max_
+      , this->cluster_area_min_, this->cluster_area_max_
+    );
+
+    // convert clusters to obstacles
+    for ( const auto& pcluster : pclusters )
+        msg.obstacles.emplace_back( pcluster.to_obstacle() );
 
     // set header for obstacles
     for ( auto& obs : msg.obstacles )
@@ -113,7 +122,6 @@ void ObstacleExtractionNodelet::sub_callback (
   } catch ( ... ) {
     ROS_ERROR("unknown exception type");
   }
-
 
 }
 

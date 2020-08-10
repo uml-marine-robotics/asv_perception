@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <pcl/io/pcd_io.h>
 #include "../include/detail/obstacle_projection.h"
-#include "../include/detail/obstacle_extraction.h"
+#include "../include/detail/PointCluster.h"
 #include "test_common.h"
 
 #define TEST_CASE_NAME TestObstacleExtraction
@@ -38,11 +38,16 @@ TEST( TEST_CASE_NAME, obstacle_extraction_basic )
     const auto max = mm.second;
 
     // pcl algos require shared_ptr
-    const auto pc_ptr = typename pointcloud_type::Ptr( new pointcloud_type( pc ) );
-    const auto obstacles = obstacle_extraction::extract( pc_ptr, 10.f, 1, std::numeric_limits<std::uint32_t>::max(), -0.f );
+    auto pc_ptr = typename pointcloud_type::Ptr( new pointcloud_type( pc ) );
+    const auto pclusters = PointCluster::extract( 
+        pc_ptr, 10.f
+        , 1, std::numeric_limits<std::uint32_t>::max()
+        , -0.f, std::numeric_limits<float>::max()
+        , 2
+        );
 
-    ASSERT_EQ( obstacles.size(), 1 );
-    const auto obs0 = obstacles.front();
+    ASSERT_EQ( pclusters.size(), 1 );
+    const auto obs0 = pclusters.front().to_obstacle();
 
     EXPECT_DOUBLE_EQ( obs0.pose.pose.position.x, ( min.x + max.x ) / 2. );
     EXPECT_DOUBLE_EQ( obs0.pose.pose.position.y, ( min.y + max.y ) / 2. );

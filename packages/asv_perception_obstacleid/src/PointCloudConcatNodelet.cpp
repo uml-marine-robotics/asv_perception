@@ -81,7 +81,7 @@ void PointCloudConcatNodelet::sub_callback (
 
     sensor_msgs::PointCloud2 result = {};
     for ( auto& pc : this->segments_ )
-      if ( pc != nullptr && !pcl::concatenatePointCloud( result, *pc, result ) )
+      if ( pc != nullptr && ( pc->width > 0 ) && !pcl::concatenatePointCloud( result, *pc, result ) )
         ROS_ERROR("Error concatenating point clouds");
     
     // use latest header

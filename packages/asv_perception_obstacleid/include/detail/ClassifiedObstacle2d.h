@@ -4,9 +4,9 @@
 #include <asv_perception_common/Classification.h>
 #include <asv_perception_common/Obstacle.h>
 
-#include "defs.h"
+#include "utils.h"
 #include "Homography.h"
-#include "obstacle_extraction.h"
+#include "PointCluster.h"
 
 namespace obstacle_id {
 namespace detail {
@@ -123,8 +123,13 @@ class ClassifiedObstacle2d {
             
             // project roi to pointcloud
             auto pc_ptr = impl::roi_to_pointcloud( this->cls.roi, depth, height, z_offset, h );
-
-            auto result = obstacle_extraction::impl::create_obstacle( pc_ptr );
+            
+            // need pointcluster for create_obstacle.  create PointIndices for all points
+            pcl::PointIndices pi = {};
+            for ( std::size_t i = 0; i < pc_ptr->points.size(); ++i )
+                pi.indices.push_back(i);
+            
+            auto result = PointCluster( pc_ptr, pi ).to_obstacle();
 
             result.label = this->cls.label;
             result.label_probability = this->cls.probability;

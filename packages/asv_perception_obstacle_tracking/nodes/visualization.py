@@ -14,7 +14,7 @@ counter = 10000
 def get_mag_linear( t ):
     """get magnitude of linear velocity"""
     v = t.velocity.twist.linear
-    return math.sqrt( v.x*v.x + v.y*v.y + v.z*v.z )
+    return math.sqrt( v.x**2 + v.y**2 + v.z**2 )
 
 def create_marker( t, type, lifetime ):
 
@@ -82,8 +82,8 @@ def create_marker_text( t, lifetime ):
     marker.pose.position.z = t.dimensions.z + 1.5  # above cube
     marker.color.r = marker.color.g = marker.color.b = 1.
     
-    # id, label, pose covar, linear velocity, lifetime (s)
-    marker.text = '%s [%s], c: %.2f, |v|: %.2f, t: %.2f' % ( t.id, t.label, t.pose.covariance[0], get_mag_linear( t ), ( t.header.stamp - t.observed_initial ).to_sec() )
+    # id, label, area, linear velocity, lifetime (s)
+    marker.text = '%s [%s], a: %.0f |v|: %.2f, t: %.2f' % ( t.id, t.label, t.area, get_mag_linear( t ), ( t.header.stamp - t.observed_initial ).to_sec() )
 
     return marker
 

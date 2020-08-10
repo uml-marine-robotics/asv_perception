@@ -8,7 +8,7 @@
     <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
 
-    <!-- radius outlier, self-return filter -->
+    <!-- self-return filter -->
     <node pkg="nodelet" type="nodelet" name="outlier_filter" respawn="true" output="screen"
       args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)" >
     
@@ -16,8 +16,6 @@
 
       <rosparam>
         min_distance: 6.
-        outlier_radius:  2.
-        outlier_min_neighbors: 20
       </rosparam>
     </node>
 
@@ -43,17 +41,38 @@
       </rosparam>
     </node>
 
+    <!-- cluster density filter -->
+    <node pkg="nodelet" type="nodelet" name="cluster_filter" respawn="true" output="screen"
+      args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)" >
+    
+      <remap from="~input" to="concat/full" />
+
+      <rosparam>
+        outlier_radius:  2.
+        outlier_min_neighbors: 15
+
+        <!-- 
+          land mass filter
+            exclude points which can be clustered into areas larger than cluster_area_max 
+        -->
+        cluster_inliers: true
+        cluster_tolerance: 8.
+        cluster_size_min: 3
+        cluster_area_max:  3000
+      </rosparam>
+    </node>
+
     <!-- cluster extraction to obstacles -->
     <node pkg="nodelet" type="nodelet" name="extraction" respawn="true" output="screen"
       args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" >
 
-      <remap from="~input" to="concat/full" />
+      <remap from="~input" to="cluster_filter/output" />
       
       <rosparam>
         cluster_tolerance: 2.
-        min_cluster_size: 100
-        max_cluster_size: 10000
-        max_area: 500
+        cluster_size_min: 100
+        cluster_size_max: 10000
+        cluster_area_max: 500
       </rosparam>
     </node>
 
