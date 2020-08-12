@@ -8,13 +8,15 @@ Perception for marine surface vehicles
 *  Storage:  ~20GB for docker images and ML models
 *  O/S:  Linux, Docker 18.03 or later, CUDA drivers
 *  ROS Melodic host/image with a TF tree defined, including a fixed frame (eg, `odom`)
-*  IMU publisher, ENU
-*  RADAR image and pointcloud publisher
-*  Camera image publisher, color
-
+*  IMU publisher, ENU, type:  `sensor_msgs::Imu`
+*  RADAR image, type `sensor_msgs::CompressedImage`
+*  RADAR pointcloud publisher, type `sensor_msgs::PointCloud2`
+*  Camera image publisher, color, type `sensor_msgs::CompressedImage`
 
 ## Conceptual overview
-`asv_perception` contains ROS nodes specialized for image processing, pointcloud generation, obstacle creation, and obstacle tracking.  The expected inputs are described in the System Requirements and the fused/tracked obstacles are published in the `/tracking/fusion/obstacles` ROS topic.  The system can accomodate multiple sensors, and multiple sensors per type.  Additionally, an example tool is provided for publishing the obstacle information in JSON format to an external source/system over IP.  See the `Individual package description` section below additional details.
+`asv_perception` contains ROS nodes specialized for image processing, pointcloud generation, obstacle creation, and obstacle tracking.  The expected inputs are described in the System Requirements and the fused/tracked obstacles are published in the `/tracking/fusion/obstacles` ROS topic.  See `packages/asv_perception_common/msg/Obstacle.msg` for a list of the fields which are included.
+
+The system can currently accomodate visible light cameras and pointcloud-generating sensors (eg RADAR, LIDAR), and multiple sensors per type.  Additionally, an example tool is provided for publishing the obstacle information in JSON format to an external source/system over IP.  See the `Individual package description` section below additional details.
 
 The default configuration is for a monocular camera and two RADAR sensors, but can be adjusted to accommodate alternative sensor configurations.
 
