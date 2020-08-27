@@ -1,28 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
     <arg name="pkg_name" value="asv_perception_classification"/>
-    <group ns="left_camera">
+    
+    <!-- 
+        Node to perform object detection, see darknet_node.py
+    -->
+    <node name="classification" pkg="$(arg pkg_name)" type="darknet_node.py" required="true" output="screen">
+        
+        <remap from="~0/input" to="/left_camera/image_color/compressed" />
 
-        <!-- 
-            Node to perform object classification
-            Subscriptions: 
-                - /input:   [sensor_msgs/CompressedImage] rgb camera image
-            Publications:  
-                - /output:  [asv_perception_common/ClassificationArray]
-                            Array of detections.  Resulting ROIs scaled to input image size
-                - /image:   [sensor_msgs/Image] annotated image (for visualization/debugging)
-        -->
-        <node name="classification" pkg="$(arg pkg_name)" type="darknet_node.py" required="true" output="screen">
-            <remap from="~input" to="image_color/compressed" />
-            <rosparam>
-                darknet_config_file: "/data/model.cfg"
-                darknet_weights_file: "/data/model.weights"
-                darknet_meta_file: "/data/model.data"
-                darknet_thresh: .3
-                darknet_hier_thresh: .3
-                darknet_nms: .25
-            </rosparam>
-        </node>
+        <rosparam>
+            n_inputs: 1
+            darknet_config_file: "/data/model.cfg"
+            darknet_weights_file: "/data/model.weights"
+            darknet_meta_file: "/data/model.data"
+            darknet_thresh: .3
+            darknet_hier_thresh: .3
+            darknet_nms: .25
+        </rosparam>
+    </node>
 
-    </group>
 </launch>

@@ -4,7 +4,7 @@
     <arg name="ns_name" default="tracking"/>
 
     <!-- sensor-specific trackers -->
-    <include file="$(find asv_perception_obstacle_tracking)/launch/camera.launch" />
+    <include file="$(find asv_perception_obstacle_tracking)/launch/camera0.launch" />
     <include file="$(find asv_perception_obstacle_tracking)/launch/radar0.launch" />
     <include file="$(find asv_perception_obstacle_tracking)/launch/radar1.launch" />
 
@@ -17,7 +17,7 @@
             
             <remap from="~input0" to="/radar0/tracking/obstacles" />
             <remap from="~input1" to="/radar1/tracking/obstacles" />
-            <remap from="~input2" to="/left_camera/tracking/classified/obstacles" />
+            <remap from="~input2" to="/camera0/tracking/classified/obstacles" />
 
             <rosparam>
                 n_subs: 3

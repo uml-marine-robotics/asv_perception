@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
     <arg name="pkg_name" value="asv_perception_obstacle_tracking"/>
-    <arg name="ns_name" default="left_camera"/>
+    <arg name="ns_name" default="camera0"/>
 
     <group ns="$(arg ns_name)">
         <group ns="tracking">
@@ -11,7 +11,7 @@
             -->
             <node name="classified" pkg="$(arg pkg_name)" type="tracking.py" output="screen">
                 
-                <remap from="~input" to="/left_camera/projection/obstacles" />
+                <remap from="~input" to="/camera0/projection/obstacles" />
 
                 <rosparam>
                     max_age: 4
@@ -26,7 +26,7 @@
             <!-- 
             <node name="tracking_unclassified" pkg="$(arg pkg_name)" type="tracking.py" output="screen">
                 
-                <remap from="~input" to="/left_camera/extraction/obstacles" />
+                <remap from="~input" to="/camera0/extraction/obstacles" />
 
                 <rosparam>
                     max_age: 6

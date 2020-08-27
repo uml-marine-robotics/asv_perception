@@ -16,7 +16,7 @@ Perception for marine surface vehicles
 ## Conceptual overview
 `asv_perception` contains ROS nodes specialized for image processing, pointcloud generation, obstacle creation, and obstacle tracking.  The expected inputs are described in the System Requirements and the fused/tracked obstacles are published in the `/tracking/fusion/obstacles` ROS topic.  See `packages/asv_perception_common/msg/Obstacle.msg` for a list of the fields which are included.
 
-The system can currently accomodate visible light cameras and pointcloud-generating sensors (eg RADAR, LIDAR), and multiple sensors per type.  Additionally, an example tool is provided for publishing the obstacle information in JSON format to an external source/system over IP.  See the `Individual package description` section below additional details.
+The system can currently accommodate visible light cameras and pointcloud-generating sensors (eg RADAR, LIDAR), and multiple sensors per type.  Additionally, an example tool is provided for publishing the obstacle information in JSON format to an external source/system over IP.  See the `Individual package description` section below additional details.
 
 The default configuration is for a monocular camera and two RADAR sensors, but can be adjusted to accommodate alternative sensor configurations.
 
@@ -31,8 +31,8 @@ The default configuration is for a monocular camera and two RADAR sensors, but c
 * Calibration tool:
     * Connect to asv sensors, or run a `.bag` file in ROS.
     * In a ROS melodic desktop/GUI shell, run `python calibrate.py` in the `packages/asv_perception_homography/src/asv_perception_homography` folder
-    * run `rqt_image_view` and select the image publisher node for `asv_perception_homography/visualization` ( eg `/left_camera/homography_vis/image` )
-    * A GUI window should appear, allowing you to view the radar image overlayed on top of the camera image.  Adjust the radar image using the tuner until sufficient alignment is acheieved.
+    * run `rqt_image_view` and select the image publisher node for `asv_perception_homography/visualization` ( eg `/camera0/homography_vis/image` )
+    * A GUI window should appear, allowing you to view the radar image overlaid on top of the camera image.  Adjust the radar image using the tuner until sufficient alignment is achieved.
     * Save the calibration when complete, then close all windows.
 
 ## Running

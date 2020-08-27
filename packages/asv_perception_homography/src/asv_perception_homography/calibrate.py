@@ -11,7 +11,7 @@ yaml_path_prefix = '../../launch/calib' # save/load location, relative to this f
 # defaults for 1280x1024, 1024x1024 radar image @ r=110m
 def get_default_parameters():
     return {
-    'topic': '/left_camera/homography'
+    'topic': '/camera0/homography'
     , 'roll': 0.0
     , 'pitch': 80.6
     , 'imu_pitch_alpha': 1.4

@@ -1,7 +1,7 @@
 <launch>
 
   <arg name="package_name" value="asv_perception_obstacleid"/>
-  <arg name="namespace_name" value="left_camera"/>
+  <arg name="namespace_name" value="camera0"/>
   
   <group ns="$(arg namespace_name)">
 
@@ -9,15 +9,15 @@
     <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
 
     <!-- 
-      Left camera classified extraction, unclassified projection
+      camera classified extraction, unclassified projection
       See ObstacleProjectionNodelet.h
     -->
     <node pkg="nodelet" type="nodelet" name="projection" respawn="true" output="screen"
       args="load $(arg package_name)/ObstacleProjectionNodelet $(arg nodelet_name)" >
 
-      <remap from="~segmentation" to="segmentation/obstacles" />
-      <remap from="~classification" to="classification/output" />
-      <remap from="~rgb_radar" to="homography/rgb_radar" />
+      <remap from="~segmentation" to="/segmentation/0/obstacles" />
+      <remap from="~classification" to="/classification/0/output" />
+      <remap from="~rgb_radar" to="/camera0/homography/rgb_radar" />
 
       <rosparam>
         min_height: 1.
@@ -32,6 +32,7 @@
     </node>
 
     <!-- minimum distance filter -->
+    <!-- 
     <node pkg="nodelet" type="nodelet" name="distance_filter" respawn="true" output="screen"
       args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)" >
     >
@@ -41,10 +42,12 @@
         min_distance_y: 5.
       </rosparam>
     </node>
+    -->
 
     <!-- voxel grid, z filter, transform points to fixed frame -->
+    <!--
     <node pkg="nodelet" type="nodelet" name="pc_filter" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
-      <remap from="~input" to="distance_filter/output" /> <!-- remap from=sink to=source -->
+      <remap from="~input" to="distance_filter/output" />
       <rosparam>
         filter_field_name: z
         filter_limit_min: -0.0
@@ -54,8 +57,9 @@
         output_frame:  'odom'
       </rosparam>
     </node>
-
+    -->
     <!-- cluster extraction to obstacles -->
+    <!--
     <node pkg="nodelet" type="nodelet" name="extraction" respawn="true" output="screen"
       args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" >
 
@@ -66,6 +70,7 @@
         min_cluster_size: 75
       </rosparam>
     </node>
+    -->
   </group>
 
 </launch>
