@@ -8,7 +8,8 @@ namespace obstacle_id
 {
   /*
     Description
-
+        Custom pointcloud filtering, including min-distance, outlier removal, and cluster area inclusion/exclusion
+        
     Subscriptions:
         ~input:     [sensor_msgs/PointCloud2] input pointcloud
 

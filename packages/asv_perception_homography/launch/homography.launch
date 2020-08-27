@@ -3,7 +3,7 @@
     <arg name="pkg_name" value="asv_perception_homography"/>
     <arg name="node_name" default="homography"/>
 
-    <group ns="left_camera">
+    <group ns="camera0">
 
         <arg name="homography_calibration_file" default="$(find asv_perception_homography)/launch/calib_left_camera_homography.yaml" />
 
@@ -23,7 +23,7 @@
 
             <rosparam>
                 <!-- frame ids for homography msgs -->
-                rgb_frame_id: "left_camera"
+                rgb_frame_id: "camera0"
                 radarimg_frame_id: "radar_1"
                 radar_frame_id: "velodyne"
 
@@ -66,7 +66,7 @@
 
             <!-- remap from=sink to=source -->
             <remap from="~imu" to="/imu/data/enu" />
-            <remap from="~rgb" to="image_color/compressed" />
+            <remap from="~rgb" to="/left_camera/image_color/compressed" />
             <remap from="~radarimg" to="/broadband_radar/channel_1/image_raw" />
             <remap from="~rgb_radarimg" to="$(arg node_name)/rgb_radarimg" />
         </node>

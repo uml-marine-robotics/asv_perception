@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from threading import Lock
 import rospy
 import numpy as np
 import cv2
@@ -14,10 +15,34 @@ from asv_perception_common.msg import Classification, ClassificationArray
 from asv_perception_common import utils
 
 class darknet_node(object):
+    """
+        Node to perform object detection
+
+        Subscriptions: 
+            - ~[0,...,~n_inputs]/input:   [sensor_msgs/CompressedImage] rgb camera image
+
+        Publications:  
+            - ~[0,...,~n_inputs]/output:  [asv_perception_common/ClassificationArray]
+                        Array of detections.  Resulting ROIs scaled to input image size
+
+            - ~[0,...,~n_inputs]/image:   [sensor_msgs/Image] annotated image (for visualization/debugging)
+        
+        Parameters:
+            - ~n_inputs:    [int, default=1]  number of ~input[0...n] subscriptions and corresponding publications
+            - ~darknet_config_file: [string]  path to darknet config file
+            - ~darknet_weights_file: [string]  path to darknet weights file
+            - ~darknet_meta_file: [string]  path to darknet meta file
+            - ~darknet_thresh: [float, default=0.5]  darknet threshold
+            - ~darknet_hier_thresh: [float, default=0.5]  darknet hier_thres
+            - ~darknet_nms: [float, default=0.45]  darknet nms
+    """
 
     def __init__(self):
 
         self.node_name = rospy.get_name()
+        self.lock = Lock()
+
+        self.n_inputs = rospy.get_param("~n_inputs", 1 )
 
         # init darknet
         configPath = rospy.get_param("~darknet_config_file")
@@ -36,23 +61,40 @@ class darknet_node(object):
         self.net_img_w = darknet_lib.network_width( self.net )
         self.net_img_h = darknet_lib.network_height( self.net )
 
-        # publisher of classification array
-        self.pub = rospy.Publisher( "~output", ClassificationArray, queue_size=1)
+        # publishers array of classification array
+        self.pubs = [ rospy.Publisher( '~%d/output' % i, ClassificationArray, queue_size=1 ) for i in range(self.n_inputs) ]
 
-        # image publisher for visualization/debugging
-        self.pub_img = rospy.Publisher( "~image", Image, queue_size=1)
+        # image publishers for visualization/debugging
+        self.pubs_img = [ rospy.Publisher( '~%d/image' % i, Image, queue_size=1 ) for i in range(self.n_inputs) ]
 
-        # subscribers
-        self.sub = rospy.Subscriber( "~input", CompressedImage, self.processImage, queue_size=1, buff_size=2**24 )
+        # subscriptions array
+        self.subs = [ rospy.Subscriber( '~%d/input' % i, CompressedImage, queue_size=1, callback=self.cb_sub, callback_args=i, buff_size=2**24 ) for i in range(self.n_inputs) ]
         
-
-    def processImage(self, image_msg):
+    def cb_sub( self, msg, idx ):
+        """ perform callback for image message at input index """
+        
+        # get associated publishers for this input index
+        pub = self.pubs[idx]
+        pub_img = self.pubs_img[idx]
 
         # no subscribers, no work
-        if self.pub.get_num_connections() <= 0 and self.pub_img.get_num_connections() <= 0:
+        if pub.get_num_connections() < 1 and pub_img.get_num_connections() < 1:
             return
 
-        rospy.logdebug( 'Processing img with timestamp secs=%d, nsecs=%d', image_msg.header.stamp.secs, image_msg.header.stamp.nsecs )
+        rospy.logdebug( 'Processing img with timestamp secs=%d, nsecs=%d', msg.header.stamp.secs, msg.header.stamp.nsecs )
+
+        dets, img = self.detect( msg ) # perform detection
+
+        if pub.get_num_connections() > 0:  # publish detections
+            pub.publish( dets )
+        
+        if pub_img.get_num_connections() > 0:  # publish annotated image
+            annotated = self.annotate( img, dets )
+            pub_img.publish( annotated )
+
+        
+    def detect(self, image_msg):
+        """ perform object detection in image message, return ClassificationArray, OpenCV Image """
 
         # darknet requires rgb image in proper shape.  we need to resize, and then convert resulting bounding boxes to proper shape
         img = utils.convert_ros_msg_to_cv2( image_msg, 'rgb8' )
@@ -70,7 +112,9 @@ class darknet_node(object):
         img_data = darknet_array_to_image( img )  #returns tuple
 
         # returns [(nameTag, dets[j].prob[i], (b.x, b.y, b.w, b.h))]:
-        dets = darknet_detect( self.net, self.meta, img_data[0], thresh=self.darknet_thresh, hier_thresh=self.darknet_hier_thresh, nms=self.darknet_nms )
+        dets = []
+        with self.lock:  # darknet apparently not thread-safe, https://github.com/pjreddie/darknet/issues/655
+            dets = darknet_detect( self.net, self.meta, img_data[0], thresh=self.darknet_thresh, hier_thresh=self.darknet_hier_thresh, nms=self.darknet_nms )
 
         msg = ClassificationArray()
         msg.header = image_msg.header #match timestamps
@@ -104,17 +148,12 @@ class darknet_node(object):
 
             msg.classifications.append(cls)
 
-        self.pub.publish( msg )
+        return msg, img
 
-        self.publishImage( img, msg )
-
-    def publishImage( self, img, clsMsg ):
+    def annotate( self, img, clsMsg ):
         """
-        Publish the annotated image for visualization/debugging
+        Create the annotated image for visualization/debugging
         """
-        # no subscribers, no work
-        if self.pub_img.get_num_connections() <= 0:
-            return
 
         # upscale/pad img back to orig resolution
         #  bounding boxes are already correct for this resolution
@@ -133,10 +172,10 @@ class darknet_node(object):
             text = "{}: {:.4f}".format( cls.label, cls.probability )
             cv2.putText( img, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.75, color, 2 )
 
-        # publish
+        # create ros msg from img
         msg = utils.convert_cv2_to_ros_msg( img, 'rgb8' )
         msg.header = clsMsg.header # match timestamp
-        self.pub_img.publish( msg )
+        return msg
 
 if __name__ == "__main__":
 
