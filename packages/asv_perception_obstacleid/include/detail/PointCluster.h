@@ -52,6 +52,8 @@ public:
 
         result.area = this->area;
         pcl::toROSMsg( this->convex_hull, result.points );
+
+        // todo:  make result.points relative to centroid, then fix in visualization, reporting nodes
         
         return result;
     }   // to_obstacle

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
-    <arg name="pkg_name" value="asv_perception_obstacle_tracking"/>
+    <arg name="pkg_name" value="asv_perception_tracking"/>
     <arg name="ns_name" default="radar0"/>
 
     <group ns="$(arg ns_name)">
@@ -28,6 +28,8 @@
                 max_age: 5
                 min_hits: 3
                 tf_frame: 'odom'
+                cost_fn: 'euclidean'
+                cost_fn_max: 20
             </rosparam>
         </node>
 
