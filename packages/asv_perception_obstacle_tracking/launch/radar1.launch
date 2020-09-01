@@ -28,6 +28,8 @@
                 max_age: 5
                 min_hits: 2
                 tf_frame: 'odom'
+                cost_fn: 'euclidean'
+                cost_fn_max: 20
             </rosparam>
         </node>
 

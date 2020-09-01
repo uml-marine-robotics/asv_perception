@@ -6,10 +6,10 @@ from catkin_pkg.python_setup import generate_distutils_setup
 # fetch values from package.xml
 setup_args = generate_distutils_setup(
     packages=[
-        'AB3DMOT_libs'
+        'asv_perception_tracking'
     ],
     package_dir={
-        'AB3DMOT_libs': 'src/AB3DMOT/AB3DMOT_libs',
+        '': 'src',
     }
 )
 setup(**setup_args)

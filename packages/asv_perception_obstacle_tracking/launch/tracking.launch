@@ -15,9 +15,9 @@
         -->
         <node name="fusion" pkg="$(arg pkg_name)" type="fusion.py" output="screen">
             
-            <remap from="~input0" to="/radar0/tracking/obstacles" />
-            <remap from="~input1" to="/radar1/tracking/obstacles" />
-            <remap from="~input2" to="/camera0/tracking/classified/obstacles" />
+            <remap from="~0/input" to="/radar0/tracking/obstacles" />
+            <remap from="~1/input" to="/radar1/tracking/obstacles" />
+            <remap from="~2/input" to="/camera0/tracking/classified/obstacles" />
 
             <rosparam>
                 n_subs: 3
