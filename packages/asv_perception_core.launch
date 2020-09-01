@@ -25,6 +25,6 @@
     <include file="$(find asv_perception_obstacleid)/launch/obstacleid.launch" />
 
     <!-- obstacle tracking -->
-    <include file="$(find asv_perception_obstacle_tracking)/launch/tracking.launch" />
+    <include file="$(find asv_perception_tracking)/launch/tracking.launch" />
 
 </launch> 

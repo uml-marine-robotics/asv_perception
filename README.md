@@ -59,10 +59,10 @@ Each node may have multiple inputs, outputs, and parameters to control their beh
     * Node:  `include/ObstacleProjectionNodelet.h`, classified bounding box adjustment, Obstacle message creation, unclassified pixel projection
     * Node:  `include/PointCloudConcatNodelet.h`, Concatenates multiple partial pointcloud segments received over time into a single pointcloud
     * Node:  `include/PointCloudFilterNodelet.h`, Custom pointcloud filtering, including min-distance, outlier removal, and cluster area inclusion/exclusion
-* `asv_perception_obstacle_tracking`:  Sensor-level obstacle tracking and fusion of multi-sensor obstacles.  RViz visualization of obstacles.  Reporting of obstacle data to external systems
+* `asv_perception_tracking`:  Sensor-level obstacle tracking and fusion of multi-sensor obstacles.  RViz visualization of obstacles.  Reporting of obstacle data to external systems
     * Node:  `nodes/fusion.py`:  Fusion of tracked obstacle data from N sensors into singular output
     * Node:  `nodes/nmea_reporting.py`:  Example of obstacle reporting in NMEA format
     * Node:  `nodes/socket_reporting.py`:  Example of obstacle reporting in JSON format over UDP
     * Tool:  `nodes/socket_reporting_listener.py`:  Example of listener application which receives JSON data over UDP
-    * Node:  `nodes/tracking.py`:  Node which wraps AB3DMOT for obstacle tracking
+    * Node:  `nodes/tracking.py`:  Node which performs sensor-level obstacle tracking
     * Node:  `nodes/visualization.py`:  Obstacle visualization in RViz

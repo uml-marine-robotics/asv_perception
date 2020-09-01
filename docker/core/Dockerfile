@@ -22,7 +22,7 @@ CMD [ "sh", "-c", "roslaunch ${CATKIN_WS}/src/asv_perception_core.launch localiz
 COPY packages/asv_perception_common src/asv_perception_common
 COPY packages/asv_perception_homography src/asv_perception_homography
 COPY packages/asv_perception_obstacleid src/asv_perception_obstacleid
-COPY packages/asv_perception_obstacle_tracking src/asv_perception_obstacle_tracking
+COPY packages/asv_perception_tracking src/asv_perception_tracking
 COPY packages/asv_perception_core.launch src/asv_perception_core.launch
 COPY packages/localization.launch src/localization.launch
 COPY docker/ros_entrypoint.sh /ros_entrypoint.sh
