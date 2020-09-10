@@ -48,9 +48,8 @@ def create_marker_linestrip( t, lifetime ):
     marker = create_marker( t, Marker.LINE_STRIP, lifetime )
     
     # points are relative to marker.pose.position
-    centroid = marker.pose.position
-    for pt in pc2.read_points( t.points, skip_nans=True ):     
-        marker.points.append( Point( centroid.x - pt[0], centroid.y - pt[1], centroid.z - pt[2] ) )
+    if not t.hull2d is None:
+        marker.points = copy.deepcopy(t.hull2d.points)
     
     # connect first and last point
     if len(marker.points) > 0:

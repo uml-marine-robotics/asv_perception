@@ -18,7 +18,8 @@ def create_obstacle( group_tracker ):
     #       header:  latest
     #       observed_initial:  earliest
     #       label, label_probability:  highest, preserve if exists
-    #       area, pose, dimensions, points:  from sensor with the lowest pose covariance 
+    #       pose:  from sensor with lowest pose covariance
+    #       area, dimensions, hull2d:  from sensor with largest area
     #       velocity:   from sensor with lowest velocity covar
     #       - input covariances are (always?) diagonal matrices with the same value down the diagonal
     #   use group.data to store last generated obstacle, useful for "sticky" attributes
@@ -48,12 +49,15 @@ def create_obstacle( group_tracker ):
             result.label_probability = obs.label_probability
             result.label = obs.label
         
-        # pose-based data
+        # pose
         if obs.pose.covariance[0] < result.pose.covariance[0]:
             result.pose = obs.pose
+
+        # area, dimensions, hull2d
+        if obs.area > result.area:
             result.area = obs.area
             result.dimensions = obs.dimensions
-            result.points = obs.points
+            result.hull2d = obs.hull2d
 
         # velocity-based data
         if obs.velocity.covariance[0] < result.velocity.covariance[0]:

@@ -72,8 +72,8 @@ def update_obstacle_data( trk ):
             result.label = latest.label
             result.label_probability = latest.label_probability
 
-        # points, area.  use latest info
-        result.points = latest.points
+        # hull2d, area.  use latest info
+        result.hull2d = latest.hull2d
         result.area = latest.area
 
     if result.observed_initial.is_zero():  # haven't seen before, set initial observation time
@@ -134,7 +134,7 @@ class ObstacleTrackingNode( NodeLazy ):
                         - pose.orientation (derived from velocity)
                         - dimensions
                         - velocity.linear
-                    if ~tf_frame is specified, obstacle pose and points will be transformed to specified frame
+                    if ~tf_frame is specified, obstacle will be transformed to specified frame
 
     Parameters:
         ~max_age:   [int, default=2]  preserve the object if it does not appear in <= N frames, interpolate the detection

@@ -27,9 +27,9 @@ class NMEAReportNode(NodeLazy):
         self.node_name = rospy.get_name()
         self.convex_hull = rospy.get_param( '~convex_hull', True )
         self.tf_frame = rospy.get_param( '~tf_frame', None )
-        self.pub = self.advertise( '~output', Sentence, queue_size=100 )
         self.sub = None
         self.ft = None
+        self.pub = self.advertise( '~output', Sentence, queue_size=100 )
         
     def subscribe( self ):
 
@@ -55,11 +55,12 @@ class NMEAReportNode(NodeLazy):
                 self.ft.transform_obstacle( obs, self.tf_frame )
             
             pts = []
-            if self.convex_hull and not obs.points is None and obs.points.width > 0:
-                #obs.points is already 2d convex hull
-                pts = [ pt for pt in pc2.read_points( obs.points, skip_nans=True ) ] 
+            if self.convex_hull and not obs.hull2d is None and len(obs.hull2d.points) > 0:
+                # hull2d.points are points relative to pose.position, convert to absolute in tf_frame
+                centroid = obs.pose.pose.position
+                pts = [ (centroid.x + pt.x, centroid.y + pt.y) for pt in obs.hull2d.points ] 
         
-            if len( pts ) == 0:
+            if len( pts ) == 0:  # no convex hull points, create hull from obstacle dimensions
                 l,w = obs.dimensions.x,obs.dimensions.y
                 x,y = obs.pose.pose.position.x, obs.pose.pose.position.y
 

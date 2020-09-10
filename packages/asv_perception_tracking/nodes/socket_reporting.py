@@ -58,7 +58,7 @@ class SocketReportingNode( object ):
                 self.ft.transform_obstacle( obs, self.tf_frame )
             
             # define list of obstacle attributes to ignore (binary data, etc)
-            ignored_attrs = [ 'points' ]
+            ignored_attrs = [ 'hull2d' ]
 
             serialized = json.dumps( obs
                 , default=lambda o: { s: getattr(o, s) for s in o.__slots__ if hasattr(o, s) and s not in ignored_attrs }

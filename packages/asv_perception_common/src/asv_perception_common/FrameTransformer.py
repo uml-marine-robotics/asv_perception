@@ -41,7 +41,7 @@ class FrameTransformer(object):
         return do_lookup() # try again, any exception is fatal
 
     def transform_pose( self, pose, ts ):
-        """ transform pose using transform ts """
+        """ transform pose using transformstamped """
         # tf2_geometry_msgs requires posestamped
         ps = PoseStamped()
         #ps.header = obs.header
@@ -55,10 +55,10 @@ class FrameTransformer(object):
         result.header.frame_id = ts.child_frame_id
         return result
 
-    def transform_obstacle( self, obs, dst_frame, transform_points=True ):
+    def transform_obstacle( self, obs, dst_frame ):
         """ transform obstacle, using header time or `use_current` """
 
-        # tf transform pose.position, pose.points (optional)
+        # tf transform pose.position
         if obs.header.frame_id == dst_frame:  # already done for this obstacle
             return
 
@@ -71,5 +71,5 @@ class FrameTransformer(object):
         obs.pose.pose = self.transform_pose( obs.pose.pose, ts )
 
         # pointcloud transform if desired
-        if transform_points and not obs.points is None and obs.points.width > 0:
-            obs.points = self.transform_cloud( obs.points, self.lookup_transform( obs.points.header.frame_id, dst_frame, obs.points.header.stamp ) )
+        #if transform_points and not obs.points is None and obs.points.width > 0:
+        #    obs.points = self.transform_cloud( obs.points, self.lookup_transform( obs.points.header.frame_id, dst_frame, obs.points.header.stamp ) )

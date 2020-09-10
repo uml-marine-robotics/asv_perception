@@ -15,17 +15,17 @@ string label
 # classification label probability
 float32 label_probability
 
-# area
+# area [m^2]
 float32 area
 
 # centroid and orientation
 geometry_msgs/PoseWithCovariance pose
 
-# estimated rectangular dimensions
+# estimated rectangular dimensions [m]
 geometry_msgs/Vector3 dimensions
 
 # estimated velocity [m/s]
 geometry_msgs/TwistWithCovariance velocity
 
-# 2d convex hull points
-sensor_msgs/PointCloud2 points
+# 2d convex hull, points are relative to pose.position
+geometry_msgs/Polygon hull2d
