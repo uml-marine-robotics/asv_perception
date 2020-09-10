@@ -4,6 +4,8 @@
 #include <pcl/kdtree/kdtree.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <geometry_msgs/Polygon.h>
+#include <geometry_msgs/Point32.h>
 #include <asv_perception_common/Obstacle.h>
 
 #include "utils.h"
@@ -47,13 +49,20 @@ public:
         
         // use weighted centroid for position
         result.pose.pose.position = utils::to_ros_point( utils::centroid( *(this->src_ptr), this->indices ) );
-
         result.pose.pose.orientation.w = 1.;
 
         result.area = this->area;
-        pcl::toROSMsg( this->convex_hull, result.points );
 
-        // todo:  make result.points relative to centroid, then fix in visualization, reporting nodes
+        // create convex hull points; relative to centroid
+        result.hull2d = {};
+        const auto& centroid = result.pose.pose.position;
+        for ( const auto& hull_pt : this->convex_hull.points ) {
+            geometry_msgs::Point32 pt = {};
+            pt.x = centroid.x - hull_pt.x;
+            pt.y = centroid.y - hull_pt.y;
+            pt.z = centroid.z - hull_pt.z;
+            result.hull2d.points.emplace_back( std::move( pt ) );
+        }
         
         return result;
     }   // to_obstacle

@@ -184,7 +184,6 @@ void ObstacleProjectionNodelet::sub_callback (
 
         for ( auto& obs : msg.obstacles ) {
             obs.header = msg.header;
-            obs.points.header = msg.header;
         }
             
         this->_pub.publish( msg );
