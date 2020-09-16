@@ -11,9 +11,9 @@
 
         <rosparam>
             n_inputs: 1
-            darknet_config_file: "/data/model.cfg"
-            darknet_weights_file: "/data/model.weights"
-            darknet_meta_file: "/data/model.data"
+            darknet_config_file: "/data/classification/model.cfg"
+            darknet_weights_file: "/data/classification/model.weights"
+            darknet_meta_file: "/data/classification/model.data"
             darknet_thresh: .3
             darknet_hier_thresh: .3
             darknet_nms: .25

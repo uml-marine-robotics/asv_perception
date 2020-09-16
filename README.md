@@ -18,22 +18,26 @@ Perception for marine surface vehicles
 
 The system can currently accommodate visible light cameras and pointcloud-generating sensors (eg RADAR, LIDAR), and multiple sensors per type.  Additionally, an example tool is provided for publishing the obstacle information in JSON format to an external source/system over IP.  See the `Individual package description` section below additional details.
 
-The default configuration is for a monocular camera and two RADAR sensors, but can be adjusted to accommodate alternative sensor configurations.
+The default configuration is for a monocular camera, LIDAR, and two RADAR sensors, but can be adjusted to accommodate alternative sensor configurations.
 
 ## Installation
 *  `git clone --recursive https://github.com/uml-marine-robotics/asv_perception.git`
 *  `cd asv_perception`
-*  Put classifier data in `docker/classification/data`
-*  Put segmentation data in `docker/segmentation/data`
+*  Adjust launch files for your sensor configuration
+*  Put classifier data in `data/classification/`
+*  Put segmentation data in `data/segmentation/`
 *  `./build.sh`
 
 ## Setup/calibration
 * Calibration tool:
-    * Connect to asv sensors, or run a `.bag` file in ROS.
-    * In a ROS melodic desktop/GUI shell, run `python calibrate.py` in the `packages/asv_perception_homography/src/asv_perception_homography` folder
-    * run `rqt_image_view` and select the image publisher node for `asv_perception_homography/visualization` ( eg `/camera0/homography_vis/image` )
-    * A GUI window should appear, allowing you to view the radar image overlaid on top of the camera image.  Adjust the radar image using the tuner until sufficient alignment is achieved.
-    * Save the calibration when complete, then close all windows.
+    * Start `asv_perception` image with the `VNC_PORT` environment variable specified (e.g. `VNC_PORT=5900`)
+    * Start robot sensor ROS drivers, or start a `.bag` file
+    * Connect to the asv_perception GUI with a vnc client, at `<docker_ip_address>::<VNC_PORT>`.  A desktop window should appear within VNC
+    * In the VNC desktop, click `Run Calibration`.  A `rqt_image_view` window and a `Calibration` window should appear
+    * Change `rqt_image_view` to `cameraN/homography_vis/image`, where `cameraN` is the camera you wish to calibrate.  You should see the camera image along with the RADAR image overlay
+    * In the `Calibration` window, set the topic to `cameraN/homography`, where `cameraN` is the camera you wish to calibrate.  
+    * Adjust the radar image using the tuner until sufficient alignment is achieved.
+    * When complete, save the calibration, then close all windows and exit VNC.
 
 ## Running
 `./run.sh` to start the `asv_perception` nodes, then run a `.bag` file or connect to asv sensors.  Use `rviz` and/or `rqt_image_view` to display output
@@ -41,6 +45,7 @@ The default configuration is for a monocular camera and two RADAR sensors, but c
 ## File structure
 *  `docker`:  Build files and data for docker images
 *  `packages`:  ROS packages
+*  `data`:  Configuration data and deep learning models
 
 ## Individual package description
 Each node may have multiple inputs, outputs, and parameters to control their behavior.  Below is a high level summary of each node's purpose and main ROS nodes.  See the referenced file headers for details on input/output topics and parameters.
