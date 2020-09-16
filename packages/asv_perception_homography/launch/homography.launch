@@ -5,7 +5,7 @@
 
     <group ns="camera0">
 
-        <arg name="homography_calibration_file" default="$(find asv_perception_homography)/launch/calib_left_camera_homography.yaml" />
+        <arg name="homography_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_camera0_homography.yaml" />
 
         <!-- 
             Node to publish homography matrices between rgb, radar, and robot frames

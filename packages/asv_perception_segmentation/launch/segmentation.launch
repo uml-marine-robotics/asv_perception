@@ -11,7 +11,7 @@
 
         <rosparam>
             n_inputs: 1
-            model_path: "/data/arm8imu3_noimu.ckpt-80000"
+            model_path: "/data/segmentation/arm8imu3_noimu.ckpt-80000"
             per_process_gpu_memory_fraction: 0.3
             pixel_remap_value: 128
         </rosparam>

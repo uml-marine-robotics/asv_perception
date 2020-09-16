@@ -1,25 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
-
-    <!-- set to true to work around rosbag play/transformation time errors -->
-    <arg name="set_sim_time" default="false"/>
-
-    <!-- set to true to launch the localization+tf stack -->
-    <arg name="localization_enabled" default="false"/>
     
-    <!-- set_sim_time -->
-    <group if="$(arg set_sim_time)">
+    <!-- use_sim_time:  use when playing back bag files with rosbag play -->
+    <group if="$(optenv USE_SIM_TIME 0)">
         <param name="/use_sim_time" value="true" />
     </group>
     
-    <!-- localization -->
-    <group if="$(arg localization_enabled)">
+    <!-- localization:  launch the localization+tf stack -->
+    <group if="$(optenv USE_LOCALIZATION 0)">
         <include file="$(env CATKIN_WS)/src/localization.launch" />
     </group>
 
-    <!-- launch file for packages in the asv_perception_core image -->
     <!-- rgb-radar homography -->
     <include file="$(find asv_perception_homography)/launch/homography.launch" />
+
+    <!-- segmentation -->
+    <include file="$(find asv_perception_segmentation)/launch/segmentation.launch" />
+
+    <!-- classification -->
+    <include file="$(find asv_perception_classification)/launch/classification.launch" />
 
     <!-- obstacle generation -->
     <include file="$(find asv_perception_obstacleid)/launch/obstacleid.launch" />

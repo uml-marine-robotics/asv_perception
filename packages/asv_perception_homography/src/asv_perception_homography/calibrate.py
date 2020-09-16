@@ -6,7 +6,7 @@ from std_msgs.msg import Empty
 from PyTunerTk import Tuner, show_info_messagebox, show_yesno_messagebox
 
 pub_refresh = (None,None)  # (topic name str, rospy Publisher)
-yaml_path_prefix = '../../launch/calib' # save/load location, relative to this file
+yaml_path_prefix = os.environ['ASV_PERCEPTION_CONFIG'] + 'calib' # save/load location, relative to this file
 
 # defaults for 1280x1024, 1024x1024 radar image @ r=110m
 def get_default_parameters():
@@ -25,8 +25,8 @@ def get_default_parameters():
     }
 
 def topic_to_fname( topic ):
-    ''' return fname path relative to this file '''
-    return os.path.dirname(os.path.abspath(__file__)) + '/' + yaml_path_prefix + str(topic).replace( '/', '_' ) + ".yaml"
+    "return full filename path for saving/loading"
+    return yaml_path_prefix + str(topic).replace( '/', '_' ) + ".yaml"
 
 def create_param_path( topic, param ):
     result = str(topic)
@@ -57,18 +57,23 @@ def write_yaml( d ):
     return fname
 
 def cb_tuner_save( d ):
-    if show_yesno_messagebox("Are you sure you want to save these parameters?"):
-        show_info_messagebox( "Parameters saved to %s" % write_yaml(d) )
+    try:
+        if show_yesno_messagebox("Are you sure you want to save these parameters?"):
+            show_info_messagebox( "Parameters saved to %s" % write_yaml(d) )
+    except Exception as e:
+        show_info_messagebox(str(e))
 
 def cb_tuner_reset( d ):
-    if show_yesno_messagebox("Are you sure you want to reset these parameters to default?"):
-        show_info_messagebox( "Parameters reset to default in %s.  Please restart the application to view changes" % write_yaml( get_default_parameters() ) )
+    try:
+        if show_yesno_messagebox("Are you sure you want to reset these parameters to default?"):
+            show_info_messagebox( "Parameters reset to default in %s.  Please restart the application to view changes" % write_yaml( get_default_parameters() ) )
+    except Exception as e:
+        show_info_messagebox(str(e))
     
 if __name__ == "__main__":
 
     rospy.init_node( "calibrate" )
 
-    # default parameters
     params = get_default_parameters()
 
     # attempt to load params
@@ -79,6 +84,10 @@ if __name__ == "__main__":
         print("Successfully loaded data from %s" % fname )
     except IOError:
         print("File not found: %s" % fname )
+
+    # default parameters
+    if params is None or len(params) == 0:
+        params = get_default_parameters()
 
     #  ('entry', label, default, command )
     #  ('slider', label, default, min, max, resolution, command )

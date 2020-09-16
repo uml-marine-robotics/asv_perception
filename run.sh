@@ -1,36 +1,19 @@
 #!/bin/bash
 
-echo "Starting asv_perception_core"
-docker container stop core
-docker run -d --rm \
-  --name core \
+# start asv_perception image
+# optional environment variables:
+#   VNC_PORT:  default=none.  If provided, enables connection to desktop within asv_perception via VNC on specified port
+#   USE_LOCALIZATION:  0/1, default=0 (false).  Use localization package within this image.  If false, must provide TF elsewhere
+#   USE_SIM_TIME: 0/1, default=0 (false).  Use when playing back .bag files to fix transoformation time errors
+echo "Starting asv_perception"
+docker container stop asv_perception
+docker run -it --rm \
+  --name asv_perception \
+  --gpus all \
   --network="host" \
   --env ROS_IP=0.0.0.0 \
-  asv_perception_core
-
-echo "Starting asv_perception_classification"
-docker container stop classification
-docker run -d --rm \
-  --name classification \
-  --gpus all \
-  --network="host" \
-  --env ROS_MASTER_URI=http://0.0.0.0:11311/ \
-  -v $(pwd)/docker/classification/data:/data \
-  asv_perception_classification
-
-echo "Starting asv_perception_segmentation"
-docker container stop segmentation
-docker run -d --rm \
-  --name segmentation \
-  --gpus all \
-  --network="host" \
-  --env ROS_MASTER_URI=http://0.0.0.0:11311/ \
-  -v $(pwd)/docker/segmentation/data:/data \
-  asv_perception_segmentation
-
-#debug
-#docker run -it --rm \
-#  --name core \
-#  --network="host" \
-#  --env ROS_IP=0.0.0.0 \
-#  asv_perception_core
+  --env VNC_PORT=5950 \
+  --env USE_LOCALIZATION=1 \
+  --env USE_SIM_TIME=1 \
+  -v $(pwd)/data/:/data \
+  asv_perception

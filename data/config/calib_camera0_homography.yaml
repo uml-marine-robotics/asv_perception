@@ -1,2 +1,2 @@
 {fovy: 46.3, imu_pitch_alpha: 1.4, imu_pitch_beta: 0.2, imu_pitch_gamma: 0.02, pitch: 80.6,
-  roll: 0.0, topic: /left_camera/homography, tx: 5.0, ty: 6.2, tz: -4.4, yaw: 4.0}
+  roll: 0.0, topic: /camera0/homography, tx: 5.0, ty: 6.2, tz: -4.4, yaw: 4.0}
