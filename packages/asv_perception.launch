@@ -26,4 +26,7 @@
     <!-- obstacle tracking -->
     <include file="$(find asv_perception_tracking)/launch/tracking.launch" />
 
+    <!-- radar imager -->
+    <include file="$(find broadband_radar_imager)/launch/imager.launch" />
+
 </launch> 
