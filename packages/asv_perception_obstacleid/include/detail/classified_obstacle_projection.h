@@ -128,7 +128,7 @@ namespace impl {
 }   // impl
 
 /*
-Combines an unclassified obstacle map with a vector of classification bounding boxes
+Combines an unclassified obstacle map (optional) with a vector of classification bounding boxes
     Expand classification bounding boxes as needed and create parent/child relationships
     Classified obstacle bounding boxes are then removed from the provided obstacle map
     Returns vector of projected Obstacles
@@ -141,13 +141,14 @@ inline std::vector<Obstacle> project(
     , const float max_height
     , const float min_depth
     , const float max_depth
+    , const float min_distance
     , const float max_distance
     , const float roi_grow_limit = 0.f
     , const float roi_shrink_limit = 0.f
 )
 {
-    // check inputs
-    if ( classifications.image_height != obstacle_map.rows || classifications.image_width !=  obstacle_map.cols )
+    // if obstacle map provided, check inputs
+    if ( !obstacle_map.empty() && ( classifications.image_height != obstacle_map.rows || classifications.image_width !=  obstacle_map.cols ) )
         throw std::runtime_error("obstacle map image size does not match classification image size");
 
     // foreach classification, construct Obstacle2d
@@ -164,31 +165,40 @@ inline std::vector<Obstacle> project(
 
     // now project each to obstacle msg, remove bb from unknown obstacle map
     auto result = std::vector<Obstacle>{};
-    const auto max_distance_squared = std::pow( max_distance, 2.f );
+    const auto 
+        max_distance_squared = std::pow( max_distance, 2.f )
+        , min_distance_squared = std::pow(min_distance, 2.f )
+        ;
 
     for ( auto& obs2d : obstacles_2d ) {
 
         // vertically expand/contract classifier roi bounding boxes
         //  make roi adjustments up to min/max percentage
-        if ( ( roi_grow_limit > 0.f ) || ( roi_shrink_limit > 0.f ) )
+        if ( !obstacle_map.empty() && ( ( roi_grow_limit > 0.f ) || ( roi_shrink_limit > 0.f ) ) )
             impl::adjust_roi( obs2d, obstacles_2d, obstacle_map, roi_grow_limit, roi_shrink_limit );
 
         auto obs = obs2d->project( h, min_height, max_height, min_depth, max_depth );
 
-        // max distance check, if supplied
-        if ( max_distance > 0.f ) {
+        // min/max distance check, if supplied
+        if ( ( min_distance > 0.f ) || ( max_distance > 0.f ) ) {
             const auto dist_squared = 
                 std::pow( obs.pose.pose.position.x, 2.f ) 
                 + std::pow(obs.pose.pose.position.y, 2.f )
                 + std::pow(obs.pose.pose.position.z, 2.f )
             ;
 
-            if ( dist_squared > max_distance_squared )
+            if (
+                ( dist_squared < min_distance_squared )
+                || ( dist_squared > max_distance_squared )
+                )
                 continue;
         }
 
-        const auto rect = utils::to_cv_rect( obs2d->cls.roi, obstacle_map );    // get opencv rect based on roi
-        obstacle_map( rect ) = 0;    // set roi to black in obstacle_map
+        if ( !obstacle_map.empty() ) {
+            const auto rect = utils::to_cv_rect( obs2d->cls.roi, obstacle_map );    // get opencv rect based on roi
+            obstacle_map( rect ) = 0;    // set roi to black in obstacle_map
+        }
+
         result.emplace_back( std::move(obs) );
     }
 

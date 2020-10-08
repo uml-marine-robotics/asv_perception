@@ -7,10 +7,12 @@
     -->
     <node name="classification" pkg="$(arg pkg_name)" type="darknet_node.py" required="true" output="screen">
         
-        <remap from="~0/input" to="/left_camera/image_color/compressed" />
+        <remap from="~0/input" to="/center_camera/image_color/compressed" />
+        <remap from="~1/input" to="/left_camera/image_color/compressed" />
+        <remap from="~2/input" to="/right_camera/image_color/compressed" />
 
         <rosparam>
-            n_inputs: 1
+            n_inputs: 3
             darknet_config_file: "/data/classification/model.cfg"
             darknet_weights_file: "/data/classification/model.weights"
             darknet_meta_file: "/data/classification/model.data"

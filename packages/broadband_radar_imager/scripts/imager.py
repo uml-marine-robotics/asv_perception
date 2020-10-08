@@ -22,8 +22,8 @@ SUB_TOPICS = ["broadband_radar/channel_0/segment",
               "broadband_radar/channel_1/segment"]
 
 #globals
-pubs = [rospy.Publisher(PUB_TOPICS[0], Image, queue_size=1000), 
-        rospy.Publisher(PUB_TOPICS[1], Image, queue_size=1000)]
+pubs = [rospy.Publisher(PUB_TOPICS[0], Image, queue_size=1), 
+        rospy.Publisher(PUB_TOPICS[1], Image, queue_size=1)]
 ptc = [] # polar(a,r) to cartesian(x,y) look-up table
 
 # holds intensity at each x,y coordinate
@@ -54,19 +54,28 @@ def process_segment(segment, index):
     global pubs, ptc
     
     spokes = segment.spokes
+
+    max_range_divisor = 2.0
+
     for spoke in spokes:
-      #rospy.loginfo("Spoke length: " + str(len(spoke.data))) 
+      #rospy.logwarn("Spoke length: " + str(len(spoke.data))) 
+      #rospy.logwarn("Spoke range: " + str(spoke.max_range))
       angle = spoke.angle
       angle_bin = int(angle*2048.0/360.0)
       arr = array.array("B", spoke.data) # convert from string of chars to array of uint8
-      for bin in range(len(arr)):
+      for bin in range( int( len(arr) / max_range_divisor) ):
+      #for bin in range( len(arr) ):
         # fill in image
         #rospy.logerr("x: " + str(angle_bin) + " y: " + str(bin))
         intensity = arr[bin]
-        xy_coord = ptc[angle_bin][bin]
+        #xy_coord = ptc[angle_bin][bin]
+        xy_coord = ptc[angle_bin][ int( bin * max_range_divisor ) ]
+        #rospy.logerr("x: " + str(xy_coord[0]) + " y: " + str(xy_coord[1]) )
+        #rospy.logerr( spoke.max_range )
         intensity_maps[index][xy_coord[0]][xy_coord[1]] = (0,intensity,0)
     
-    max_range = spokes[0].max_range
+    #max_range = spokes[0].max_range
+    max_range = int( spokes[0].max_range / max_range_divisor )
     range_half = mid_range(max_range)
     range_quarter = range_half/2
     

@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
+
+    <!-- platform-specific topic remaps; remap these values to your sensor outputs-->
+    <arg name="imu_topic" default="/imu/data/enu" />
+    <arg name="camera0_image_topic" default="/center_camera/image_color/compressed" />
+    <arg name="camera0_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_camera0_homography.yaml" />
+    <arg name="camera1_image_topic" default="/left_camera/image_color/compressed" />
+    <arg name="camera1_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_camera1_homography.yaml" />
+    <arg name="camera2_image_topic" default="/right_camera/image_color/compressed" />
+    <arg name="camera2_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_camera2_homography.yaml" />
     
     <!-- use_sim_time:  use when playing back bag files with rosbag play -->
     <group if="$(optenv USE_SIM_TIME 0)">
@@ -12,10 +21,20 @@
     </group>
 
     <!-- rgb-radar homography -->
-    <include file="$(find asv_perception_homography)/launch/homography.launch" />
+    <include file="$(find asv_perception_homography)/launch/homography.launch">
+        <arg name="imu_topic" value="$(arg imu_topic)" />
+        <arg name="camera0_image_topic" default="$(arg camera0_image_topic)" />
+        <arg name="camera0_calibration_file" default="$(arg camera0_calibration_file)" />
+        <arg name="camera1_image_topic" default="$(arg camera1_image_topic)" />
+        <arg name="camera1_calibration_file" default="$(arg camera1_calibration_file)" />
+        <arg name="camera2_image_topic" default="$(arg camera2_image_topic)" />
+        <arg name="camera2_calibration_file" default="$(arg camera2_calibration_file)" />
+    </include>
 
     <!-- segmentation -->
-    <include file="$(find asv_perception_segmentation)/launch/segmentation.launch" />
+    <group if="$(optenv USE_SEGMENTATION 1)">
+        <include file="$(find asv_perception_segmentation)/launch/segmentation.launch" />
+    </group>
 
     <!-- classification -->
     <include file="$(find asv_perception_classification)/launch/classification.launch" />
@@ -25,8 +44,5 @@
 
     <!-- obstacle tracking -->
     <include file="$(find asv_perception_tracking)/launch/tracking.launch" />
-
-    <!-- radar imager -->
-    <include file="$(find broadband_radar_imager)/launch/imager.launch" />
 
 </launch> 

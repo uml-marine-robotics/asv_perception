@@ -2,7 +2,8 @@
 <launch>
     <!-- sensor-specific obstacle generators -->
     <include file="$(find asv_perception_obstacleid)/launch/camera0.launch" />
+    <include file="$(find asv_perception_obstacleid)/launch/camera1.launch" />
+    <include file="$(find asv_perception_obstacleid)/launch/camera2.launch" />
     <include file="$(find asv_perception_obstacleid)/launch/radar0.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/radar1.launch" />
     <include file="$(find asv_perception_obstacleid)/launch/lidar0.launch" />
 </launch>

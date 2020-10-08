@@ -1,7 +1,7 @@
 <launch>
 
   <arg name="package_name" value="asv_perception_obstacleid"/>
-  <arg name="namespace_name" value="camera0"/>
+  <arg name="namespace_name" value="camera1"/>
   
   <group ns="$(arg namespace_name)">
 
@@ -17,9 +17,9 @@
     <node pkg="nodelet" type="nodelet" name="projection" respawn="true" output="screen"
       args="load $(arg package_name)/ObstacleProjectionNodelet $(arg nodelet_name)" >
 
-      <remap from="~segmentation" to="/segmentation/0/obstacles" />
-      <remap from="~classification" to="/classification/0/output" />
-      <remap from="~rgb_radar" to="/camera0/homography/rgb_radar" />
+      <remap from="~segmentation" to="/segmentation/1/obstacles" />
+      <remap from="~classification" to="/classification/1/output" />
+      <remap from="~rgb_radar" to="/camera1/homography/rgb_radar" />
 
       <!-- convert to boolean strings that roscpp likes -->
       <param name="use_segmentation" value="true" if="$(arg use_segmentation)" />

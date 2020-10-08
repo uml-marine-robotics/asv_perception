@@ -67,11 +67,11 @@ class homography_node(object):
         self.ctrl.yaw_beta = rospy.get_param('~imu_yaw_beta', 0. )
         self.ctrl.yaw_gamma = rospy.get_param('~imu_yaw_gamma', 0. )
 
-        self.ctrl.pitch_alpha = rospy.get_param('~imu_pitch_alpha', 1. )
+        self.ctrl.pitch_alpha = rospy.get_param('~imu_pitch_alpha', 0. )
         self.ctrl.pitch_beta = rospy.get_param('~imu_pitch_beta', 0. )
         self.ctrl.pitch_gamma = rospy.get_param('~imu_pitch_gamma', 0. )
 
-        self.ctrl.roll_alpha = rospy.get_param('~imu_roll_alpha', 1. )
+        self.ctrl.roll_alpha = rospy.get_param('~imu_roll_alpha', 0. )
         self.ctrl.roll_beta = rospy.get_param('~imu_roll_beta', 0. )
         self.ctrl.roll_gamma = rospy.get_param('~imu_roll_gamma', 0. )
 

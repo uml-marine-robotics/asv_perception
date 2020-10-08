@@ -7,10 +7,12 @@
     -->
     <node name="segmentation" pkg="$(arg pkg_name)" type="segmentation_node.py" required="true" output="screen">
         
-        <remap from="~0/input" to="/left_camera/image_color/compressed" />
+        <remap from="~0/input" to="/center_camera/image_color/compressed" />
+        <remap from="~1/input" to="/left_camera/image_color/compressed" />
+        <remap from="~2/input" to="/right_camera/image_color/compressed" />
 
         <rosparam>
-            n_inputs: 1
+            n_inputs: 3
             model_path: "/data/segmentation/arm8imu3_noimu.ckpt-80000"
             per_process_gpu_memory_fraction: 0.3
             pixel_remap_value: 128

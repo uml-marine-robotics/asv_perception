@@ -1,0 +1,3 @@
+{fovy: 35.5, imu_pitch_alpha: 1.0, imu_pitch_beta: 0.2, imu_roll_alpha: 0.4, imu_roll_beta: 0.1,
+  pitch: 85.5, roll: -1.0, topic: /camera1/homography, tx: 2.0, ty: 1.75, tz: 0.0,
+  yaw: 28.0}

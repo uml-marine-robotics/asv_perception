@@ -5,9 +5,12 @@
 
     <!-- sensor-specific trackers -->
     <include file="$(find asv_perception_tracking)/launch/camera0.launch" />
+    <include file="$(find asv_perception_tracking)/launch/camera1.launch" />
+    <include file="$(find asv_perception_tracking)/launch/camera2.launch" />
     <include file="$(find asv_perception_tracking)/launch/radar0.launch" />
-    <include file="$(find asv_perception_tracking)/launch/radar1.launch" />
+    <!--
     <include file="$(find asv_perception_tracking)/launch/lidar0.launch" />
+    -->
 
     <group ns="$(arg ns_name)">
 
@@ -17,9 +20,9 @@
         <node name="fusion" pkg="$(arg pkg_name)" type="fusion.py" output="screen">
             
             <remap from="~0/input" to="/radar0/tracking/obstacles" />
-            <remap from="~1/input" to="/radar1/tracking/obstacles" />
-            <remap from="~2/input" to="/camera0/tracking/classified/obstacles" />
-            <remap from="~3/input" to="/lidar0/tracking/obstacles" />
+            <remap from="~1/input" to="/camera0/tracking/classified/obstacles" />
+            <remap from="~2/input" to="/camera1/tracking/classified/obstacles" />
+            <remap from="~3/input" to="/camera2/tracking/classified/obstacles" />
 
             <rosparam>
                 n_subs: 4

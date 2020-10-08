@@ -27,14 +27,16 @@ namespace obstacle_id
     
     Publications:
         ~obstacles:         [asv_perception_common/ObstacleArray] Classified obstacles
-        ~cloud:             [sensor_msgs/PointCloud2]  Unclassified obstacle pointcloud
+        ~cloud:             [sensor_msgs/PointCloud2]  Unclassified obstacle pointcloud, if segmentation is enabled
 
     Parameters:
+        ~use_segmentation   [bool, default=true]  Use segmentation image
         ~min_height         [float, default=1.0]  Minimum projected obstacle height
         ~max_height         [float, default=1.0]  Maximum projected obstacle height
         ~min_depth          [float, default=1.0]  Minimum projected obstacle depth
         ~max_depth          [float, default=1.0]  Maximum projected obstacle depth
         ~resolution         [float, default=0.25]  Obstacle pointcloud resolution (space between points)
+        ~min_distance       [float, default=3.0]  Minimum projected obstacle distance
         ~max_distance       [float, default=100.0]  Maximum projected obstacle distance
         ~roi_shrink_limit   [float, default=0]    Percentage limit of how much a classified obstacle ROI can shrink
         ~roi_grow_limit     [float, default=0]    Percentage limit of how much a classified obstacle ROI can grow
@@ -61,10 +63,15 @@ namespace obstacle_id
         void subscribe () override;
         void unsubscribe () override;
 
-        // the callback function to handle input
+        // the callback function to handle input ( classification + segmentation msgs )
         void sub_callback ( 
             const typename segmentation_msg_type::ConstPtr&
             , const typename classification_msg_type::ConstPtr&
+        );
+
+        // the callback function to handle input ( classification msg only )
+        void sub_callback ( 
+            const typename classification_msg_type::ConstPtr&
         );
 
         // homography callback
@@ -84,6 +91,8 @@ namespace obstacle_id
         // subscriptions
         ros::Subscriber 
             _sub_rgb_radar
+            // only used if !use_segmentation
+            , _sub_classification_only
             ;
         message_filters::Subscriber<segmentation_msg_type> _sub_segmentation;
         message_filters::Subscriber<classification_msg_type> _sub_classification;
@@ -99,12 +108,17 @@ namespace obstacle_id
             ;
 
         // parameters
+        bool
+            _use_segmentation = true
+            ;
+
         float 
             _min_height = 1.f
             , _max_height = 1.f
             , _min_depth = 1.f
             , _max_depth = 1.f
             , _resolution = 0.25f
+            , _min_distance = 3.f
             , _max_distance = 100.f
             , _roi_grow_limit = 0.f
             , _roi_shrink_limit = 0.f
