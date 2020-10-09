@@ -1,5 +1,11 @@
 <library path="lib/libasv_perception_obstacleid_nodelet">
 
+  <class name="asv_perception_obstacleid/RadarToPointCloudNodelet" type="obstacle_id::RadarToPointCloudNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      RADAR to PointCloud nodelet
+    </description>
+  </class>
+
   <class name="asv_perception_obstacleid/PointCloudConcatNodelet" type="obstacle_id::PointCloudConcatNodelet" base_class_type="nodelet::Nodelet">
     <description>
       Point cloud concat nodelet

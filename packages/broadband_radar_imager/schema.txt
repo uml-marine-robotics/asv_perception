@@ -1,9 +1,0 @@
-This is the schema for broadband_radar_imager
-package:     broadband_radar_imager
-launch:      roslaunch broadband_radar_imager imager.launch
-node:        broadband_radar_imager
-topics:      
-  sub:       /broadband_radar/channel_0/segment   [RadarSegment.msg]
-             /broadband_radar/channel_1/segment   [RadarSegment.msg]
-  pub:       /broadband_radar/channel_0/image_raw
-             /broadband_radar/channel_1/image_raw

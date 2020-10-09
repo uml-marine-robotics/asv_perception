@@ -1,3 +1,0 @@
-<launch>
-  <node name="imager" pkg="broadband_radar_imager"  type="imager.py" />
-</launch>

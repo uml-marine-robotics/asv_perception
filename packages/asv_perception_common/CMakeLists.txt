@@ -56,6 +56,8 @@ add_message_files(
   ClassificationArray.msg
   Obstacle.msg
   ObstacleArray.msg
+  RadarSegment.msg
+  RadarSpoke.msg
 )
 
 ## Generate services in the 'srv' folder
