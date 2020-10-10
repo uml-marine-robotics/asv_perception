@@ -19,6 +19,7 @@ namespace obstacle_id
     Parameters:
         ~min_distance_[x,y,z]:   [float, default=0]  minimum distance filter (from origin) for dimension x/y/z, ignored if <= 0
         ~min_distance:           [float, default=0]  minimum distance filter (radius from origin), ignored if <= 0
+        ~max_distance:           [float, default=NaN]  maximum distance filter (radius from origin), ignored if NaN
         ~outlier_min_neighbors:  [int, default=0]    minimum number of neighbors within `outlier_radius` for a point to be excluded from removal.  0 means ignored
         ~outlier_radius:         [float, default=0]  radius for outlier removal
         ~cluster_tolerance:      [float, default=0]  cluster tolerance.  clustering is ignored if tolerance <= 0
@@ -63,6 +64,7 @@ namespace obstacle_id
             , min_distance_y_ = 0.f
             , min_distance_z_ = 0.f
             , min_distance_ = 0.f
+            , max_distance_ = NAN
             , outlier_radius_ = 0.f
             , cluster_tolerance_ = 0.f
             , cluster_area_min_ = 0.f

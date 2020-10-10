@@ -1,9 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
+    <arg name="use_segmentation" />
+    <arg name="radar0_topic" />
+    <arg name="lidar0_topic" />
+
     <!-- sensor-specific obstacle generators -->
-    <include file="$(find asv_perception_obstacleid)/launch/camera0.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/camera1.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/camera2.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/radar0.launch" />
-    <include file="$(find asv_perception_obstacleid)/launch/lidar0.launch" />
+    <include file="$(find asv_perception_obstacleid)/launch/camera.launch" ns="camera0">
+        <arg name="use_segmentation" value="$(arg use_segmentation)" />
+        <arg name="segmentation_topic" value="/segmentation/0/obstacles" />
+        <arg name="classification_topic" value="/classification/0/output" />
+        <arg name="homography_topic" value="/camera0/homography/rgb_radar" />
+    </include>
+
+    <!-- camera2 -->
+    <include file="$(find asv_perception_obstacleid)/launch/camera.launch" ns="camera1">
+        <arg name="use_segmentation" value="$(arg use_segmentation)" />
+        <arg name="segmentation_topic" value="/segmentation/1/obstacles" />
+        <arg name="classification_topic" value="/classification/1/output" />
+        <arg name="homography_topic" value="/camera1/homography/rgb_radar" />
+    </include>
+
+    <!-- camera2 -->
+    <include file="$(find asv_perception_obstacleid)/launch/camera.launch" ns="camera2">
+        <arg name="use_segmentation" value="$(arg use_segmentation)" />
+        <arg name="segmentation_topic" value="/segmentation/2/obstacles" />
+        <arg name="classification_topic" value="/classification/2/output" />
+        <arg name="homography_topic" value="/camera2/homography/rgb_radar" />
+    </include>
+
+    <!-- radar0 -->
+    <include file="$(find asv_perception_obstacleid)/launch/radar.launch" ns="radar0">
+        <arg name="radar_topic" value="$(arg radar0_topic)" />
+    </include>
+
+    <!-- lidar0 -->
+    <include file="$(find asv_perception_obstacleid)/launch/lidar.launch" ns="lidar0">
+        <arg name="lidar_topic" value="$(arg lidar0_topic)" />
+    </include>
 </launch>

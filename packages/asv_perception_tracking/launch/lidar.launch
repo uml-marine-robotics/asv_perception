@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <arg name="pkg_name" value="asv_perception_tracking"/>
+    <arg name="obstacle_topic" />
+
+    <!-- 
+        (debug) extracted obstacle visualization
+    -->
+    <!--
+    <node name="extraction_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+
+        <remap from="~input" to="$(arg obstacle_topic)" />
+
+        <rosparam>
+            marker_duration_secs: 0.2
+        </rosparam>
+    </node>
+    -->
+    
+    <!-- 
+        sensor obstacle tracking
+    -->
+    <node name="tracking" pkg="$(arg pkg_name)" type="tracking.py" output="screen">
+        
+        <remap from="~input" to="$(arg obstacle_topic)" />
+
+        <rosparam>
+            max_age: 5
+            min_hits: 5
+            tf_frame: 'odom'
+            cost_fn: 'euclidean'
+            cost_fn_max: 20
+        </rosparam>
+    </node>
+
+    <!-- 
+        tracked obstacle visualization
+    -->
+    <node name="tracking_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+
+        <remap from="~input" to="tracking/obstacles" />
+
+        <rosparam>
+            marker_duration_secs: 0.2
+        </rosparam>
+    </node>
+
+</launch>
+

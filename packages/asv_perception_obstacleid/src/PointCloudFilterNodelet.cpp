@@ -29,6 +29,7 @@ void PointCloudFilterNodelet::onInit ()
   base_type::onInit ();
 
   // parameters
+  pnh_->getParam("max_distance", this->max_distance_ );
   pnh_->getParam("min_distance", this->min_distance_ );
   pnh_->getParam("min_distance_x", this->min_distance_x_ );
   pnh_->getParam("min_distance_y", this->min_distance_y_ );
@@ -116,6 +117,24 @@ void PointCloudFilterNodelet::sub_callback (
         extract.setIndices(inliers);
         extract.setNegative( !this->cluster_inliers_ );  // setNegative(true) = remove the inliers
         extract.filter(*pc_ptr);
+    }
+
+    // max distance filter (radius from origin)
+    if ( !pc_ptr->empty() && !std::isnan( this->max_distance_ ) ) {
+      const auto d_2 = std::pow( this->max_distance_, 2. );
+
+      pointcloud_type::Ptr filtered( new pointcloud_type{} );
+      pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+      pcl::ExtractIndices<point_type> extract = {};
+      for ( std::size_t i = 0; i < pc_ptr->points.size(); ++i ) {
+        const auto& pt = pc_ptr->points[i];
+        if ( ( std::pow(pt.x,2.) + std::pow(pt.y,2.) + std::pow(pt.z,2.) ) > d_2 )
+          inliers->indices.push_back(i);
+      }
+      extract.setInputCloud( pc_ptr );
+      extract.setIndices(inliers);
+      extract.setNegative(true);
+      extract.filter(*pc_ptr);
     }
 
     // min distance filter (radius from origin)

@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
     <arg name="pkg_name" value="asv_perception_classification"/>
+    <arg name="camera0_image_topic" />
+    <arg name="camera1_image_topic" />
+    <arg name="camera2_image_topic" />
     
     <!-- 
         Node to perform object detection, see darknet_node.py
     -->
     <node name="classification" pkg="$(arg pkg_name)" type="darknet_node.py" required="true" output="screen">
         
-        <remap from="~0/input" to="/center_camera/image_color/compressed" />
-        <remap from="~1/input" to="/left_camera/image_color/compressed" />
-        <remap from="~2/input" to="/right_camera/image_color/compressed" />
+        <remap from="~0/input" to="$(arg camera0_image_topic)" />
+        <remap from="~1/input" to="$(arg camera1_image_topic)" />
+        <remap from="~2/input" to="$(arg camera2_image_topic)" />
 
         <rosparam>
             n_inputs: 3

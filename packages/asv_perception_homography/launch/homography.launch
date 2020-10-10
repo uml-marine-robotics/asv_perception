@@ -4,6 +4,7 @@
     <arg name="node_name" default="homography"/>
     
     <arg name="imu_topic" />
+    <arg name="radar_topic" />
     <arg name="camera0_image_topic" />
     <arg name="camera0_calibration_file" />
     <arg name="camera1_image_topic" />
@@ -36,37 +37,24 @@
     </include>
 
     <group ns="homography">
-        <!-- 
-        pointcloud concat for radar segments
-        -->
+        <!-- create radar image from pointcloud -->
         <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
         <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
 
-        <!-- voxel grid, transform points to base_link frame -->
-        <node pkg="nodelet" type="nodelet" name="grid_filter" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
+        <!-- generate radar pointcloud -->
+        <node pkg="nodelet" type="nodelet" name="radar_pointcloud" args="load asv_perception_obstacleid/RadarToPointCloudNodelet $(arg nodelet_name)" output="screen">
 
-            <remap from="~input" to="/broadband_radar/channel_0/pointcloud" /> <!-- remap from=sink to=source -->
+            <remap from="~input" to="$(arg radar_topic)" />
 
             <rosparam>
-                leaf_size: 0.1
-                output_frame:  'base_link'
+                angle_offset: -270.0
+                frame_id:  'base_link'
             </rosparam>
         </node>
 
-        <!-- pointcloud concat for radar -->
-        <node pkg="nodelet" type="nodelet" name="concat" output="screen"
-            args="load asv_perception_obstacleid/PointCloudConcatNodelet $(arg nodelet_name)" >
-
-            <remap from="~input" to="grid_filter/output" />
-
-            <rosparam>
-                decay_time:  1.5
-            </rosparam>
-        </node>
-
-        <!-- use concat pointcloud, create image -->
+        <!-- create image from pointcloud for homography -->
         <node name="radar_image" pkg="$(arg package_name)" type="imager.py" output="screen">
-            <remap from="~input" to="concat/current" />
+            <remap from="~input" to="radar_pointcloud/full_current" />
             <rosparam>
                 max_range: 500
                 image_size: 1024

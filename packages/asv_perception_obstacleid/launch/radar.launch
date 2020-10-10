@@ -1,0 +1,77 @@
+<launch>
+
+  <arg name="package_name" value="asv_perception_obstacleid"/>
+  <arg name="radar_topic" />
+
+  <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
+  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
+
+  <!-- radar segment to pointcloud -->
+  <node pkg="nodelet" type="nodelet" name="points" respawn="true" output="screen"
+    args="load asv_perception_obstacleid/RadarToPointCloudNodelet $(arg nodelet_name)" >
+
+    <remap from="~input" to="$(arg radar_topic)" />
+
+    <rosparam>
+      angle_offset: -270.
+      frame_id: 'base_link'
+    </rosparam>
+  </node>
+
+  <!-- max distance and self-return filter -->
+  <node pkg="nodelet" type="nodelet" name="radar_filter" respawn="true" output="screen"
+    args="load asv_perception_obstacleid/PointCloudFilterNodelet $(arg nodelet_name)" >
+
+    <remap from="~input" to="points/full" />
+
+    <rosparam>
+      min_distance: 6.
+      max_distance: 500.
+    </rosparam>
+  </node>
+
+  <!-- voxel grid, transform points to fixed frame -->
+  <node pkg="nodelet" type="nodelet" name="grid_filter" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
+    <remap from="~input" to="radar_filter/output" /> <!-- remap from=sink to=source -->
+    <rosparam>
+      leaf_size: 0.1
+      output_frame:  'odom'
+    </rosparam>
+  </node>
+
+  <!-- cluster density filter -->
+  <node pkg="nodelet" type="nodelet" name="cluster_filter" respawn="true" output="screen"
+    args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)" >
+  
+    <remap from="~input" to="grid_filter/output" />
+
+    <rosparam>
+      outlier_radius:  2.
+      outlier_min_neighbors: 15
+
+      <!-- 
+        land mass filter
+          exclude points which can be clustered into areas larger than cluster_area_max 
+      -->
+      cluster_inliers: true
+      cluster_tolerance: 8.
+      cluster_size_min: 3
+      cluster_area_max:  3000
+    </rosparam>
+  </node>
+
+  <!-- cluster extraction to obstacles -->
+  <node pkg="nodelet" type="nodelet" name="extraction" respawn="true" output="screen"
+    args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" >
+
+    <remap from="~input" to="cluster_filter/output" />
+    
+    <rosparam>
+      cluster_tolerance: 2.
+      cluster_size_min: 100
+      cluster_size_max: 10000
+      cluster_area_max: 500
+    </rosparam>
+  </node>
+
+</launch>
