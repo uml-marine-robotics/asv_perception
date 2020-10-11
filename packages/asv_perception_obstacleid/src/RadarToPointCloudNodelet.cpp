@@ -5,10 +5,11 @@
 #include <pluginlib/class_list_macros.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-#include "defs.h"
-
 namespace {
   using namespace obstacle_id;
+
+  using point_type = pcl::PointXYZI;
+  using pointcloud_type = pcl::PointCloud<point_type>;
 
   static const std::string 
     TOPIC_NAME_INPUT = "input"
@@ -50,7 +51,7 @@ namespace {
             ;
         const int pixels_in_spoke = spoke.data.size();
 
-        // NODELET_ERROR("spoke angle %s, range %s", std::to_string( angle ).c_str(), std::to_string(max_range).c_str() );
+        // ROS_WARN("spoke angle %s, range %s", std::to_string( angle ).c_str(), std::to_string(max_range).c_str() );
 
         for ( int i = 0; i < pixels_in_spoke; ++i ) {
 
@@ -62,6 +63,7 @@ namespace {
             point.x = max_range * float(i)/float(pixels_in_spoke-1) * angle_sin;
             point.y = max_range * float(i)/float(pixels_in_spoke-1) * angle_cos;
             point.z = 0.0;
+            point.intensity=float(spoke.data[i]);
             cloud.push_back(point);
         } // for
     } // for
@@ -108,7 +110,7 @@ void RadarToPointCloudNodelet::subscribe ()
 
   this->sub_ = pnh_->subscribe<asv_perception_common::RadarSegment> (
     TOPIC_NAME_INPUT
-    , 1
+    , 100
     , bind (&RadarToPointCloudNodelet::sub_callback, this, _1 )
   );
 }
