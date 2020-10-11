@@ -5,12 +5,13 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs import point_cloud2
+from asv_perception_common.NodeLazy import NodeLazy
 
 import numpy as np
 import cv2
 import math
 
-class pointcloud_imager(object):
+class pointcloud_imager( NodeLazy ):
     """
       create flattened image from pointcloud for homography
 
@@ -29,12 +30,6 @@ class pointcloud_imager(object):
     def __init__(self):
 
         self.bridge = CvBridge()
-
-        # subscribers
-        self.sub = rospy.Subscriber( "~input", PointCloud2, self.cb_cloud, queue_size=1 )
-
-        # publisher
-        self.pub = rospy.Publisher( "~output", Image, queue_size=1)
 
         self.max_range = float( rospy.get_param( "~max_range", 500.0 ) )
         self.max_range_squared = self.max_range**2
@@ -58,7 +53,20 @@ class pointcloud_imager(object):
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.font_scale = 0.5
         self.text_offset = (-30,+20)  #x,y text offset from range ring
+
+        self.subs = []
+
+        # publisher
+        self.pub = self.advertise( '~output', Image, queue_size=1 )
         
+    def subscribe( self ):        
+        self.unsubscribe()
+        self.subs.append( rospy.Subscriber( "~input", PointCloud2, self.cb_cloud, queue_size=1 ) )
+
+    def unsubscribe( self ):
+        for sub in self.subs:
+            sub.unregister()
+        self.subs = []
 
     def cb_cloud( self, msg ):
 
@@ -84,7 +92,7 @@ class pointcloud_imager(object):
             assert y >= 0 and y < img.shape[0]
 
             # place point
-            # TODO:  msg may intensity fields, can scale point value by this intensity
+            # TODO:  msg may have intensity fields, can scale point value by this intensity
             img[y,x]=self.point_color
         
         # draw rings and corresponding labels (optional) at each range
