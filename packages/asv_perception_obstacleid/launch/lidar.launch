@@ -20,7 +20,8 @@
   <!-- voxel grid, transform points to fixed frame.  
     TODO:  are Z axis of points being corrupted?  Not sure pcl_ros is properly handling PointXYZIR 
   -->
-  <node pkg="nodelet" type="nodelet" name="grid_filter" args="load pcl/VoxelGrid $(arg nodelet_name)" output="screen">
+  <node pkg="nodelet" type="nodelet" name="grid_filter" respawn="true" output="screen" 
+    args="load pcl/VoxelGrid $(arg nodelet_name)" >
   
     <remap from="~input" to="distance_filter/output" /> <!-- remap from=sink to=source -->
 

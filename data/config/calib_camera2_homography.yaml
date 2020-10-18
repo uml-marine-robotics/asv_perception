@@ -1,3 +1,3 @@
-{fovy: 35.5, imu_pitch_alpha: 0.6, imu_pitch_beta: 0.1, imu_roll_alpha: 0.5, imu_roll_beta: 0.1,
-  pitch: 84.0, roll: -2.0, topic: /camera2/homography, tx: -2.0, ty: 1.75, tz: 0.0,
+{fovy: 35.5, imu_pitch_alpha: -0.5, imu_pitch_beta: 0.1, imu_roll_alpha: 0.5, imu_roll_beta: 0.1,
+  pitch: 90.0, roll: -2.0, topic: /camera2/homography, tx: -2.0, ty: 2.5, tz: 0.0,
   yaw: -30.0}

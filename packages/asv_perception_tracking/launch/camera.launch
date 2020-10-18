@@ -6,6 +6,18 @@
     <group ns="tracking">
 
         <!-- 
+            (debug) visualization of detected obstacles
+        -->
+        <node name="detection" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+
+            <remap from="~input" to="$(arg obstacle_topic)" />
+
+            <rosparam>
+                marker_duration_secs: 0.1
+            </rosparam>
+        </node>
+
+        <!-- 
             classified obstacle tracking
         -->
         <node name="classified" pkg="$(arg pkg_name)" type="tracking.py" output="screen">
@@ -43,7 +55,7 @@
             <remap from="~input" to="classified/obstacles" />
 
             <rosparam>
-                marker_duration_secs: 0.5
+                marker_duration_secs: 0.2
             </rosparam>
         </node>
 

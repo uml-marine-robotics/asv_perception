@@ -6,8 +6,7 @@
     <!-- 
         (debug) extracted obstacle visualization
     -->
-    <!--
-    <node name="extraction_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+    <node name="detection" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
 
         <remap from="~input" to="$(arg obstacle_topic)" />
 
@@ -15,7 +14,6 @@
             marker_duration_secs: 0.2
         </rosparam>
     </node>
-    -->
     
     <!-- 
         sensor obstacle tracking
@@ -36,7 +34,7 @@
     <!-- 
         tracked obstacle visualization
     -->
-    <node name="tracking_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+    <node name="visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
 
         <remap from="~input" to="tracking/obstacles" />
 

@@ -98,9 +98,9 @@ def create_obstacle_markers( t, lifetime ):
     result.append( create_marker_text( t, lifetime ) )
 
     # velocity arrow
-    if get_mag_linear( t ) > 0.1:
-        result.append( create_marker_arrow( t, lifetime ) )
-        hull.color.g = 1.
+    #if get_mag_linear( t ) > 0.1:
+    #    result.append( create_marker_arrow( t, lifetime ) )
+    #    hull.color.g = 1.
 
     # classified obstacle
     if not t.label is None and len(t.label) > 0:

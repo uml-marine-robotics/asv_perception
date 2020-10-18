@@ -57,7 +57,7 @@
         <!-- 
             fused obstacle visualization
         -->
-        <node name="fusion_visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+        <node name="visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
 
             <remap from="~input" to="fusion/obstacles" />
 
@@ -69,7 +69,6 @@
         <!-- 
             NMEA reporting node
         -->
-        <!-- 
         <node name="nmea_reporting" pkg="$(arg pkg_name)" type="nmea_reporting.py" output="screen">
 
             <remap from="~input" to="fusion/obstacles" />
@@ -79,7 +78,6 @@
                 tf_frame: 'base_link'
             </rosparam>
         </node>
-        -->
 
         <!-- 
             socket reporting sample
