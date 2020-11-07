@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 
 import copy, rospy, math
-from visualization_msgs.msg import Marker
-from visualization_msgs.msg import MarkerArray
-import sensor_msgs.point_cloud2 as pc2
-from geometry_msgs.msg import Point
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Point, Quaternion, Vector3
 from tf.transformations import *
 from asv_perception_common.msg import Obstacle, ObstacleArray
 from asv_perception_common.NodeLazy import NodeLazy
@@ -43,7 +41,7 @@ def create_marker( t, type, lifetime ):
     return marker
 
 def create_marker_linestrip( t, lifetime ):
-    ''' create a linestrip marker for the provided pointcloud, which should be a convex hull '''
+    "create a linestrip marker for the obstacle's hull2d"
 
     marker = create_marker( t, Marker.LINE_STRIP, lifetime )
     
@@ -54,6 +52,9 @@ def create_marker_linestrip( t, lifetime ):
     # connect first and last point
     if len(marker.points) > 0:
         marker.points.append(marker.points[0])
+
+    # HACK: make convex hull points not relative to orientation, need to fix in tracking.py
+    marker.pose.orientation = Quaternion()
     
     return marker
 
@@ -63,13 +64,20 @@ def create_marker_cube( t, lifetime ):
     marker.scale = copy.deepcopy( t.dimensions )
 
     return marker
+
+def create_marker_sphere( t, lifetime, sz = Vector3(1.,1.,1.) ):
+    
+    marker = create_marker( t, Marker.SPHERE, lifetime )
+    marker.scale = copy.deepcopy( sz )
+
+    return marker
     
 def create_marker_arrow( t, lifetime ):
     
     marker = create_marker( t, Marker.ARROW, lifetime )
     
     # scale.x, .y, .z --> arrow length, width, height
-    marker.scale.x = 3. * get_mag_linear( t )  # exaggerate for visualization
+    marker.scale.x = 2. * get_mag_linear( t )  # exaggerate for visualization
     marker.scale.y = marker.scale.z = 0.5
     marker.pose.position.z = t.dimensions.z + 3.  # above text
 
@@ -82,7 +90,10 @@ def create_marker_text( t, lifetime ):
     marker.color.r = marker.color.g = marker.color.b = 1.
     
     # id, label, area, linear velocity, lifetime (s)
-    marker.text = '%s [%s], a: %.0f |v|: %.2f, t: %.2f' % ( t.id, t.label, t.area, get_mag_linear( t ), ( t.header.stamp - t.observed_initial ).to_sec() )
+    #marker.text = '%s [%s], a: %.0f |v|: %.2f, t: %.2f' % ( t.id, t.label, t.area, get_mag_linear( t ), ( t.header.stamp - t.observed_initial ).to_sec() )
+
+    # id, label, lifetime (s)
+    marker.text = '%s - %s, t: %.2f' % ( t.id, t.label, ( t.header.stamp - t.observed_initial ).to_sec() )
 
     return marker
 
@@ -92,13 +103,13 @@ def create_obstacle_markers( t, lifetime ):
     # always create convex hull
     hull = create_marker_linestrip( t, lifetime )
 
-    result = [ hull ]#, create_marker_cube( t, lifetime ) ]
+    result = [ hull, create_marker_sphere( t, lifetime ) ]#, create_marker_cube( t, lifetime ) ]
 
     # tracked
     result.append( create_marker_text( t, lifetime ) )
 
     # velocity arrow
-    #if get_mag_linear( t ) > 0.1:
+    #if get_mag_linear( t ) > 0.5:
     #    result.append( create_marker_arrow( t, lifetime ) )
     #    hull.color.g = 1.
 
@@ -107,7 +118,6 @@ def create_obstacle_markers( t, lifetime ):
         hull.color.b = 1.
 
     return result
-
 
 class VisualizationNode(NodeLazy):
     """ 
@@ -120,9 +130,9 @@ class VisualizationNode(NodeLazy):
 
     def __init__( self ):
         self.node_name = rospy.get_name()
-        self.pub = self.advertise( '~markers', MarkerArray, queue_size=10 )
-        self.sub = None
         self.marker_lifetime = rospy.Duration.from_sec( rospy.get_param( '~marker_duration_secs', 0.5 ) )
+        self.sub = None
+        self.pub = self.advertise( '~markers', MarkerArray, queue_size=100 )
 
     def subscribe( self ):
         self.sub = rospy.Subscriber( '~input', ObstacleArray, self.cb_sub, queue_size=1, buff_size=2**24 )
@@ -133,7 +143,6 @@ class VisualizationNode(NodeLazy):
             self.sub = None
 
     def cb_sub( self, msg ):
-            
         arr = MarkerArray()
         for obs in msg.obstacles:
             arr.markers.extend( create_obstacle_markers( obs, self.marker_lifetime ) )

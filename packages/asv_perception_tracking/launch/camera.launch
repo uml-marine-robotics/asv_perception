@@ -26,8 +26,13 @@
 
             <rosparam>
                 max_age: 4
-                min_hits: 3
+                min_hits: 4
+                measurement_uncertainty: 10.
+                estimate_velocity: False
                 tf_frame: 'odom'
+
+                cost_fn: 'perspective'
+                cost_fn_max: .4
             </rosparam>
         </node>
 
@@ -55,7 +60,7 @@
             <remap from="~input" to="classified/obstacles" />
 
             <rosparam>
-                marker_duration_secs: 0.2
+                marker_duration_secs: 0.15
             </rosparam>
         </node>
 

@@ -46,7 +46,7 @@
     <remap from="~input" to="grid_filter/output" />
 
     <rosparam>
-      outlier_radius:  2.
+      outlier_radius:  4.
       outlier_min_neighbors: 15
 
       <!-- 
@@ -70,7 +70,7 @@
       cluster_tolerance: 2.
       cluster_size_min: 100
       cluster_size_max: 10000
-      cluster_area_max: 500
+      cluster_area_max: 750
     </rosparam>
   </node>
 

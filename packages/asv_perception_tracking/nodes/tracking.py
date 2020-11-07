@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 
-import sys, os, copy
+import math, sys, os, copy
 import rospy
 import numpy as np
 import tf2_ros
 import tf2_geometry_msgs
 import tf2_sensor_msgs
 from tf.transformations import quaternion_from_euler
-from geometry_msgs.msg import Point,Quaternion,TwistWithCovariance,Vector3,PoseStamped
+from geometry_msgs.msg import Point,Quaternion,TwistWithCovariance,Vector3,PoseStamped,PoseWithCovariance, Pose
 from asv_perception_common.msg import ObstacleArray, Obstacle
 from asv_perception_common.NodeLazy import NodeLazy
 from asv_perception_common.FrameTransformer import FrameTransformer
 
 # smstf
-from asv_perception_tracking.smstf.tracking import SensorTracking, TrackedObject, EuclideanDistance, HellingerDistance, BhattacharyyaDistance
+from asv_perception_tracking.smstf.tracking import SensorTracking, TrackedObject, EuclideanDistance, HellingerDistance, BhattacharyyaDistance, PerspectiveDistance
 
-def create_tracked_object( obstacle, min_dim=1. ):
+def create_tracked_object( obstacle, min_dim=1., **kwargs ):
     """ 
     Creates smstf.TrackedObject 
     Generate measurements [x,y,z,l,w,h]
@@ -30,10 +30,8 @@ def create_tracked_object( obstacle, min_dim=1. ):
         , max( min_dim, obstacle.dimensions.y )
         , max( min_dim, obstacle.dimensions.z )
     ]
-    return TrackedObject( measurements, obstacle, id=obstacle.id )
+    result = TrackedObject( measurements, obstacle, id=obstacle.id, **kwargs )
 
-    """
-    # needed?
     # if input obstacle has covariance data, use it; otherwise leave defaults
     if obstacle.pose.covariance[0] > 0.:
         covar = np.array(obstacle.pose.covariance,dtype=float).reshape((6,6))
@@ -48,7 +46,7 @@ def create_tracked_object( obstacle, min_dim=1. ):
     result.filter.x[8]=obstacle.velocity.twist.linear.z
 
     return result
-    """
+    
 
 def update_obstacle_data( trk ):
     """ 
@@ -114,9 +112,11 @@ def update_obstacle_data( trk ):
         yaw = np.arctan2( v.y, v.x )
 
         result.pose.pose.orientation = Quaternion( *quaternion_from_euler( 0, pitch, yaw ) )
+        # TODO: rotate hull2d points to account for orientation; will affect downstream clients
     
     # only keep merged obstacle data
     trk.data=[result]
+
 
 class ObstacleTrackingNode( NodeLazy ):
     """
@@ -149,6 +149,7 @@ class ObstacleTrackingNode( NodeLazy ):
                             - bhattacharyya: bhattacharyya distance using means and covariances
         ~cost_fn_min:   [float, default=0.]     minimum match value for the cost function
         ~cost_fn_max:   [float, default=10.]    maximum match value for the cost function
+        ~measurement_uncertainty    [float, default=None]  Kalman filter measurement uncertainty
     """
 
     def __init__( self ):
@@ -159,6 +160,8 @@ class ObstacleTrackingNode( NodeLazy ):
         # tracking
         self.tracker = None
         self.min_hits = rospy.get_param( '~min_hits', 3 )
+        self.measurement_uncertainty = rospy.get_param('~measurement_uncertainty', None )
+        self.estimate_velocity=rospy.get_param( '~estimate_velocity', True )
 
         # tf stuff
         self.ft = None  # FrameTransformer
@@ -179,7 +182,8 @@ class ObstacleTrackingNode( NodeLazy ):
         cost_fn = { 
             'euclidean': EuclideanDistance(), 
             'hellinger': HellingerDistance(), 
-            'bhattacharyya': BhattacharyyaDistance() 
+            'bhattacharyya': BhattacharyyaDistance(),
+            'perspective': PerspectiveDistance()
             }.get( rospy.get_param('~cost_fn', 'euclidean') )
 
         if cost_fn is None:
@@ -214,15 +218,26 @@ class ObstacleTrackingNode( NodeLazy ):
         msg.header.frame_id = self.tf_frame
 
         for obs in msg.obstacles:
-            self.ft.transform_obstacle( obs, self.tf_frame )        
+            self.ft.transform_obstacle( obs, self.tf_frame )
 
-    def cb_sub( self, msg ):
+    def cb_sub( self, msg ):        
 
         # perform tf transforms on input msg if needed
         self.transform_msg( msg )
 
+        # if using PerspectiveDistance cost fn, set the latest origin
+        if self.ft and isinstance( self.tracker.cost_fn, PerspectiveDistance ):
+            pos = self.ft.transform_pose( Pose(), dst_frame=self.tf_frame )
+            self.tracker.cost_fn.origin = np.array( [pos.position.x,pos.position.y,pos.position.z ])
+
         # create list of smstf.TrackedObject
-        trackers = self.tracker.update( [ create_tracked_object( obs ) for obs in msg.obstacles ] )
+        trackers = self.tracker.update( 
+            [ create_tracked_object( 
+                obs, measurement_uncertainty=self.measurement_uncertainty, estimate_velocity=self.estimate_velocity 
+                ) 
+                for obs in msg.obstacles 
+            ] 
+            )
 
         result = ObstacleArray()
         result.header = msg.header
@@ -233,7 +248,7 @@ class ObstacleTrackingNode( NodeLazy ):
             if trk.hits >= self.min_hits:
                 result.obstacles.append( trk.data[0] )
 
-        self.pub.publish( result )            
+        self.pub.publish( result )
     
 if __name__ == "__main__":
 

@@ -9,8 +9,8 @@ from geometry_msgs.msg import PoseStamped
 class FrameTransformer(object):
     """ 
     Class which wraps ros tf2 transforms, obstacle specializations
-    Initialize with sufficient time prior to calling a `transform_XXX` method so that the tf buffer has time to fill
-     """
+    Initialize with sufficient time prior to calling a method so that the tf buffer has time to fill
+    """
 
     def __init__(self):
         self.use_most_recent_tf = False  # use most recent tf time
@@ -40,12 +40,23 @@ class FrameTransformer(object):
 
         return do_lookup() # try again, any exception is fatal
 
-    def transform_pose( self, pose, ts ):
-        """ transform pose using transformstamped """
+    def transform_pose( self, pose, **kwargs ):
+        """
+        Transform a pose 
+        kwargs:
+            ts: TransformStamped.  If not specified, then a dst_frame must be specified
+            header:  ROS Header.  default={ stamp=rospy.Time.now(), frame_id='base_link' }
+            dst_frame:  string, target frame
+        """
         # tf2_geometry_msgs requires posestamped
         ps = PoseStamped()
-        #ps.header = obs.header
         ps.pose = pose
+
+        ts = kwargs.get('ts')
+        if ts is None:
+            hdr = kwargs.get('header', rospy.Header( stamp=rospy.Time.now(), frame_id='base_link' ) )
+            ts = self.lookup_transform( hdr.frame_id, kwargs['dst_frame'], hdr.stamp )
+        
         ps = tf2_geometry_msgs.do_transform_pose( ps, ts )
         return ps.pose
 
@@ -56,9 +67,8 @@ class FrameTransformer(object):
         return result
 
     def transform_obstacle( self, obs, dst_frame ):
-        """ transform obstacle, using header time or `use_current` """
+        """ transform obstacle in place using obstacle header time """
 
-        # tf transform pose.position
         if obs.header.frame_id == dst_frame:  # already done for this obstacle
             return
 
@@ -68,7 +78,7 @@ class FrameTransformer(object):
         obs.header.frame_id = dst_frame
 
         # transform pose.position.  tf2_geometry_msgs uses posestamped
-        obs.pose.pose = self.transform_pose( obs.pose.pose, ts )
+        obs.pose.pose = self.transform_pose( obs.pose.pose, ts=ts )
 
         # pointcloud transform if desired
         #if transform_points and not obs.points is None and obs.points.width > 0:

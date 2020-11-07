@@ -124,7 +124,24 @@ namespace impl {
         return false;
         
     } // adjust_roi
-    
+
+    // returns flag if base of classified obstacle bounding box exists above the horizon
+    inline bool is_above_horizon( const ClassifiedObstacle2d& c, const Homography& h ) {
+        
+        // get horizon location at pixel x
+        const auto horizon_at_x = [&h]( const std::uint32_t x ) {
+            return std::uint32_t( std::max( -( float(x)*h.at(2,0) + h.at(2,2))/ ( h.at(2,1) + FLT_EPSILON ), 0.f ) );
+        };
+
+        const auto& roi = c.cls.roi;
+        // ROS_WARN_STREAM( std::to_string( horizon_at_x( roi.x_offset ) ) + " / " + std::to_string( horizon_at_x( roi.x_offset + roi.width ) ) );            
+
+        return
+            ( ( roi.y_offset + roi.height ) <= horizon_at_x( roi.x_offset ) )
+            || ( ( roi.y_offset + roi.height ) <= horizon_at_x( roi.x_offset + roi.width ) )
+        ;
+    }   // is_above_horizon
+
 }   // impl
 
 /*
@@ -176,6 +193,11 @@ inline std::vector<Obstacle> project(
         //  make roi adjustments up to min/max percentage
         if ( !obstacle_map.empty() && ( ( roi_grow_limit > 0.f ) || ( roi_shrink_limit > 0.f ) ) )
             impl::adjust_roi( obs2d, obstacles_2d, obstacle_map, roi_grow_limit, roi_shrink_limit );
+
+        if ( impl::is_above_horizon( *obs2d, h ) ) {
+            ROS_INFO_STREAM( std::string( "Image ROI above horizon, ignoring" ) );
+            continue;
+        }
 
         auto obs = obs2d->project( h, min_height, max_height, min_depth, max_depth );
 
