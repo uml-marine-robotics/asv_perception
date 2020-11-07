@@ -18,7 +18,7 @@ namespace obstacle_id
         ~current:   [sensor_msgs/PointCloud2]  pointcloud representing most current information, published after receiving each segment
 
     Parameters:
-        ~segments:   [int, required]  number of segments to accumulate before publishing
+        ~decay_time:   [int, required]  number of seconds to store a partial pointcloud.  A full pointcloud is published after each decay_time interval
 
   */
   class PointCloudConcatNodelet
@@ -54,14 +54,14 @@ namespace obstacle_id
         std::mutex mtx_;
         using lock_type_ = std::lock_guard<std::mutex>;
 
-        // num segments
-        int nsegments_ = 0;
-        // segments storage      
-        std::vector<sensor_msgs::PointCloud2::ConstPtr> segments_;
-        // current index in storage
-        int current_idx_ = 0;
+        // segments, time storage      
+        std::vector<std::pair<sensor_msgs::PointCloud2::ConstPtr, ros::Time>> segments_;
 
-        
+        // segment survival time
+        float decay_time_ = 0.f;
+
+        // last full publish time
+        ros::Time last_full_publish_ = ros::Time::now();
 
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW

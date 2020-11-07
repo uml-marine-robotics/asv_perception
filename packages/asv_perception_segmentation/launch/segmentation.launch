@@ -1,16 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
     <arg name="pkg_name" value="asv_perception_segmentation"/>
+    <arg name="camera0_image_topic" />
+    <arg name="camera1_image_topic" />
+    <arg name="camera2_image_topic" />
 
     <!-- 
         Node to perform image segmentation, see segmentation_node.py
     -->
     <node name="segmentation" pkg="$(arg pkg_name)" type="segmentation_node.py" required="true" output="screen">
         
-        <remap from="~0/input" to="/left_camera/image_color/compressed" />
+        <remap from="~0/input" to="$(arg camera0_image_topic)" />
+        <remap from="~1/input" to="$(arg camera1_image_topic)" />
+        <remap from="~2/input" to="$(arg camera2_image_topic)" />
 
         <rosparam>
-            n_inputs: 1
+            n_inputs: 3
             model_path: "/data/segmentation/arm8imu3_noimu.ckpt-80000"
             per_process_gpu_memory_fraction: 0.3
             pixel_remap_value: 128

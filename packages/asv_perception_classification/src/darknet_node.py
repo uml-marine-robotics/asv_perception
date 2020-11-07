@@ -29,6 +29,7 @@ class darknet_node(object):
         
         Parameters:
             - ~n_inputs:    [int, default=1]  number of ~input[0...n] subscriptions and corresponding publications
+            - ~classes:     [array[string], default=None]  list of classifier classes to emit.  must be lower case.  If empty, no restriction
             - ~darknet_config_file: [string]  path to darknet config file
             - ~darknet_weights_file: [string]  path to darknet weights file
             - ~darknet_meta_file: [string]  path to darknet meta file
@@ -43,6 +44,7 @@ class darknet_node(object):
         self.lock = Lock()
 
         self.n_inputs = rospy.get_param("~n_inputs", 1 )
+        self.classes = rospy.get_param( "~classes", [] )
 
         # init darknet
         configPath = rospy.get_param("~darknet_config_file")
@@ -115,6 +117,10 @@ class darknet_node(object):
         dets = []
         with self.lock:  # darknet apparently not thread-safe, https://github.com/pjreddie/darknet/issues/655
             dets = darknet_detect( self.net, self.meta, img_data[0], thresh=self.darknet_thresh, hier_thresh=self.darknet_hier_thresh, nms=self.darknet_nms )
+
+        # if list of classes is specified, perform filtering on detected classes
+        if dets and self.classes:
+            dets = filter( lambda det : det[0] and str(det[0]).strip().lower() in self.classes, dets )
 
         msg = ClassificationArray()
         msg.header = image_msg.header #match timestamps

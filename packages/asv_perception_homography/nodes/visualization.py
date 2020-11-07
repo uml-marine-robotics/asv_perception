@@ -7,37 +7,57 @@ from tf.transformations import euler_from_quaternion
 
 from asv_perception_common.msg import Homography
 from asv_perception_common import utils
+from asv_perception_common.NodeLazy import NodeLazy
 from asv_perception_homography.calibrate_utils import create_unified_image
 
-class homography_visualization(object):
+class homography_visualization( NodeLazy ):
 
     def __init__(self):
 
         self.node_name = rospy.get_name()
+        
         self.radar_img = None
         self.rgb_img = None
         self.homography = None
         self.imu = None
+
         self.pub_header = None
 
+        self.subs = []
+
         # publisher
-        self.pub = rospy.Publisher( "~image", Image, queue_size=1)
+        self.pub = self.advertise( '~image', Image, queue_size=1 )
+
+    def subscribe( self ):
+        
+        self.unsubscribe()
 
         # subscribers; approximate time sync seems to fail when restarting a rosbag; just use latest of each msg
-        self.sub_rgb = rospy.Subscriber( "~rgb", CompressedImage, self.cb_rgb, queue_size=1, buff_size=2**24 )
-        self.sub_radar = rospy.Subscriber( "~radarimg", Image, self.cb_radar, queue_size=1, buff_size=2**24 )
+
+        # rgb
+        self.subs.append( rospy.Subscriber( "~rgb", CompressedImage, self.cb_rgb, queue_size=1, buff_size=2**24 ) )
+
+        # radar image
+        self.subs.append( rospy.Subscriber( "~radarimg", Image, self.cb_radar, queue_size=1, buff_size=2**24 ) )
 
         # homography matrix
-        self.sub_homography = rospy.Subscriber( "~rgb_radarimg", Homography, self.cb_homography, queue_size=1 )
+        self.subs.append( rospy.Subscriber( "~rgb_radarimg", Homography, self.cb_homography, queue_size=1 ) )
 
         # imu
-        self.sub_imu = rospy.Subscriber( "~imu", Imu, self.cb_imu, queue_size=1 )
+        self.subs.append( rospy.Subscriber( "~imu", Imu, self.cb_imu, queue_size=1 ) )
+
+    def unsubscribe( self ):
+
+        for sub in self.subs:
+            sub.unregister()
+        self.subs = []
 
     def cb_imu( self, msg ):
         self.imu = msg
         self.publish()
 
     def cb_rgb( self, msg ):
+        
         self.rgb_img = utils.convert_ros_msg_to_cv2( msg )
         self.pub_header = msg.header
         self.publish()
@@ -49,7 +69,7 @@ class homography_visualization(object):
     def cb_homography( self, msg ):
         # convert float[9] to numpy 3x3
         #   then invert the homography, since we want radar --> rgb for image creation
-        self.homography = np.linalg.inv( np.array(msg.values).reshape((3,3)) )
+        self.homography = np.linalg.inv( np.array( msg.values ).reshape((3,3)) )
         self.publish()
 
     def publish(self):

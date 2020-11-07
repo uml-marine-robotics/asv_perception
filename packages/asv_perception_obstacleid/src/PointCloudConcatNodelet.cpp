@@ -21,10 +21,9 @@ void PointCloudConcatNodelet::onInit ()
   base_type::onInit ();
 
   // parameters
-  pnh_->getParam("segments", this->nsegments_ );
+  pnh_->getParam("decay_time", this->decay_time_ );
 
-  assert( this->nsegments_ > 0 );
-  this->segments_.resize( this->nsegments_ );
+  assert( this->decay_time_ > 0. );
 
   // publishers
   this->pub_full_ = advertise<sensor_msgs::PointCloud2>( *pnh_, TOPIC_NAME_OUTPUT_FULL, 1 );
@@ -38,9 +37,7 @@ void PointCloudConcatNodelet::subscribe ()
 {
   lock_type_ lg( this->mtx_ );
 
-  this->segments_.clear();
-  this->segments_.resize( this->nsegments_ );
-  this->current_idx_ = 0;
+  this->last_full_publish_=ros::Time::now();
 
   this->sub_ = pnh_->subscribe<sensor_msgs::PointCloud2> (
     TOPIC_NAME_INPUT
@@ -64,11 +61,26 @@ void PointCloudConcatNodelet::sub_callback (
 {
   lock_type_ lg( this->mtx_ );
 
-  this->segments_[this->current_idx_] = cloud;
-  this->current_idx_ = ++this->current_idx_ % this->nsegments_;
+  const auto now = ros::Time::now();
 
-  // concat and publish when we have a subscriber to 'current', or when current_idx == 0
-  if ( this->pub_current_.getNumSubscribers() < 1 && this->current_idx_ != 0 )
+  // cleanup old segments
+  std::vector<std::pair<sensor_msgs::PointCloud2::ConstPtr, ros::Time>> valid = {};
+
+  for ( auto& seg : this->segments_ ) {
+    
+    const auto diff = std::abs( ( now - seg.second ).toSec() ); // using abs in case of time jumps due to rosbag restart
+
+    if ( diff <= this->decay_time_ )
+      valid.emplace_back(std::move(seg));
+  }
+
+  valid.emplace_back( cloud, now ); // use msg header time?
+  this->segments_ = std::move( valid );
+
+  const bool time_for_full_publish = ( ( now - this->last_full_publish_ ).toSec() > this->decay_time_ );
+
+  // concat and publish when we have a subscriber to 'current', or when we're due for a full publish
+  if ( ( this->pub_current_.getNumSubscribers() < 1 ) && !time_for_full_publish )
     return;
 
   try {
@@ -80,9 +92,11 @@ void PointCloudConcatNodelet::sub_callback (
     */
 
     sensor_msgs::PointCloud2 result = {};
-    for ( auto& pc : this->segments_ )
+    for ( auto& pc_pair : this->segments_ ) {
+      auto& pc = pc_pair.first;
       if ( pc != nullptr && ( pc->width > 0 ) && !pcl::concatenatePointCloud( result, *pc, result ) )
         ROS_ERROR("Error concatenating point clouds");
+    }
     
     // use latest header
     result.header = cloud->header;
@@ -90,8 +104,10 @@ void PointCloudConcatNodelet::sub_callback (
     if ( this->pub_current_.getNumSubscribers() > 0 )
       this->pub_current_.publish( result );
 
-    if ( this->pub_full_.getNumSubscribers() > 0 )
+    if ( time_for_full_publish && ( this->pub_full_.getNumSubscribers() > 0 ) ) {
       this->pub_full_.publish( result );
+      this->last_full_publish_=now;
+    }
 
   } catch ( const std::exception& ex ) {  // pcl exceptions inherit from std::runtime_error
     ROS_ERROR("std::exception: %s", ex.what() );

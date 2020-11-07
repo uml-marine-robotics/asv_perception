@@ -1,5 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
+
+    <!-- remap platform-specific sensor topics to those expected by asv_perception  -->
+    <node name="remap_imu" type="relay" pkg="topic_tools" args= "/imu/data/enu /perception/sensor/imu" />
+    <node name="remap_gps" type="relay" pkg="topic_tools" args= "/sensor/gps/fix /perception/sensor/gps" />
+    <node name="remap_radar0" type="relay" pkg="topic_tools" args= "/broadband_radar/channel_0/segment /perception/sensor/radar0" />
+
+    <!-- unthrottled sensor inputs -->
+    <!-- 
+    <node name="remap_lidar0" type="relay" pkg="topic_tools" args= "/velodyne_points /perception/sensor/lidar0" />
+    <node name="remap_camera0" type="relay" pkg="topic_tools" args= "/center_camera/image_color/compressed /perception/sensor/camera0/compressed" />
+    <node name="remap_camera1" type="relay" pkg="topic_tools" args= "/left_camera/image_color/compressed /perception/sensor/camera1/compressed" />
+    <node name="remap_camera2" type="relay" pkg="topic_tools" args= "/right_camera/image_color/compressed /perception/sensor/camera2/compressed" />
+    -->
+    
+    <!-- throttled sensor inputs -->
+    <node name="remap_throttle_lidar0" type="throttle" pkg="topic_tools" args= "messages /velodyne_points 10.0 /perception/sensor/lidar0" />
+    <node name="remap_throttle_camera0" type="throttle" pkg="topic_tools" args= "messages /center_camera/image_color/compressed 10.0 /perception/sensor/camera0/compressed" />
+    <node name="remap_throttle_camera1" type="throttle" pkg="topic_tools" args= "messages /left_camera/image_color/compressed 10.0 /perception/sensor/camera1/compressed" />
+    <node name="remap_throttle_camera2" type="throttle" pkg="topic_tools" args= "messages /right_camera/image_color/compressed 10.0 /perception/sensor/camera2/compressed" />
+    
+    <!-- asv_perception sensor topics -->
+    <arg name="gps_topic" default="/perception/sensor/gps" />
+    <arg name="radar0_topic" default="/perception/sensor/radar0" />
+    <arg name="lidar0_topic" default="/perception/sensor/lidar0" />
+    
+    <arg name="camera0_image_topic" default="/perception/sensor/camera0/compressed" />
+    <arg name="camera0_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_camera0_homography.yaml" />
+    <arg name="camera1_image_topic" default="/perception/sensor/camera1/compressed" />
+    <arg name="camera1_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_camera1_homography.yaml" />
+    <arg name="camera2_image_topic" default="/perception/sensor/camera2/compressed" />
+    <arg name="camera2_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_camera2_homography.yaml" />
+
+    <arg name="imu_topic" default="/perception/sensor/imu" />
+    <!-- 
+        imu throttler 
+        There is a known bug in throttling but this should still suffice
+        https://github.com/ros/ros_comm/issues/560
+    -->
+    <node name="imu_throttled" type="throttle" pkg="topic_tools" args= "messages $(arg imu_topic) 25.0 /perception/sensor/imu/throttled" />
     
     <!-- use_sim_time:  use when playing back bag files with rosbag play -->
     <group if="$(optenv USE_SIM_TIME 0)">
@@ -12,18 +51,44 @@
     </group>
 
     <!-- rgb-radar homography -->
-    <include file="$(find asv_perception_homography)/launch/homography.launch" />
+    <include file="$(find asv_perception_homography)/launch/homography.launch">
+        <arg name="imu_topic" value="/perception/sensor/imu/throttled" />
+        <arg name="radar_topic" value="$(arg radar0_topic)" />
+        <arg name="camera0_image_topic" default="$(arg camera0_image_topic)" />
+        <arg name="camera0_calibration_file" default="$(arg camera0_calibration_file)" />
+        <arg name="camera1_image_topic" default="$(arg camera1_image_topic)" />
+        <arg name="camera1_calibration_file" default="$(arg camera1_calibration_file)" />
+        <arg name="camera2_image_topic" default="$(arg camera2_image_topic)" />
+        <arg name="camera2_calibration_file" default="$(arg camera2_calibration_file)" />
+    </include>
 
     <!-- segmentation -->
-    <include file="$(find asv_perception_segmentation)/launch/segmentation.launch" />
+    <!-- convert env variable to arg -->
+    <arg name="use_segmentation" default="$(optenv USE_SEGMENTATION 1)" />
+
+    <group if="$(arg use_segmentation)">
+        <include file="$(find asv_perception_segmentation)/launch/segmentation.launch">
+            <arg name="camera0_image_topic" value="$(arg camera0_image_topic)" />
+            <arg name="camera1_image_topic" value="$(arg camera1_image_topic)" />
+            <arg name="camera2_image_topic" value="$(arg camera2_image_topic)" />
+        </include>
+    </group>
 
     <!-- classification -->
-    <include file="$(find asv_perception_classification)/launch/classification.launch" />
+    <include file="$(find asv_perception_classification)/launch/classification.launch">
+        <arg name="camera0_image_topic" value="$(arg camera0_image_topic)" />
+        <arg name="camera1_image_topic" value="$(arg camera1_image_topic)" />
+        <arg name="camera2_image_topic" value="$(arg camera2_image_topic)" />
+    </include>
 
     <!-- obstacle generation -->
-    <include file="$(find asv_perception_obstacleid)/launch/obstacleid.launch" />
+    <include file="$(find asv_perception_obstacleid)/launch/obstacleid.launch">
+        <arg name="use_segmentation" value="$(arg use_segmentation)" />
+        <arg name="radar0_topic" value="$(arg radar0_topic)" />
+        <arg name="lidar0_topic" value="$(arg lidar0_topic)" />
+    </include>
 
     <!-- obstacle tracking -->
     <include file="$(find asv_perception_tracking)/launch/tracking.launch" />
 
-</launch> 
+</launch>

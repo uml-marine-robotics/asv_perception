@@ -73,6 +73,9 @@ class Tuner:
     def show(self):
         self.root.mainloop()
 
+    def close( self ):
+        self.root.destroy()
+
 def show_info_messagebox( msg ):
     messagebox.showinfo(message=msg)
 

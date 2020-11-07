@@ -32,7 +32,7 @@ def hellinger_distance( bc ):
     return np.sqrt(1-bc)
 
 class BhattacharyyaDistance(object):
-    """ Class to calculate 2D Bhattacharyya distance between two TrackedObject """
+    """ Class to calculate 2D Bhattacharyya distance """
     def __call__( self, obj1, obj2 ):
         pm = obj1.position[:2]
         pv = obj1.position_covariance[:2,:2]
@@ -41,7 +41,7 @@ class BhattacharyyaDistance(object):
         return bhattacharyya_distance(pm,pv,qm,qv)
 
 class HellingerDistance(object):
-    """ Class to calculate 2D Hellinger distance between two TrackedObject """
+    """ Class to calculate 2D Hellinger distance """
     def __call__( self, obj1, obj2 ):
 
         # bd --> bc --> hellinger
@@ -50,11 +50,41 @@ class HellingerDistance(object):
         return hellinger_distance( bc )
 
 class EuclideanDistance(object):
-    """ Class to calculate Euclidean distance between two TrackedObject """
+    """ Class to calculate Euclidean distance """
     def __call__( self, obj1, obj2 ):
         a = obj1.position
         b = obj2.position
         return math.sqrt( (a[0]-b[0])**2 + (a[1]-b[1])**2 + (a[2]-b[2])**2 )
+
+class PerspectiveDistance(object):
+    """
+    Perspective weighted proportional difference
+        Get vectors relative to origin.  Origin should be updated at each timestep, prior to __call__
+        Proportional component = | vecA - vecB | / | vecA + vecB |
+        Weighted theta diff = ( 1 + arccos( (vecA dot vecB)/(|vecA||vecB|) ) ) ^ 2
+        result = proportional*weighted
+        Returns scalar, [0, (1+pi)^2]
+    """
+
+    def __init__( self, origin = [0.,0.,0.] ):
+        self.origin = np.array(origin,dtype=np.float)
+
+    def __call__( self, obj1, obj2 ):
+
+        p0 = obj1.position
+        p1 = obj2.position
+
+        # if we don't have a position (why?), return max_val
+        if p0 is None or p1 is None:
+            return (1.+math.pi)**2
+
+        a = p0.ravel() - self.origin
+        b = p1.ravel() - self.origin
+        p = np.linalg.norm( a - b ) / np.linalg.norm( a + b )#proportional component
+        if np.isclose( p, 0. ): return 0.
+        w = ( 1 + math.acos( np.dot(a,b)/( np.linalg.norm(a) * np.linalg.norm(b) ) ) ) ** 2  # theta diff weight
+
+        return p*w
 
 def cost_matrix( arr0, arr1, cost_fn ):
     """ compute/return 2d numpy cost matrix """
@@ -62,6 +92,13 @@ def cost_matrix( arr0, arr1, cost_fn ):
     for i, ival in enumerate(arr0):
         for j, jval in enumerate(arr1):
             arr[i,j]= cost_fn( ival, jval )
+            #print('-----')
+            #o0 = ival
+            #o1 = jval
+            #print('cost eval:  euclidean=%.4f, bhat=%.4f, hellinger=%.4f'  % ( EuclideanDistance()( o0, o1 ), BhattacharyyaDistance()(o0,o1), HellingerDistance()( o0, o1 ) ) )
+            #print(o0)
+            #print(o1)
+
     return arr
 
 def matching( obs0, obs1, cost_fn, min_cost, max_cost ):
@@ -82,6 +119,8 @@ def matching( obs0, obs1, cost_fn, min_cost, max_cost ):
             #o0 = obs0[row_idx[i]]
             #o1 = obs1[col_idx[i]]
             #print('match:  euclidean=%.4f, bhat=%.4f, hellinger=%.4f'  % ( EuclideanDistance()( o0, o1 ), BhattacharyyaDistance()(o0,o1), HellingerDistance()( o0, o1 ) ) )
+            #print(o0)
+            #print(o1)
             
     return result
 
@@ -93,6 +132,9 @@ class TrackedObject(object):
             Default filter: 3d position, size, linear velocity
             measurements:  [position_x, position_y, position_z, length, width, height]
             data:  any object to be associated, for external use
+            kwargs:
+                measurement_uncertainty:    [float, default=None]   Kalman filter measurement uncertainty
+                estimate_velocity:          [bool, default=True]    Kalman filter velocity estimation
         """
         self.id = kwargs.get('id',0)
         self.age = 0
@@ -100,11 +142,17 @@ class TrackedObject(object):
         self.data = [ data ]
 
         kf = KalmanFilter(dim_x=9, dim_z=6)  #state vector sz, measurement vector sz
-        kf.F[0,6]= kf.F[1,7]= kf.F[2,8]=1. # state transition matrix; set off-diagonals for velocity estimation
         kf.P *= 10.  # covariance matrix
-        kf.P[6:, 6:] *= 100. # high covar for initial velocity estimate
-        kf.Q[6:, 6:] *= 0.1 # process uncertainty; low process uncertainty for velocity estimate
-        #kf.R *= 5.  # measurement uncertainty
+
+        if kwargs.get( 'estimate_velocity', True ):
+            # state transition matrix; set off-diagonals for velocity estimation
+            kf.F[0,6]= kf.F[1,7]= kf.F[2,8]= 1.
+            kf.P[6:, 6:] *= 10. # high covar for initial velocity estimate
+            kf.Q[6:, 6:] *= 0.1 # process uncertainty; low process uncertainty for velocity estimate
+
+        if kwargs.get('measurement_uncertainty'):
+            kf.R *= float(kwargs['measurement_uncertainty'])  # measurement uncertainty
+
         kf.H = np.eye(6,9)
 
         self.filter = kf
@@ -126,9 +174,14 @@ class TrackedObject(object):
         return self.filter.x[:3]
 
     @property
-    def position_covariance(self):
+    def position_covariance( self ):
         """ returns current position covariance, 3x3 numpy array """
         return self.filter.P[:3,:3]
+
+    @property
+    def dimensions( self ):
+        "returns dimensions (L W H), 1x3 numpy array"
+        return self.filter.x[3:6]
 
     # todo:  rest of properties...
 
@@ -136,7 +189,9 @@ class TrackedObject(object):
 
         d = self.filter.x
         p = self.filter.P
-        return "id=%d, age=%d, hits=%d, xyz=(%.2f,%.2f,%.2f), xyz_covar=(%.2f) lwh=(%.2f,%.2f,%.2f), v=(%.2f,%.2f,%.2f)" % (self.id, self.age, self.hits, d[0],d[1],d[2],p[0][0],d[3],d[4],d[5],d[6],d[7],d[8] )
+
+        return "id=%d, age=%d, hits=%d, xyz=(%.2f,%.2f,%.2f), xyz_covar=(%.2f,%.2f,%.2f) lwh=(%.2f,%.2f,%.2f), v=(%.2f,%.2f,%.2f), v_covar=(%.2f,%.2f,%.2f)" \
+            % (self.id, self.age, self.hits, d[0],d[1],d[2],p[0][0], p[1][1], p[2][2], d[3],d[4],d[5],d[6],d[7],d[8], p[6][6], p[7][7], p[8][8] )
 
 
 class SensorTracking(object):

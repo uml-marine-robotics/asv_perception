@@ -1,77 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <launch>
-    <arg name="pkg_name" value="asv_perception_homography"/>
+    <arg name="package_name" value="asv_perception_homography"/>
     <arg name="node_name" default="homography"/>
+    
+    <arg name="imu_topic" />
+    <arg name="radar_topic" />
+    <arg name="camera0_image_topic" />
+    <arg name="camera0_calibration_file" />
+    <arg name="camera1_image_topic" />
+    <arg name="camera1_calibration_file" />
+    <arg name="camera2_image_topic" />
+    <arg name="camera2_calibration_file" />
 
-    <group ns="camera0">
+    <!-- camera0 -->
+    <include file="$(find asv_perception_homography)/launch/camera.launch" ns="camera0">
+        <arg name="image_topic" value="$(arg camera0_image_topic)" />
+        <arg name="imu_topic" value="$(arg imu_topic)" />
+        <arg name="radar_topic" value="/homography/radar_image/output" />
+        <arg name="calibration_file" default="$(arg camera0_calibration_file)" />
+    </include>
 
-        <arg name="homography_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_camera0_homography.yaml" />
+    <!-- camera1 -->
+    <include file="$(find asv_perception_homography)/launch/camera.launch" ns="camera1">
+        <arg name="image_topic" value="$(arg camera1_image_topic)" />
+        <arg name="imu_topic" value="$(arg imu_topic)" />
+        <arg name="radar_topic" value="/homography/radar_image/output" />
+        <arg name="calibration_file" default="$(arg camera1_calibration_file)" />
+    </include>
 
-        <!-- 
-            Node to publish homography matrices between rgb, radar, and robot frames
-            Subscriptions: 
-                - ~imu:             [sensor_msgs/Imu] IMU data
-                - ~refresh:         [sensor_msgs/Empty]
-            Publications:
-                - ~rgb_radarimg:       [asv_perception_common/Homography] Homography from rgb image pixels to radar image pixels
-                - ~radarimg_radar:     [asv_perception_common/Homography] Homography from radar image pixels to radar frame in world units, iaw REP-103
-                - ~rgb_radar:          [asv_perception_common/Homography] Homography from rgb image pixels to radar frame in world units, iaw REP-103
-        -->
-        <node name="$(arg node_name)" pkg="$(arg pkg_name)" type="homography.py" output="screen">
+    <!-- camera2 -->
+    <include file="$(find asv_perception_homography)/launch/camera.launch" ns="camera2">
+        <arg name="image_topic" value="$(arg camera2_image_topic)" />
+        <arg name="imu_topic" value="$(arg imu_topic)" />
+        <arg name="radar_topic" value="/homography/radar_image/output" />
+        <arg name="calibration_file" default="$(arg camera2_calibration_file)" />
+    </include>
 
-            <remap from="~imu" to="/imu/data/enu" />
+    <group ns="homography">
+        <!-- create radar image from pointcloud -->
+        <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
+        <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
+
+        <!-- generate radar pointcloud -->
+        <node pkg="nodelet" type="nodelet" name="radar_pointcloud" args="load asv_perception_obstacleid/RadarToPointCloudNodelet $(arg nodelet_name)" output="screen">
+
+            <remap from="~input" to="$(arg radar_topic)" />
 
             <rosparam>
-                <!-- frame ids for homography msgs -->
-                rgb_frame_id: "camera0"
-                radarimg_frame_id: "radar_1"
-                radar_frame_id: "velodyne"
-
-                <!-- radar to rgb homography parameter defaults -->
-                <!-- 1280 x 1024 -->
-                roll: -2.96
-                pitch: 80.29
-                yaw_: 0.
-                yaw: 4.
-                fovy: 46.3
-                tx: 2.5
-                ty: 6.2
-                tz: -4.4
-                imu_pitch_alpha: 1.4
-                imu_pitch_beta: 0.2
-                imu_pitch_gamma: 0.02
-
-                <!-- the width of the radar image, in pixels -->
-                radar_img_w: 1024
-
-                <!-- the range of the radar (meters) -->
-                radar_range:  195.
+                angle_offset: -270.0
+                frame_id:  'base_link'
             </rosparam>
-
-            <rosparam file="$(arg homography_calibration_file)" />
-
         </node>
 
-        <!-- 
-            Node to visualize alignment between rgb and radar images
-            Subscriptions: 
-                - ~rgb:                   [sensor_msgs/CompressedImage] Image from rgb camera
-                - ~radarimg:              [sensor_msgs/Image] Image from radar
-                - ~rgb_radarimg           [asv_perception_common/HomographyStamped] Homography from rgb image to radar img
-                - ~imu:                   [sensor_msgs/Imu] IMU data
-            Publications:
-                - ~image:                 [sensor_msgs/Image] Image which visualizes homography between rgb image and radar image
-        -->
-        <node name="$(arg node_name)_vis" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
-
-            <!-- remap from=sink to=source -->
-            <remap from="~imu" to="/imu/data/enu" />
-            <remap from="~rgb" to="/left_camera/image_color/compressed" />
-            <remap from="~radarimg" to="/broadband_radar/channel_1/image_raw" />
-            <remap from="~rgb_radarimg" to="$(arg node_name)/rgb_radarimg" />
+        <!-- create image from pointcloud for homography -->
+        <node name="radar_image" pkg="$(arg package_name)" type="imager.py" output="screen">
+            <remap from="~input" to="radar_pointcloud/full_current" />
+            <rosparam>
+                max_range: 500
+                image_size: 1024
+            </rosparam>
         </node>
-
     </group>
-    
+
 </launch>
 

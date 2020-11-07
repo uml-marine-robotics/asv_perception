@@ -9,6 +9,9 @@
     <!-- radar/lidar to base_link -->
     <node pkg="tf" type="static_transform_publisher" name="velodyne_to_base" args="0 0 0 0 0 0 1 base_link velodyne 100"/>
 
+    <!-- imu_link to base_link -->
+    <node pkg="tf" type="static_transform_publisher" name="imu_to_base" args="0 0 0 0 0 0 1 base_link imu_link 100"/>
+
     <!-- 
         robot_localization using IMU + GPS
 
@@ -25,7 +28,7 @@
 
         <rosparam>
             zero_altitude: false
-            broadcast_utm_transform: true
+            broadcast_utm_transform: false
             <!-- navsat_transform_node expects imu to have 0 yaw when facing east. if imu provides yaw=0 when facing north, set to pi/2 -->
             yaw_offset: 1.5707963
             <!-- 
@@ -36,8 +39,8 @@
             magnetic_declination_radians: 0.251327412
         </rosparam>
 
-        <remap from="imu/data" to="/imu/data/enu"/>
-        <remap from="gps/fix" to="/sensor/gps/fix"/>
+        <remap from="imu/data" to="/perception/sensor/imu"/>
+        <remap from="gps/fix" to="/perception/sensor/gps"/>
     </node>
 
     <!-- base to odom transformation -->
@@ -48,7 +51,7 @@
             frequency: 15
             two_d_mode: true
 
-            imu0: '/imu/data/enu'
+            imu0: '/perception/sensor/imu'
             imu0_remove_gravitational_acceleration: false
             imu0_queue_size: 10
             odom0: 'odometry/gps'

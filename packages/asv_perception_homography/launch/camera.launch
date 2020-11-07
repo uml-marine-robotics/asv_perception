@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <arg name="package_name" default="asv_perception_homography"/>
+    <arg name="node_name" default="homography"/>
+    <arg name="image_topic" />
+    <arg name="calibration_file" />
+    <arg name="imu_topic" />
+    <arg name="radar_topic" />
+
+    <!-- 
+        Node to publish homography matrices between rgb, radar, and robot frames
+        Subscriptions: 
+            - ~imu:             [sensor_msgs/Imu] IMU data
+            - ~refresh:         [sensor_msgs/Empty]
+        Publications:
+            - ~rgb_radarimg:       [asv_perception_common/Homography] Homography from rgb image pixels to radar image pixels
+            - ~radarimg_radar:     [asv_perception_common/Homography] Homography from radar image pixels to radar frame in world units, iaw REP-103
+            - ~rgb_radar:          [asv_perception_common/Homography] Homography from rgb image pixels to radar frame in world units, iaw REP-103
+    -->
+    <node name="$(arg node_name)" pkg="$(arg package_name)" type="homography.py" output="screen">
+
+        <remap from="~imu" to="$(arg imu_topic)" />
+
+        <rosparam>
+            <!-- frame ids for homography msgs -->
+            rgb_frame_id: "camera"
+            radarimg_frame_id: "radar"
+            radar_frame_id: "base_link"
+
+            <!-- radar to rgb homography parameter defaults -->
+            <!-- 1280 x 1024 -->
+            roll: -2.96
+            pitch: 80.29
+            yaw_: 0.
+            yaw: 4.
+            fovy: 46.3
+            tx: 2.5
+            ty: 6.2
+            tz: -4.4
+            imu_pitch_alpha: 1.4
+            imu_pitch_beta: 0.2
+            imu_pitch_gamma: 0.02
+
+            <!-- the width of the radar image, in pixels -->
+            radar_img_w: 1024
+
+            <!-- the range of the radar (meters) -->
+            radar_range:  500.
+        </rosparam>
+
+        <rosparam file="$(arg calibration_file)" />
+
+    </node>
+
+    
+
+    <!-- 
+        Node to visualize alignment between rgb and radar images
+        Subscriptions: 
+            - ~rgb:                   [sensor_msgs/CompressedImage] Image from rgb camera
+            - ~radarimg:              [sensor_msgs/Image] Image from radar
+            - ~rgb_radarimg           [asv_perception_common/HomographyStamped] Homography from rgb image to radar img
+            - ~imu:                   [sensor_msgs/Imu] IMU data
+        Publications:
+            - ~image:                 [sensor_msgs/Image] Image which visualizes homography between rgb image and radar image
+    -->
+    <node name="$(arg node_name)_vis" pkg="$(arg package_name)" type="visualization.py" output="screen">
+
+        <!-- remap from=sink to=source -->
+        <remap from="~imu" to="$(arg imu_topic)" />
+        <remap from="~rgb" to="$(arg image_topic)" />
+        <remap from="~radarimg" to="$(arg radar_topic)" />
+        <remap from="~rgb_radarimg" to="$(arg node_name)/rgb_radarimg" />
+    </node>
+    
+</launch>
+

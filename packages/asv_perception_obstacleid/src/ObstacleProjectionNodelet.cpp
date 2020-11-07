@@ -52,11 +52,15 @@ void ObstacleProjectionNodelet::onInit ()
     if ( pnh_->getParam("resolution", val ) && ( val > 0. ) )
         this->_resolution = val;
 
+    if ( pnh_->getParam("min_distance", val ) && ( val > 0. ) )
+        this->_min_distance = val;
+
     if ( pnh_->getParam("max_distance", val ) && ( val > 0. ) )
         this->_max_distance = val;
 
     pnh_->getParam("roi_grow_limit", this->_roi_grow_limit );
     pnh_->getParam("roi_shrink_limit", this->_roi_shrink_limit );
+    pnh_->getParam("use_segmentation", this->_use_segmentation );
 
     onInitPostProcess ();
 }
@@ -73,19 +77,31 @@ void ObstacleProjectionNodelet::subscribe ()
         , 1
         , bind( &ObstacleProjectionNodelet::cb_homography_rgb_radar, this, _1 )
     );
+
+    if ( this->_use_segmentation ) { 
     
-    this->_sub_segmentation.subscribe( *pnh_, TOPIC_NAME_INPUT_SEGMENTATION, 1 );
-    this->_sub_classification.subscribe( *pnh_, TOPIC_NAME_INPUT_CLASSIFICATION, 1 );
+        this->_sub_segmentation.subscribe( *pnh_, TOPIC_NAME_INPUT_SEGMENTATION, 1 );
+        this->_sub_classification.subscribe( *pnh_, TOPIC_NAME_INPUT_CLASSIFICATION, 1 );
 
-    this->_seg_cls_sync.reset( 
-        new _seg_cls_synchronizer_type( 
-            _seg_cls_sync_policy_type( SYNC_QUEUE_SIZE )
-            , _sub_segmentation
-            , _sub_classification
-        )
-    );
+        this->_seg_cls_sync.reset( 
+            new _seg_cls_synchronizer_type( 
+                _seg_cls_sync_policy_type( SYNC_QUEUE_SIZE )
+                , _sub_segmentation
+                , _sub_classification
+            )
+        );
 
-    this->_seg_cls_sync->registerCallback( bind (&ObstacleProjectionNodelet::sub_callback, this, _1, _2 ) );
+        this->_seg_cls_sync->registerCallback( bind (&ObstacleProjectionNodelet::sub_callback, this, _1, _2 ) );
+    }
+    else {  // classification only
+
+        this->_sub_classification_only = pnh_->subscribe<classification_msg_type> (
+            TOPIC_NAME_INPUT_CLASSIFICATION
+            , 1
+            , bind( &ObstacleProjectionNodelet::sub_callback, this, _1 )
+        );
+
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,8 +109,13 @@ void ObstacleProjectionNodelet::unsubscribe ()
 {
     std::lock_guard<std::mutex> lg( this->_mtx );
 
-    this->_sub_segmentation.unsubscribe();
-    this->_sub_classification.unsubscribe();
+    if ( this->_use_segmentation ) {
+        this->_sub_segmentation.unsubscribe();
+        this->_sub_classification.unsubscribe();
+    } else {
+        this->_sub_classification_only.shutdown();
+    }
+
     this->_sub_rgb_radar.shutdown();
 }
 
@@ -108,6 +129,7 @@ void ObstacleProjectionNodelet::cb_homography_rgb_radar( const typename homograp
     this->_h_rgb_radar = h;
 }
 
+// segmentation + classification msg
 void ObstacleProjectionNodelet::sub_callback ( 
     const typename segmentation_msg_type::ConstPtr& seg_msg 
     , const typename classification_msg_type::ConstPtr& cls_msg
@@ -173,6 +195,7 @@ void ObstacleProjectionNodelet::sub_callback (
             , this->_max_height
             , this->_min_depth
             , this->_max_depth
+            , this->_min_distance
             , this->_max_distance
             , this->_roi_grow_limit
             , this->_roi_shrink_limit
@@ -222,6 +245,70 @@ void ObstacleProjectionNodelet::sub_callback (
             // publish
             this->_pub_cloud.publish( output_blob );
         }
+  } catch ( const std::exception& ex ) {
+    ROS_ERROR("std::exception: %s", ex.what() );
+  } catch ( ... ) {
+    ROS_ERROR("unknown exception type");
+  }
+    
+}
+
+// classification message only
+void ObstacleProjectionNodelet::sub_callback ( 
+    const typename classification_msg_type::ConstPtr& cls_msg
+    )
+{
+
+    std::lock_guard<std::mutex> lg( this->_mtx );
+    
+    // No subscribers/data, no work
+    if ( !cls_msg || this->_pub.getNumSubscribers () < 1 )
+        return;
+        
+    // check we have homography, warn
+    if ( !this->_h_rgb_radar ) {
+        NODELET_WARN( "Homography not yet received, dropping frame" );
+        return;
+    }
+    
+    try {
+
+        // construct homography
+        const auto 
+            h_rgb_to_radar = detail::Homography( this->_h_rgb_radar->values.data() )
+            ;
+        
+        // obstacles projected to frame
+        const auto child_frame_id = this->_h_rgb_radar->child_frame_id;
+
+        // get classified obstacles, publish obstacle message
+        auto msg = asv_perception_common::ObstacleArray();
+        auto img = cv::Mat();
+
+        msg.obstacles = detail::classified_obstacle_projection::project( 
+            img
+            , *cls_msg
+            , h_rgb_to_radar 
+            , this->_min_height
+            , this->_max_height
+            , this->_min_depth
+            , this->_max_depth
+            , this->_min_distance
+            , this->_max_distance
+            , this->_roi_grow_limit
+            , this->_roi_shrink_limit
+            );
+
+        // set headers
+        msg.header = cls_msg->header;
+        msg.header.frame_id = child_frame_id;
+
+        for ( auto& obs : msg.obstacles ) {
+            obs.header = msg.header;
+        }
+            
+        this->_pub.publish( msg );
+
   } catch ( const std::exception& ex ) {
     ROS_ERROR("std::exception: %s", ex.what() );
   } catch ( ... ) {
