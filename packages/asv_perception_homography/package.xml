@@ -1,3 +1,10 @@
+<!-- 
+Copyright (c) 2020 University of Massachusetts
+All rights reserved.
+This source code is licensed under the BSD-style license found in the LICENSE file in the root directory of this source tree.
+Authors:  Tom Clunie <clunietp@gmail.com>
+-->
+
 <?xml version="1.0"?>
 <package format="2">
   <name>asv_perception_homography</name>
@@ -5,29 +12,13 @@
   <description>asv_perception_homography</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
-  <!-- Example:  -->
-  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="thomas_clunie@student.uml.edu">Tom Clunie</maintainer>
-
+  <maintainer email="clunietp@gmail.com">Tom Clunie</maintainer>
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
-  <license>TODO</license>
-
-
-  <!-- Url tags are optional, but multiple are allowed, one per tag -->
-  <!-- Optional attribute type can be: website, bugtracker, or repository -->
-  <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/basic_duckiebot_move</url> -->
-
-
-  <!-- Author tags are optional, multiple are allowed, one per tag -->
-  <!-- Authors do not have to be maintainers, but could be -->
-  <!-- Example: -->
-  <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
-
-
+  <license>BSD</license>
+  
   <!-- The *depend tags are used to specify dependencies -->
   <!-- Dependencies can be catkin packages or system dependencies -->
   <!-- Examples: -->
