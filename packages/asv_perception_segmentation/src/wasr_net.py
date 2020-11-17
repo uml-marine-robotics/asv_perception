@@ -1,39 +1,26 @@
+"""
+Copyright (c) 2020 University of Massachusetts
+All rights reserved.
+This source code is licensed under the BSD-style license found in the LICENSE file in the root directory of this source tree.
+Authors:  Tom Clunie <clunietp@gmail.com>
+"""
+
 """ 
 Run WASR inference on a single image, return the segmented image mask
-Based on wasr_inference_noimu_general.py provided by Bovcon
+Based on wasr_inference_noimu_general.py at https://github.com/bborja/wasr_network (Apache-2 License)
 """
-# import argparse
-#from datetime import datetime
-# import os
-# import sys
-# import time
-#import cv2
-#import scipy.io
-
-#from PIL import Image
-#from os import listdir
-#from os.path import isfile, join
 
 import tensorflow as tf
 import numpy as np
 
 #from wasr_models import wasr_NOIMU2, ImageReader, decode_labels, prepare_label
-from wasr_models import wasr_NOIMU2, decode_labels
+from wasr_models import wasr_NOIMU2
 
 # COLOR MEANS OF IMAGES FROM MODDv1 DATASET
 IMG_MEAN = np.array((148.8430, 171.0260, 162.4082), dtype=np.float32)
 
 # Number of classes
 NUM_CLASSES = 3
-
-# Output dir, where segemntation mask is saved
-#SAVE_DIR = 'output/' # save directory
-
-# Full path to the folder where images are stored
-#DATASET_PATH = 'test_images/'
-
-# Path to trained weights
-#MODEL_WEIGHTS = 'checkpoints/arm8imu3_noimu.ckpt-80000'
 
 # Input image size. Our network expects images of resolution 512x384
 IMG_SIZE = [384, 512]
@@ -96,14 +83,8 @@ class WASR_net(object):
 
         # Run inference
         preds = self.sess.run( self.pred, feed_dict={self.img_input: img_in})
-
-        # Decode segmentation mask
-        #msk = decode_labels(preds, num_classes=NUM_CLASSES)
-        #print( preds[0].shape )  #[384,512,1]
         
         # just convert prediction mask to uint8, return it in 2D
         result = np.squeeze(preds[0]).astype('uint8')
-        # print( result.shape ) #[384,512]
 
-        #return msk[0]
         return result

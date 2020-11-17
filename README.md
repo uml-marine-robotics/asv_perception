@@ -25,7 +25,14 @@ The default configuration is for a monocular camera, LIDAR, and two RADAR sensor
 *  `cd asv_perception`
 *  Adjust launch files for your sensor configuration
 *  Put classifier data in `data/classification/`
-*  Put segmentation data in `data/segmentation/`
+    *  To use Darknet MS-COCO pretrained weights:
+        *  Download appropriate `cfg` and `weights` from https://github.com/AlexeyAB/darknet/wiki/YOLOv4-model-zoo to `model.cfg` and `model.weights`
+        *  Download https://github.com/AlexeyAB/darknet/blob/master/cfg/coco.names to `model.names`
+        *  Download https://github.com/AlexeyAB/darknet/blob/master/cfg/coco.data to `model.data`
+            * In this file, change `names = ...` to `names = /data/classification/model.names`
+*  (Optional) Put WaSR segmentation weights in `data/segmentation/` 
+    *  Only required if using segmentation node with `USE_SEGMENTATION` environment variable
+    *  Pretrained segmentation weights can be acquired from https://github.com/bborja/wasr_network
 *  `./build.sh`
 
 ## Setup/calibration
@@ -40,7 +47,7 @@ The default configuration is for a monocular camera, LIDAR, and two RADAR sensor
     * When complete, save the calibration, then close all windows and exit VNC.
 
 ## Running
-`./run.sh` to start the `asv_perception` nodes, then run a `.bag` file or connect to asv sensors.  Use `rviz` and/or `rqt_image_view` to display output
+`./run.sh` to start the `asv_perception` nodes, then run a `.bag` file or connect to asv sensors.  Use `rviz` and/or `rqt_image_view` to display output.  See `./run.sh` for command line options.
 
 ## File structure
 *  `docker`:  Build files and data for docker images

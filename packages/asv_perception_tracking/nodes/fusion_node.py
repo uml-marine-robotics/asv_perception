@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+Copyright (c) 2020 University of Massachusetts
+All rights reserved.
+This source code is licensed under the BSD-style license found in the LICENSE file in the root directory of this source tree.
+Authors:  Tom Clunie <clunietp@gmail.com>
+"""
+
 import copy, sys
 from copy import deepcopy
 import numpy as np
@@ -7,9 +14,9 @@ from geometry_msgs.msg import Point,Quaternion,TwistWithCovariance,Vector3,PoseS
 from asv_perception_common.msg import ObstacleArray
 from asv_perception_common.NodeLazy import NodeLazy
 from asv_perception_common.FrameTransformer import FrameTransformer
-from asv_perception_tracking.smstf.tracking import EuclideanDistance, HellingerDistance, BhattacharyyaDistance, PerspectiveDistance
-from asv_perception_tracking.smstf.fusion import SensorFusion
-from tracking import create_tracked_object
+from smstf.tracking import EuclideanDistance, HellingerDistance, BhattacharyyaDistance, PerspectiveDistance
+from smstf.fusion import SensorFusion
+from tracking_node import create_tracked_object
 
 def create_obstacle( group_tracker ):
     """ create an obstacle msg from a smstf.TrackedObjectGroup """

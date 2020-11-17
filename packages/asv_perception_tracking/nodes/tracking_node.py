@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+"""
+Copyright (c) 2020 University of Massachusetts
+All rights reserved.
+This source code is licensed under the BSD-style license found in the LICENSE file in the root directory of this source tree.
+Authors:  Tom Clunie <clunietp@gmail.com>
+"""
 
 import math, sys, os, copy
 import rospy
@@ -13,7 +19,7 @@ from asv_perception_common.NodeLazy import NodeLazy
 from asv_perception_common.FrameTransformer import FrameTransformer
 
 # smstf
-from asv_perception_tracking.smstf.tracking import SensorTracking, TrackedObject, EuclideanDistance, HellingerDistance, BhattacharyyaDistance, PerspectiveDistance
+from smstf.tracking import SensorTracking, TrackedObject, EuclideanDistance, HellingerDistance, BhattacharyyaDistance, PerspectiveDistance
 
 def create_tracked_object( obstacle, min_dim=1., **kwargs ):
     """ 

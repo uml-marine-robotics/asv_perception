@@ -64,7 +64,7 @@
 
     <!-- segmentation -->
     <!-- convert env variable to arg -->
-    <arg name="use_segmentation" default="$(optenv USE_SEGMENTATION 1)" />
+    <arg name="use_segmentation" default="$(optenv USE_SEGMENTATION 0)" />
 
     <group if="$(arg use_segmentation)">
         <include file="$(find asv_perception_segmentation)/launch/segmentation.launch">
