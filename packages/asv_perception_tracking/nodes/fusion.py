@@ -14,8 +14,8 @@ from geometry_msgs.msg import Point,Quaternion,TwistWithCovariance,Vector3,PoseS
 from asv_perception_common.msg import ObstacleArray
 from asv_perception_common.NodeLazy import NodeLazy
 from asv_perception_common.FrameTransformer import FrameTransformer
-from asv_perception_tracking.smstf.tracking import EuclideanDistance, HellingerDistance, BhattacharyyaDistance, PerspectiveDistance
-from asv_perception_tracking.smstf.fusion import SensorFusion
+from smstf.tracking import EuclideanDistance, HellingerDistance, BhattacharyyaDistance, PerspectiveDistance
+from smstf.fusion import SensorFusion
 from tracking import create_tracked_object
 
 def create_obstacle( group_tracker ):
