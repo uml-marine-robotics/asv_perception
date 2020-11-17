@@ -18,7 +18,7 @@
     <!-- 
         radar obstacle tracking
     -->
-    <node name="tracking" pkg="$(arg pkg_name)" type="tracking.py" output="screen">
+    <node name="tracking" pkg="$(arg pkg_name)" type="tracking_node.py" output="screen">
         
         <remap from="~input" to="$(arg obstacle_topic)" />
 

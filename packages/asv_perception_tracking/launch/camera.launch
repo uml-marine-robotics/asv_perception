@@ -20,7 +20,7 @@
         <!-- 
             classified obstacle tracking
         -->
-        <node name="classified" pkg="$(arg pkg_name)" type="tracking.py" output="screen">
+        <node name="classified" pkg="$(arg pkg_name)" type="tracking_node.py" output="screen">
             
             <remap from="~input" to="$(arg obstacle_topic)" />
 

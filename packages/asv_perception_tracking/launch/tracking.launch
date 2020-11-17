@@ -35,7 +35,7 @@
         <!-- 
             tracked obstacle fusion
         -->
-        <node name="fusion" pkg="$(arg pkg_name)" type="fusion.py" output="screen" respawn="true">
+        <node name="fusion" pkg="$(arg pkg_name)" type="fusion_node.py" output="screen" respawn="true">
             
             <remap from="~0/input" to="/radar0/tracking/obstacles" />
             <remap from="~1/input" to="/lidar0/tracking/obstacles" />

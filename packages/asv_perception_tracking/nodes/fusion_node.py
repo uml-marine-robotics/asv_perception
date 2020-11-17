@@ -16,7 +16,7 @@ from asv_perception_common.NodeLazy import NodeLazy
 from asv_perception_common.FrameTransformer import FrameTransformer
 from smstf.tracking import EuclideanDistance, HellingerDistance, BhattacharyyaDistance, PerspectiveDistance
 from smstf.fusion import SensorFusion
-from tracking import create_tracked_object
+from tracking_node import create_tracked_object
 
 def create_obstacle( group_tracker ):
     """ create an obstacle msg from a smstf.TrackedObjectGroup """
