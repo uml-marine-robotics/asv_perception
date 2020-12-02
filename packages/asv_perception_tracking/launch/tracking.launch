@@ -92,7 +92,7 @@
             <remap from="~input" to="fusion/obstacles" />
             
             <rosparam>
-                host_ip: '127.0.0.1'
+                host: '127.0.0.1'
                 port: 5555
                 proto:  'udp'
                 tf_frame: 'base_link'

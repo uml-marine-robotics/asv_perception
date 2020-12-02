@@ -33,8 +33,8 @@ class SocketReportingNode( object ):
 
         Parameters:
             ~tf_frame:      [string, default=None]  The frame to transform obstacle data into prior to reporting
-            ~host_ip:       [string, default='127.0.0.1']  socket host ip
-            ~port:          [int, default=5555]  socket port
+            ~host:          [string, default='127.0.0.1']  destination host name or IPv4 address
+            ~port:          [int, default=5555]  destination socket port
             ~proto:         [string, default='udp']  socket protocol
     """
 
