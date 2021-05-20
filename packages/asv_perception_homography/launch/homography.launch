@@ -6,40 +6,19 @@
     <arg name="imu_topic" />
     <arg name="radar_topic" />
     <arg name="camera0_image_topic" />
-    <arg name="camera0_calibration_file" />
+    <arg name="camera0_segmented_image_topic" />
+    <arg name="camera0_classifications_topic" />
     <arg name="camera1_image_topic" />
-    <arg name="camera1_calibration_file" />
+    <arg name="camera1_segmented_image_topic" />
+    <arg name="camera1_classifications_topic" />
     <arg name="camera2_image_topic" />
-    <arg name="camera2_calibration_file" />
-
-    <!-- camera0 -->
-    <include file="$(find asv_perception_homography)/launch/camera.launch" ns="camera0">
-        <arg name="image_topic" value="$(arg camera0_image_topic)" />
-        <arg name="imu_topic" value="$(arg imu_topic)" />
-        <arg name="radar_topic" value="/homography/radar_image/output" />
-        <arg name="calibration_file" default="$(arg camera0_calibration_file)" />
-    </include>
-
-    <!-- camera1 -->
-    <include file="$(find asv_perception_homography)/launch/camera.launch" ns="camera1">
-        <arg name="image_topic" value="$(arg camera1_image_topic)" />
-        <arg name="imu_topic" value="$(arg imu_topic)" />
-        <arg name="radar_topic" value="/homography/radar_image/output" />
-        <arg name="calibration_file" default="$(arg camera1_calibration_file)" />
-    </include>
-
-    <!-- camera2 -->
-    <include file="$(find asv_perception_homography)/launch/camera.launch" ns="camera2">
-        <arg name="image_topic" value="$(arg camera2_image_topic)" />
-        <arg name="imu_topic" value="$(arg imu_topic)" />
-        <arg name="radar_topic" value="/homography/radar_image/output" />
-        <arg name="calibration_file" default="$(arg camera2_calibration_file)" />
-    </include>
+    <arg name="camera2_segmented_image_topic" />
+    <arg name="camera2_classifications_topic" />
 
     <group ns="homography">
         <!-- create radar image from pointcloud -->
         <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
-        <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
+        <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" launch-prefix="nice -n 10" />
 
         <!-- generate radar pointcloud -->
         <node pkg="nodelet" type="nodelet" name="radar_pointcloud" args="load asv_perception_obstacleid/RadarToPointCloudNodelet $(arg nodelet_name)" output="screen">
@@ -52,7 +31,7 @@
             </rosparam>
         </node>
 
-        <!-- create image from pointcloud for homography -->
+        <!-- create image from pointcloud for visualization -->
         <node name="radar_image" pkg="$(arg package_name)" type="imager.py" output="screen">
             <remap from="~input" to="radar_pointcloud/full_current" />
             <rosparam>
@@ -60,7 +39,47 @@
                 image_size: 1024
             </rosparam>
         </node>
+
+        <!-- points filter for camera0; remove all points where X < some_value -->
+        <node pkg="nodelet" type="nodelet" name="camera0_filter" respawn="true" output="screen" 
+            args="load pcl/PassThrough $(arg nodelet_name)" >
+        
+            <!-- TODO:  use /full topic (instead of full_current) after changing full_pub_offset to 90 degrees -->
+            <remap from="~input" to="radar_pointcloud/full_current" />
+
+            <rosparam>
+                filter_field_name: 'x'
+                filter_limit_min: 6.
+                filter_limit_max: 500.
+            </rosparam>
+        </node>
+        
     </group>
+
+    <!-- camera0 -->
+    <include file="$(find asv_perception_homography)/launch/camera.launch" ns="camera0">
+
+        <arg name="rgb_topic" value="$(arg camera0_image_topic)" />
+        <arg name="obstacles_topic" value="$(arg camera0_segmented_image_topic)" />
+        <arg name="imu_topic" value="$(arg imu_topic)" />
+        <arg name="classifications_topic" value="$(arg camera0_classifications_topic)" />
+        
+        <arg name="points_topic" value="/homography/camera0_filter/output" />
+        <arg name="points_range" value="500" />
+        <arg name="use_gpu" value="1" />
+        <arg name="src_frame" value="camera0" />
+        <arg name="max_error" value="8000" />
+
+        <!-- 
+            upper and lower bounds for autocalibration parameters 
+            r p y fov are in degrees
+            IMU values will be in radians, so smaller coefficients are likely to be better
+        -->
+        <!-- roll pitch yaw fov tx ty tz imu_roll imu_roll_velocity imu_pitch imu_pitch_cubed imu_pitch_velocity -->
+        <arg name="calibration_vector_lb" value="-1, 87, -5, 30, 0,   1.5, 0,   -0.1, -0.5, -0.1, -0.005, -0.5" />
+        <arg name="calibration_vector_ub" value=" 1, 93,  5, 40, 0.1, 2.5, 0.1,  0.1,  0.5,  0.1,  0.005,  0.5" />
+
+    </include>
 
 </launch>
 

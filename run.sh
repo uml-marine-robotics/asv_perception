@@ -17,5 +17,8 @@ docker run -it --rm \
   --env VNC_PORT=5950 \
   --env USE_LOCALIZATION=1 \
   --env USE_SIM_TIME=1 \
+  --env USE_SEGMENTATION=1 \
   -v $(pwd)/data/:/data \
+  -v $(pwd)/packages/:/catkin_ws/src \
+  -v $(pwd)/data/classification/yolov4:/data/classification \
   asv_perception

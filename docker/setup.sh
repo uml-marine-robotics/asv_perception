@@ -14,6 +14,7 @@ apt-get -y install --no-install-recommends \
     ros-melodic-robot-localization \
     ros-melodic-nmea-msgs \
     ros-melodic-tf2-sensor-msgs \
+    ros-melodic-ros-numpy \
     python-pip \
     python-opencv \
     python-rosinstall \
@@ -38,6 +39,7 @@ rm -rf /var/lib/apt/lists/*
 #   opencv:  4.2.0.32
 #   numpy: 1.16.6
 #   tensorflow 1.15 for wasr
+#   cupy 6
 python -m pip install --upgrade \
     pip==20.* wheel
 
@@ -48,7 +50,9 @@ python -m pip install --use-feature=2020-resolver \
     opencv-python==4.2.0.32 \
     setuptools==41.* \
     tensorflow==1.15.* \
-    filterpy
+    filterpy \
+    cupy-cuda100 \
+    pyswarm
 
 # ROS init
 rosdep init
