@@ -37,9 +37,10 @@ The default configuration is for a monocular camera, LIDAR, and two RADAR sensor
 
 ## Setup/calibration
 * Calibration tool:
-    * Start `asv_perception` image with the `VNC_PORT` environment variable specified (e.g. `VNC_PORT=5900`)
-    * Start robot sensor ROS drivers, or start a `.bag` file
-    * Connect to the asv_perception GUI with a vnc client, at `<docker_ip_address>::<VNC_PORT>`.  A desktop window should appear within VNC
+    * Start `asv_perception` image with the `VNC_PORT` environment variable specified (e.g. `VNC_PORT=5900`). In other words, execute run.sh by '. run.sh'. Make sure that the  
+    docker container is running successfully.
+    * Start robot sensor ROS drivers, or start a `.bag` file (rosbag play <bag file path>)
+    * Connect to the asv_perception GUI with a vnc client, at `<docker_ip_address>::<VNC_PORT>`.  A desktop window should appear within VNC. If you are on Ubuntu Linux, 'vncviewer' should be available to you. If you are running the VNC client from the same machine as the docker container, then you need not give IP address. Just specifying port number is sufficient.
     * In the VNC desktop, click `Run Calibration`.  A `rqt_image_view` window and a `Calibration` window should appear
     * Change `rqt_image_view` to `cameraN/homography_vis/image`, where `cameraN` is the camera you wish to calibrate.  You should see the camera image along with the RADAR image overlay
     * In the `Calibration` window, set the topic to `cameraN/homography`, where `cameraN` is the camera you wish to calibrate.  
