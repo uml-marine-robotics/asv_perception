@@ -3,40 +3,33 @@
     <arg name="pkg_name" value="asv_perception_tracking"/>
     <arg name="obstacle_topic" />
 
-    <!-- obstacle_topic: /camera1/projection/obstacles-->
-    <!-- obstacle_topic: /ir_camera1/projection/obstacles-->
-    <!-- obstacle_topic: /ir_camera2/projection/obstacles-->
-
     <group ns="tracking">
 
         <!-- 
-            (debug) visualization of detected obstacles : Node name= /XXX/tracking/detection
-            original duration 0.4
+            (debug) visualization of detected obstacles : Node name= XXX/tracking/detection
         -->
         <node name="detection" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
 
             <remap from="~input" to="$(arg obstacle_topic)" />
 
             <rosparam>
-                marker_duration_secs: 1.0
+                marker_duration_secs: 0.1
             </rosparam>
         </node>
 
         <!-- 
-            classified obstacle tracking : Node name= /XXX/tracking/classified
-            original age 4
-            original min hits 4
+            classified obstacle tracking : Node name= XXX/tracking/classified
         -->
         <node name="classified" pkg="$(arg pkg_name)" type="tracking_node.py" output="screen">
             
             <remap from="~input" to="$(arg obstacle_topic)" />
 
             <rosparam>
-                max_age: 5
-                min_hits: 3
+                max_age: 4
+                min_hits: 4
                 measurement_uncertainty: 10.
                 estimate_velocity: False
-                <!--tf_frame: 'odom'-->
+                tf_frame: 'odom'
 
                 cost_fn: 'perspective'
                 cost_fn_max: .4
@@ -64,14 +57,13 @@
         <!-- 
             tracked obstacle visualization
             tracking_node outputs /classified/obstacles which is given to visualization.py below as input
-            original duration 0.15
         -->
         <node name="visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
 
             <remap from="~input" to="classified/obstacles" />
 
             <rosparam>
-                marker_duration_secs: 1.0
+                marker_duration_secs: 0.15
             </rosparam>
         </node>
 

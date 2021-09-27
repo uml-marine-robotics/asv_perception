@@ -173,16 +173,6 @@ class ObstacleTrackingNode( NodeLazy ):
         self.ft = None  # FrameTransformer
         self.tf_frame = rospy.get_param('~tf_frame', None )
 
-        # obstacle publisher
-        self.pub = self.advertise( '~obstacles', ObstacleArray, queue_size=1 )
-
-    def subscribe( self ):
-
-        # init tf
-        if not self.tf_frame is None and len(self.tf_frame) > 0:
-            self.ft = FrameTransformer()
-            self.ft.use_most_recent_tf = rospy.get_param('tf_time_current', False )
-
         # init tracker
         # select cost function
         cost_fn = { 
@@ -202,8 +192,23 @@ class ObstacleTrackingNode( NodeLazy ):
             cost_fn_max=rospy.get_param('~cost_fn_max', 10. )
             )
 
+        # obstacle publisher
+        self.pub = self.advertise( '~obstacles', ObstacleArray, queue_size=1 )
+        
         # init subs
         self.sub = rospy.Subscriber( '~input', ObstacleArray, callback=self.cb_sub, queue_size=1, buff_size=2**24 )
+
+        print("tracking node: {0} created".format(self.node_name))
+        
+    def subscribe( self ):
+
+        print("tracking node {0} subscriber invoked (start).".format(self.node_name))
+        # init tf
+        if not self.tf_frame is None and len(self.tf_frame) > 0:
+            self.ft = FrameTransformer()
+            self.ft.use_most_recent_tf = rospy.get_param('tf_time_current', False )
+
+        print("tracking node {0} subscriber invoked (end).".format(self.node_name))
 
     def unsubscribe( self ):
 
@@ -219,6 +224,7 @@ class ObstacleTrackingNode( NodeLazy ):
         
         # will not have frame transformer if no tf frame specified
         if self.ft is None:
+            print("No frame transformer...")
             return
 
         msg.header.frame_id = self.tf_frame
@@ -228,6 +234,13 @@ class ObstacleTrackingNode( NodeLazy ):
 
     def cb_sub( self, msg ):        
 
+        print("tracking node {0} cb_sub invoked (start).".format(self.node_name))
+        print("Number of obstacles received={0}, nodename={1}".format(len(msg.obstacles), self.node_name))
+
+        for oneObs in msg.obstacles:
+            print("oneObs.nodename={0}, oneObs.position={1}, {2}, {3}, oneObs.Size={4}, {5}, {6}".format(self.node_name, oneObs.pose.pose.position.x, oneObs.pose.pose.position.y,
+                                                  oneObs.pose.pose.position.z, oneObs.dimensions.x,
+                                                  oneObs.dimensions.y, oneObs.dimensions.z))
         # perform tf transforms on input msg if needed
         self.transform_msg( msg )
 
@@ -248,13 +261,18 @@ class ObstacleTrackingNode( NodeLazy ):
         result = ObstacleArray()
         result.header = msg.header
 
+        print("Num of trackers created = {0}".format(len(trackers)))
         for trk in trackers:
             update_obstacle_data( trk ) # perform obstacle data update
 
             if trk.hits >= self.min_hits:
                 result.obstacles.append( trk.data[0] )
 
+        
+        print("Print just before publishing of result")
         self.pub.publish( result )
+        print("After update_obstacle_data, result.obstacles={0}, node={1}".format(len(result.obstacles), self.node_name))
+        print("tracking node {0} cb_sub invoked (end).".format(self.node_name))
     
 if __name__ == "__main__":
 

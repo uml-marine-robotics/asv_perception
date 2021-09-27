@@ -1,7 +1,8 @@
 <launch>
 
   <arg name="package_name" value="asv_perception_obstacleid"/>
-  <arg name="radar_topic" />
+  <arg name="radar_topic" default="dummyXYZ"/>
+  <arg name="radar_pointcloud_topic" default="dummyPQR"/>
 
   <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />

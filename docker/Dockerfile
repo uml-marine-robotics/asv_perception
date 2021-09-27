@@ -4,6 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # apt & pip setup
 COPY docker/setup.sh /setup.sh
+
 RUN chmod +x /setup.sh && . /setup.sh
 
 # set ROS distro
@@ -19,6 +20,7 @@ ENV ASV_PERCEPTION_CONFIG "/data/config/"
 # define workspace
 ARG CATKIN_WS="/catkin_ws"
 ENV CATKIN_WS=${CATKIN_WS}
+ENV USE_SEGMENTATION=1
 
 WORKDIR ${CATKIN_WS}
 

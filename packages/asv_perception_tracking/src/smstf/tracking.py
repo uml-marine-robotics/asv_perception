@@ -147,6 +147,7 @@ class TrackedObject(object):
         self.age = 0
         self.hits = 1
         self.data = [ data ]
+        print("TrackerObject id = {0}".format(self.id))
 
         kf = KalmanFilter(dim_x=9, dim_z=6)  #state vector sz, measurement vector sz
         kf.P *= 10.  # covariance matrix
@@ -174,6 +175,7 @@ class TrackedObject(object):
         self.data.extend(other.data) # add data from other TrackedObject
         self.hits += 1
         self.age = 0
+        print("hits updated to {0}".format(self.hits))
 
     @property 
     def position( self ):
@@ -218,10 +220,12 @@ class SensorTracking(object):
         self.cost_fn = kwargs.get( 'cost_fn', EuclideanDistance() )  # default cost function
         self.cost_fn_min = kwargs.get( 'cost_fn_min', 0. )
         self.cost_fn_max = kwargs.get( 'cost_fn_max', 10. )
+        print("SensorTracking iniated.")
 
     def update( self, detections ):
         """ performs update.  detections is a list of TrackedObject, or TrackedObject-derived.  returns list of trackedobject """
 
+        print("SensorTracking: DataType of detection={0}, no. of detections={1}".format(type(detections), len(detections)))
         # perform predictions on existing trackers
         for trk in self.trackers:
             trk.predict()

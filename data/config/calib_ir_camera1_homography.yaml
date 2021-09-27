@@ -1,0 +1,3 @@
+{fovy: 35.5, imu_pitch_alpha: 0.7, imu_pitch_beta: 0.1, imu_roll_alpha: 0.5, imu_roll_beta: 0.0,
+  pitch: 90.0, roll: -0.91, topic: /ir_camera1/homography, tx: 0.0, ty: 2.0, tz: 0.0,
+  yaw: 22.84}

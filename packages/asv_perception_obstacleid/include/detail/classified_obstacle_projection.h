@@ -15,6 +15,8 @@
 #include "ClassifiedObstacle2d.h"
 #include "Homography.h"
 
+// image_type = cv::Mat
+
 namespace obstacle_id {
 namespace detail {
 namespace classified_obstacle_projection {
@@ -38,6 +40,8 @@ namespace impl {
         };
 
         // loop while condition holds, or y != limit.  move y towards limit
+        // When expected_condition_result == true, y will increase or decrease till 
+        // obstacle_pixel_at_y returns false. That is the boundary of obstacle in segmented image.
         const auto find_stop_y = [&]( int y, const bool expected_condition_result, const int limit ) {
 
             auto result = y;
@@ -61,7 +65,7 @@ namespace impl {
         //      if no pixel at this y, expand down until pixel found
         int start_y = (int)roi.y_offset;
         if ( obstacle_pixel_at_y( start_y ) )
-            start_y = find_stop_y( start_y, true, 0 );
+            start_y = find_stop_y( start_y, true, 0 ); 
         else {
             start_y = find_stop_y( start_y, false, img.rows - 1 );
             start_y = std::min( start_y + 1, img.rows - 1); // add 1 to set location to where pixels exist
@@ -89,9 +93,9 @@ namespace impl {
     // performs roi adjustments on obstacle roi bounding box using obstacle map
     //  returns flag if roi adjusted
     bool adjust_roi( 
-        const std::shared_ptr<ClassifiedObstacle2d>& obs2d
-        , const std::vector<std::shared_ptr<ClassifiedObstacle2d>>& obstacles_2d
-        , const image_type& obstacle_map
+        const std::shared_ptr<ClassifiedObstacle2d>& obs2d // one roi from yolo
+        , const std::vector<std::shared_ptr<ClassifiedObstacle2d>>& obstacles_2d // vector of roi
+        , const image_type& obstacle_map // segmentation output
         , const float roi_grow_limit
         , const float roi_shrink_limit 
         ) {
@@ -109,11 +113,11 @@ namespace impl {
                 return false;
         }
 
-        auto candidate_roi = impl::adjust_vertical_roi_to_image( obs2d->cls.roi, obstacle_map );
+        auto candidate_roi = impl::adjust_vertical_roi_to_image( obs2d->m_cls.roi, obstacle_map );
 
         // compute roi area delta, compare to limits
         const auto 
-            orig_area = obs2d->cls.roi.width * obs2d->cls.roi.height
+            orig_area = obs2d->m_cls.roi.width * obs2d->m_cls.roi.height
             , candidate_area = candidate_roi.width * candidate_roi.height
             ;
         // delta is percent of original roi
@@ -123,7 +127,8 @@ namespace impl {
             ( ( delta > 1.f ) && ( roi_grow_limit >= ( delta - 1.f ) ) )    // roi has grown
             || ( ( delta < 1.f ) && ( roi_shrink_limit >= ( 1.f - delta ) ) )   // roi has shrunk
         ) {
-            obs2d->cls.roi = std::move( candidate_roi );
+            obs2d->m_cls.roi = std::move( candidate_roi );
+            ROS_DEBUG("obs2d->m_cls.roi got adjusted.\n");
             return true;
         }
         return false;
@@ -138,8 +143,20 @@ namespace impl {
             return std::uint32_t( std::max( -( float(x)*h.at(2,0) + h.at(2,2))/ ( h.at(2,1) + FLT_EPSILON ), 0.f ) );
         };
 
-        const auto& roi = c.cls.roi;
+        const auto& roi = c.m_cls.roi;
         // ROS_WARN_STREAM( std::to_string( horizon_at_x( roi.x_offset ) ) + " / " + std::to_string( horizon_at_x( roi.x_offset + roi.width ) ) );            
+
+        ROS_DEBUG("Homography: h(0,0) = %.3f, h(0,1) = %.3f, h(0,2) = %.3f", h.at(0,0), h.at(0,1), h.at(0,2));
+        ROS_DEBUG("Homography: h(1,0) = %.3f, h(1,1) = %.3f, h(1,2) = %.3f", h.at(1,0), h.at(1,1), h.at(1,2));
+        ROS_DEBUG("Homography: h(2,0) = %.3f, h(2,1) = %.3f, h(2,2) = %.3f", h.at(2,0), h.at(2,1), h.at(2,2));
+
+        ROS_DEBUG("ROI: %d, %d, %d, %d", roi.x_offset, roi.y_offset, roi.width, roi.height);
+
+        std::uint32_t max_height = roi.y_offset + roi.height;
+        std::uint32_t depth_at_x = horizon_at_x( roi.x_offset );
+        std::uint32_t depth_at_xwidth= horizon_at_x( roi.x_offset + roi.width );
+
+        ROS_DEBUG("ROI: max_height=%d, x_depth=%d, xwidth_depth=%d", max_height, depth_at_x, depth_at_xwidth);
 
         return
             ( ( roi.y_offset + roi.height ) <= horizon_at_x( roi.x_offset ) )
@@ -173,10 +190,14 @@ inline std::vector<Obstacle> project(
     if ( !obstacle_map.empty() && ( classifications.image_height != obstacle_map.rows || classifications.image_width !=  obstacle_map.cols ) )
         throw std::runtime_error("obstacle map image size does not match classification image size");
 
+    
+
     // foreach classification, construct Obstacle2d
     auto obstacles_2d = std::vector<std::shared_ptr<ClassifiedObstacle2d>>();
     for ( const auto& cls : classifications.classifications )
+    {
         obstacles_2d.emplace_back( std::make_shared<ClassifiedObstacle2d>(cls) );
+    }
 
     //  todo:  estimate z offset via parent/child relationships
     //      depends on adjacent pixel class, known/unknown
@@ -192,17 +213,31 @@ inline std::vector<Obstacle> project(
         , min_distance_squared = std::pow(min_distance, 2.f )
         ;
 
-    for ( auto& obs2d : obstacles_2d ) {
+    if (obstacles_2d.size() > 0) {
+      ROS_DEBUG("No. of obstacles to process=%d\n", obstacles_2d.size());
+      ROS_DEBUG("classifications.image_height=%d, classifications.image_width=%d", 
+                 classifications.image_height, classifications.image_width);
+    }
 
+    int index = 1;
+    for ( auto& obs2d : obstacles_2d ) {
+        ROS_DEBUG("Before projection1, obs2d.roi.x_offset=%lf, obs2d.roi.y_offset=%lf, obs2d.roi.width=%lf, obs2d.roi.height=%lf \n", (float)obs2d->m_cls.roi.x_offset, (float)obs2d->m_cls.roi.y_offset, (float)obs2d->m_cls.roi.width, (float)obs2d->m_cls.roi.height);
+        
         // vertically expand/contract classifier roi bounding boxes
         //  make roi adjustments up to min/max percentage
-        if ( !obstacle_map.empty() && ( ( roi_grow_limit > 0.f ) || ( roi_shrink_limit > 0.f ) ) )
+        if ( !obstacle_map.empty() && ( ( roi_grow_limit > 0.f ) || ( roi_shrink_limit > 0.f ) ) ) {
+            ROS_DEBUG("obstacle map is not empty.\n");
             impl::adjust_roi( obs2d, obstacles_2d, obstacle_map, roi_grow_limit, roi_shrink_limit );
+        }
 
+        ROS_DEBUG("Before projection2, obs2d.roi.x_offset=%lf, obs2d.roi.y_offset=%lf, obs2d.roi.width=%lf, obs2d.roi.height=%lf \n", (float)obs2d->m_cls.roi.x_offset, (float)obs2d->m_cls.roi.y_offset, (float)obs2d->m_cls.roi.width, (float)obs2d->m_cls.roi.height);
+
+        // @todo : For time-being, by-pass the horizon filter.
         if ( impl::is_above_horizon( *obs2d, h ) ) {
             ROS_INFO_STREAM( std::string( "Image ROI above horizon, ignoring" ) );
             continue;
         }
+        ROS_DEBUG("Before projection3, obs2d.roi.x_offset=%lf, obs2d.roi.y_offset=%lf, obs2d.roi.width=%lf, obs2d.roi.height=%lf \n", (float)obs2d->m_cls.roi.x_offset, (float)obs2d->m_cls.roi.y_offset, (float)obs2d->m_cls.roi.width, (float)obs2d->m_cls.roi.height);
 
         auto obs = obs2d->project( h, min_height, max_height, min_depth, max_depth );
 
@@ -214,22 +249,55 @@ inline std::vector<Obstacle> project(
                 + std::pow(obs.pose.pose.position.z, 2.f )
             ;
 
+            ROS_DEBUG("Centroid=%lf, %lf, %lf\n", obs.pose.pose.position.x, obs.pose.pose.position.y,
+                      obs.pose.pose.position.z);
+            ROS_DEBUG("min_distance_squared=%lf, dist_squared=%lf, max_distance_squared=%lf\n", 
+                       min_distance_squared, dist_squared, max_distance_squared);
+
             if (
                 ( dist_squared < min_distance_squared )
                 || ( dist_squared > max_distance_squared )
                 )
-                continue;
+                {
+                    ROS_DEBUG("Obstacle filtered out because it is too small or too large \n");
+                    continue;
+                }
+
+            ROS_DEBUG("obs.area = %lf \n", obs.area);
+            if (obs.area < 3.0) {
+               ROS_DEBUG("Obstacle filtered out because it has too small an area \n");
+               continue;
+            }
         }
 
         if ( !obstacle_map.empty() ) {
-            const auto rect = utils::to_cv_rect( obs2d->cls.roi, obstacle_map );    // get opencv rect based on roi
+            const auto rect = utils::to_cv_rect( obs2d->m_cls.roi, obstacle_map );    // get opencv rect based on roi
             obstacle_map( rect ) = 0;    // set roi to black in obstacle_map
         }
-
-        result.emplace_back( std::move(obs) );
+        
+        ROS_DEBUG("Obstacle %d pushed in result", index);
+        ++index;
+        //result.emplace_back( std::move(obs) );
+        result.push_back(obs);
     }
 
+    ROS_DEBUG("Size of result (projected obstacles)=%d\n", result.size());
     return result;
+}
+
+inline std::vector<Obstacle> project( 
+    image_type& obstacle_map
+    , const Homography& h
+    , const float min_height
+    , const float max_height
+    , const float min_depth
+    , const float max_depth
+    , const float min_distance
+    , const float max_distance
+    , const float roi_grow_limit = 0.f
+    , const float roi_shrink_limit = 0.f
+) {
+
 }
 
 }}}   // ns

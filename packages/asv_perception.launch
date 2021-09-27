@@ -5,6 +5,7 @@
     <node name="remap_imu" type="relay" pkg="topic_tools" args= "/imu/data/enu /perception/sensor/imu" />
     <node name="remap_gps" type="relay" pkg="topic_tools" args= "/sensor/gps/fix /perception/sensor/gps" />
     <node name="remap_radar0" type="relay" pkg="topic_tools" args= "/broadband_radar/channel_0/segment /perception/sensor/radar0" />
+    <node name="remap_radar0_pointcloud" type="relay" pkg="topic_tools" args= "/broadband_radar/channel_0/pointcloud /perception/sensor/radar0_pointcloud" />
 
     <!-- unthrottled sensor inputs -->
     <!-- 
@@ -17,12 +18,15 @@
     <!-- throttled sensor inputs -->
     <node name="remap_throttle_lidar0" type="throttle" pkg="topic_tools" args= "messages /velodyne_points 10.0 /perception/sensor/lidar0" />
     <node name="remap_throttle_camera0" type="throttle" pkg="topic_tools" args= "messages /center_camera/image_color/compressed 10.0 /perception/sensor/camera0/compressed" />
-    <node name="remap_throttle_camera1" type="throttle" pkg="topic_tools" args= "messages /left_camera/image_color/compressed 10.0 /perception/sensor/camera1/compressed" />
-    <node name="remap_throttle_camera2" type="throttle" pkg="topic_tools" args= "messages /right_camera/image_color/compressed 10.0 /perception/sensor/camera2/compressed" />
+    <node name="remap_throttle_camera1" type="throttle" pkg="topic_tools" args= "messages /left_camera/image_color/compressed 5.0 /perception/sensor/camera1/compressed" />
+    <node name="remap_throttle_camera2" type="throttle" pkg="topic_tools" args= "messages /right_camera/image_color/compressed 5.0 /perception/sensor/camera2/compressed" />
+    <node name="remap_throttle_ir_camera_left" type="throttle" pkg="topic_tools" args= "messages /left_ir/rotated/image_raw 10.0 /perception/sensor/ir_camera_left" /> 
+    <node name="remap_throttle_ir_camera_right" type="throttle" pkg="topic_tools" args= "messages /right_ir/rotated/image_raw 10.0 /perception/sensor/ir_camera_right" />
     
     <!-- asv_perception sensor topics -->
     <arg name="gps_topic" default="/perception/sensor/gps" />
     <arg name="radar0_topic" default="/perception/sensor/radar0" />
+    <arg name="radar0_pointcloud_topic" default="/perception/sensor/radar0_pointcloud" />
     <arg name="lidar0_topic" default="/perception/sensor/lidar0" />
     
     <arg name="camera0_image_topic" default="/perception/sensor/camera0/compressed" />
@@ -31,6 +35,10 @@
     <arg name="camera1_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_camera1_homography.yaml" />
     <arg name="camera2_image_topic" default="/perception/sensor/camera2/compressed" />
     <arg name="camera2_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_camera2_homography.yaml" />
+    <arg name="left_ir_camera_image_topic" default="/perception/sensor/ir_camera_left" /> 
+    <arg name="left_ir_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_ir_camera1_homography.yaml" />
+    <arg name="right_ir_camera_image_topic" default="/perception/sensor/ir_camera_right" />
+    <arg name="right_ir_calibration_file" default="$(env ASV_PERCEPTION_CONFIG)calib_ir_camera2_homography.yaml" />
 
     <arg name="imu_topic" default="/perception/sensor/imu" />
     <!-- 
@@ -54,12 +62,17 @@
     <include file="$(find asv_perception_homography)/launch/homography.launch">
         <arg name="imu_topic" value="/perception/sensor/imu/throttled" />
         <arg name="radar_topic" value="$(arg radar0_topic)" />
+        <arg name="radar_pointcloud_topic" value="$(arg radar0_pointcloud_topic)" />
         <arg name="camera0_image_topic" default="$(arg camera0_image_topic)" />
         <arg name="camera0_calibration_file" default="$(arg camera0_calibration_file)" />
         <arg name="camera1_image_topic" default="$(arg camera1_image_topic)" />
         <arg name="camera1_calibration_file" default="$(arg camera1_calibration_file)" />
         <arg name="camera2_image_topic" default="$(arg camera2_image_topic)" />
         <arg name="camera2_calibration_file" default="$(arg camera2_calibration_file)" />
+        <arg name="left_ir_camera_image_topic" default="$(arg left_ir_camera_image_topic)" />
+        <arg name="left_ir_calibration_file" default="$(arg left_ir_calibration_file)" />
+        <arg name="right_ir_camera_image_topic" default="$(arg right_ir_camera_image_topic)" />
+        <arg name="right_ir_calibration_file" default="$(arg right_ir_calibration_file)" />
     </include>
 
     <!-- segmentation -->
@@ -68,9 +81,11 @@
 
     <group if="$(arg use_segmentation)">
         <include file="$(find asv_perception_segmentation)/launch/segmentation.launch">
-            <arg name="camera0_image_topic" value="$(arg camera0_image_topic)" />
-            <arg name="camera1_image_topic" value="$(arg camera1_image_topic)" />
-            <arg name="camera2_image_topic" value="$(arg camera2_image_topic)" />
+            <arg name="camera0_image_topic" value="$(arg camera0_image_topic)" /> 
+            <arg name="camera1_image_topic" value="$(arg camera1_image_topic)" /> 
+            <arg name="camera2_image_topic" value="$(arg camera2_image_topic)" /> 
+            <arg name="left_ir_camera_image_topic" value="$(arg left_ir_camera_image_topic)" />  
+            <arg name="right_ir_camera_image_topic" value="$(arg right_ir_camera_image_topic)" />
         </include>
     </group>
 
@@ -85,6 +100,7 @@
     <include file="$(find asv_perception_obstacleid)/launch/obstacleid.launch">
         <arg name="use_segmentation" value="$(arg use_segmentation)" />
         <arg name="radar0_topic" value="$(arg radar0_topic)" />
+        <arg name="radar0_pointcloud_topic" value="$(arg radar0_pointcloud_topic)" />
         <arg name="lidar0_topic" value="$(arg lidar0_topic)" />
     </include>
 

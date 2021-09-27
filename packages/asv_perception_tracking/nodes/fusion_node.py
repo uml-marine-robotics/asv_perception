@@ -30,8 +30,10 @@ def create_obstacle( group_tracker ):
     #       - input covariances are (always?) diagonal matrices with the same value down the diagonal
     #       - TODO:  move velocity calc to smstf
     #   use group.data to store last generated obstacle, useful for "sticky" attributes
-
+    
+    print("Inside create_obstacle={0}".format(len(group_tracker.trackers)))
     if len(group_tracker.trackers) < 1:
+        print("NO trackers...")
         return None
 
     # construct a list of Obstacles from all trackers in group
@@ -43,6 +45,8 @@ def create_obstacle( group_tracker ):
     result = copy.deepcopy(obstacles[0])
     result.id = group_tracker.id  # always use group id
     prev = group_tracker.data # previously generated obstacle, may be None
+
+    print("No. of positions={0}, {1}, {2}".format(group_tracker.position[0], group_tracker.position[1], group_tracker.position[2]))
 
     # use fused position, position_covar from group
     result.pose.pose.position=Point( float(group_tracker.position[0]), float(group_tracker.position[1]), float(group_tracker.position[2]) )
@@ -61,7 +65,10 @@ def create_obstacle( group_tracker ):
 
         # observed_initial:  use earliest
         result.observed_initial = min( result.observed_initial, obs.observed_initial )
-        
+
+        print("obs.label={0}".format(obs.label))
+        print("obs.label_probability={0}, result.label_probability={1}".format(obs.label_probability, result.label_probability))        
+        print("obs.area={0}, result.area={1}".format(obs.area, result.area))
         # label, label_prob
         if obs.label_probability > result.label_probability:
             result.label_probability = obs.label_probability
@@ -145,17 +152,24 @@ class ObstacleFusionNode( NodeLazy ):
     def __init__( self ):
         self.node_name = rospy.get_name()
         self.n_subs = int(rospy.get_param('~n_subs', 2 ))
+        print("fusion node={0}, self.n_subs={1}".format(self.node_name, self.n_subs))
         self.publish_rate = rospy.Rate( rospy.get_param('~publish_rate', 5.0) )
         self.subs = []
         self.tracker = None
         self.ft = None # frametransformer
         self.pub = self.advertise( '~obstacles', ObstacleArray, queue_size=1 )
+        self.subs = [ rospy.Subscriber( '~%d/input' % i, ObstacleArray, callback=self.cb_sub, callback_args=i, queue_size=1, buff_size=2**24 ) for i in range(self.n_subs) ]
+        print("fusion node, num subscribers={0}".format(len(self.subs)))
+        # init tracker
+        self.tracker = SensorFusion()
 
         # initialize sensors info
         self.sensors = []
         for i in range(self.n_subs):
             key = "~sensor{}".format(i) # get param key
             d = rospy.get_param( key ) # throw on fail
+
+            print("key={0}".format(key))
 
             # convert cost_fn string to functor
             d['cost_fn'] = { 
@@ -178,16 +192,14 @@ class ObstacleFusionNode( NodeLazy ):
             d['id']=i # set sensor id
             
             self.sensors.append(d)
+
+        
         
     def subscribe( self ):
-
-        self.unsubscribe()
-
+        # Why subscription and tracker creation part of subscribe method?
+        # Why call unsubscribe method here?
+        #self.unsubscribe()
         self.ft = FrameTransformer()
-
-        # init tracker
-        self.tracker = SensorFusion()
-        self.subs = [ rospy.Subscriber( '~%d/input' % i, ObstacleArray, callback=self.cb_sub, callback_args=i, queue_size=1, buff_size=2**24 ) for i in range(self.n_subs) ]
 
     def unsubscribe( self ):
 
@@ -201,17 +213,21 @@ class ObstacleFusionNode( NodeLazy ):
     def cb_sub( self, msg, sensor_idx ):
         "fuse input obstacle data"
 
+        # self.tracker is of type SensorFusion
         #t1 = rospy.Time.now()
-        assert self.tracker
+        assert self.tracker 
 
         # get sensor config
         sensor = self.sensors[sensor_idx]
+        print("sensor id = {0}".format(sensor['id']))
+        print("frame id = {0}".format(msg.header.frame_id))
 
         # if using PerspectiveDistance, convert origin (our platform) to target frame for current time
         if self.ft and isinstance( sensor['cost_fn'], PerspectiveDistance ):
             pos = self.ft.transform_pose( Pose(), dst_frame=msg.header.frame_id )  
             sensor['cost_fn'].origin = np.array( [pos.position.x,pos.position.y,pos.position.z ])
 
+        print("Inside fuse cb_sub, total obstacles={0}".format(len(msg.obstacles)))
         self.tracker.update( sensor, [ create_tracked_object( obs ) for obs in msg.obstacles ] )
         #rospy.logwarn("processed in t=%s" % ( ( rospy.Time.now() - t1 ).to_sec() ) )
 

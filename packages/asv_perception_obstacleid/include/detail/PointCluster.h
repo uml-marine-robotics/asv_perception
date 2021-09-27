@@ -39,6 +39,7 @@ public:
         auto hull_area = utils::create_convex_hull( *pc_ptr, this->indices, ndimensions );
         this->convex_hull = std::move(hull_area.first);
         this->area = hull_area.second;
+        ROS_DEBUG("Area of region=%lf\n", hull_area.second);
     }
 
     // create Obstacle from this PointCluster

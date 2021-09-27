@@ -15,13 +15,23 @@
    limitations under the License.
 """
 
-from PIL import Image
+from PIL import Image # Python Imaging Library
 import numpy as np
 import tensorflow as tf
 
+# 0 : sky, 1 : water, 2 : bridge, 3 : obstacle
+# 4 : living obstacle, 5 : background, 6 : self
 # colour map (obstacles, water, sky)
-label_colours = [(59,193,246), (222,168,51), (161,78,69)]
-#label_colours = [(0,0,0), (0,0,255), (0,255,0)]
+# Interprete colors as BGR (in reverse order)
+#              (59,193,246) : brown gold (sky), 
+#              (222,168,51) : turquoise blue(water), 
+#              (69,78,161)  : brick red (bridge), 
+#              (10, 10, 255) : bright red (obstacle), 
+#              (238, 159, 231) : light purple (living obstacle),    
+#              (0, 128, 128) : olive green (background), 
+#              (160, 253, 134) : faint green (self)
+label_colours = [(59,193,246), (222,168,51), (69,78,161), (10, 10, 255), (238, 159, 231), (0, 128, 128), (160, 253, 134)]
+
 
 # three classes - water, sky, obstacles
 def decode_labels(mask, num_images=1, num_classes=3):

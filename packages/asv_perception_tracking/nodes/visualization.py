@@ -7,8 +7,9 @@ Authors:  Tom Clunie <clunietp@gmail.com>
 """
 
 import copy, rospy, math
-from visualization_msgs.msg import Marker, MarkerArray
+from visualization_msgs.msg import Marker, MarkerArray # Standard ROS messages to be used in rviz
 from geometry_msgs.msg import Point, Quaternion, Vector3
+from sensor_msgs.msg import PointCloud2
 from tf.transformations import *
 from asv_perception_common.msg import Obstacle, ObstacleArray
 from asv_perception_common.NodeLazy import NodeLazy
@@ -54,6 +55,7 @@ def create_marker_linestrip( t, lifetime ):
     # points are relative to marker.pose.position
     if not t.hull2d is None:
         marker.points = copy.deepcopy(t.hull2d.points)
+        print("Number of points in hull2d = {0}, t.label={1}".format(len(t.hull2d.points), t.label))
     
     # connect first and last point
     if len(marker.points) > 0:
@@ -121,7 +123,15 @@ def create_obstacle_markers( t, lifetime ):
 
     # classified obstacle
     if not t.label is None and len(t.label) > 0:
-        hull.color.b = 1.
+        if t.label == "obstacle":
+            hull.color.r = 1.
+            hull.color.g = 0.
+            hull.color.b = 0.
+        else:
+            hull.color.b = 1.
+
+        print("t.label={0}, t.area={1}, t.dimensions={2}, hull.color={3}".format(t.label, t.area, t.dimensions, hull.color))
+    
 
     return result
 
@@ -138,21 +148,52 @@ class VisualizationNode(NodeLazy):
         self.node_name = rospy.get_name()
         self.marker_lifetime = rospy.Duration.from_sec( rospy.get_param( '~marker_duration_secs', 0.5 ) )
         self.sub = None
-        self.pub = self.advertise( '~markers', MarkerArray, queue_size=100 )
+        self.sub_ir_seg_cloud = None
+        self.pub = self.advertise( '~markers', MarkerArray, queue_size=10 )
+        self.sub = rospy.Subscriber( '~input', ObstacleArray, self.cb_sub, queue_size=1, buff_size=2**24 )
+        #self.pub_ir = self.advertise('~ir_cloud', PointCloud2, queue_size=100)
+        print("visualization node={0}".format(self.node_name))
 
     def subscribe( self ):
+        # put subscriber in init function
+        #self.sub_ir = rospy.Subscriber('~input_ir', ObstacleArray, self.cb_sub_ir_seg_cloud, queue_size=1, buff_size=2**24)
+        print("Subscribe in Visualization of {0} invoked".format(self.node_name))
         self.sub = rospy.Subscriber( '~input', ObstacleArray, self.cb_sub, queue_size=1, buff_size=2**24 )
 
     def unsubscribe( self ):
         if not self.sub is None:
             self.sub.unregister()
             self.sub = None
+        if not self.sub_ir is None:
+            self.sub_ir.unregister()
+            self.sub_ir = None
+
+    def cb_sub_ir_seg_cloud(self, msg):
+        if (msg is not None):
+            print("Receiving IR segmentation in ObstacleArray form to show...")
+            arr = MarkerArray()
+            for obs in msg.obstacles:
+                arr.markers.extend( create_obstacle_markers( obs, self.marker_lifetime ) )
+
+            self.pub.publish(arr)
+        else:
+            print("Did not receive IR segmentation in ObstacleArray form to show...")
 
     def cb_sub( self, msg ):
         arr = MarkerArray()
+        print("Visualization cb_sub of {0} is invoked.".format(self.node_name))
+        print("Number of msg.obstacles={0}, node name={1}".format(len(msg.obstacles), self.node_name))
         for obs in msg.obstacles:
-            arr.markers.extend( create_obstacle_markers( obs, self.marker_lifetime ) )
+            # Creates linestrip, sphere and text
+            newMarkers = create_obstacle_markers( obs, self.marker_lifetime )
+            arr.markers.extend(newMarkers)
+            print("arr.markers[0].points={0}, arr.markers[0].color={0}, {1}, {2}, arr.markers[2].text={3}".format(newMarkers[0].points,
+                                                                        newMarkers[0].color.r,
+                                                                        newMarkers[0].color.g, 
+                                                                        newMarkers[0].color.b, 
+                                                                        newMarkers[2].text))
 
+        print("MarkerArray has {0} markers".format(len(arr.markers)))
         self.pub.publish(arr)
     
 if __name__ == "__main__":

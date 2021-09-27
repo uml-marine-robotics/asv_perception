@@ -21,6 +21,7 @@ namespace {
     , TOPIC_NAME_SEGMENT = "segment"
     , TOPIC_NAME_FULL = "full"
     , TOPIC_NAME_FULL_CURRENT = "full_current"
+    , TOPIC_NAME_INPUT_POINTCLOUD = "input2"
   ;
 
   // sums the differences in angles for all segments, assumes clockwise rotation/increasing angles
@@ -118,6 +119,12 @@ void RadarToPointCloudNodelet::subscribe ()
     , 100
     , bind (&RadarToPointCloudNodelet::sub_callback, this, _1 )
   );
+
+  this->sub_pointcloud = pnh_->subscribe<sensor_msgs::PointCloud2> (
+    TOPIC_NAME_INPUT_POINTCLOUD
+    , 100
+    , bind (&RadarToPointCloudNodelet::sub_callback_pointcloud, this, _1 )
+  );
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,6 +132,13 @@ void RadarToPointCloudNodelet::unsubscribe ()
 {
   lock_type_ lg( this->mtx_ );
   this->sub_.shutdown();
+}
+
+void RadarToPointCloudNodelet::sub_callback_pointcloud (
+      const sensor_msgs::PointCloud2::ConstPtr& pointcloud
+)
+{
+
 }
 
 void RadarToPointCloudNodelet::sub_callback (

@@ -2,35 +2,58 @@
 <launch>
     <arg name="use_segmentation" />
     <arg name="radar0_topic" />
+    <arg name="radar0_pointcloud_topic" />
     <arg name="lidar0_topic" />
 
+    <env name="ROSCONSOLE_CONFIG_FILE" value="$(find asv_perception_obstacleid)/custom_rosconsole.conf"/>
+
     <!-- sensor-specific obstacle generators -->
+    <!-- camera0 -->
     <include file="$(find asv_perception_obstacleid)/launch/camera.launch" ns="camera0">
         <arg name="use_segmentation" value="$(arg use_segmentation)" />
-        <arg name="segmentation_topic" value="/segmentation/0/obstacles" />
+        <!--<arg name="segmentation_topic" value="/segmentation/0/output" />-->
         <arg name="classification_topic" value="/classification/0/output" />
         <arg name="homography_topic" value="/camera0/homography/rgb_radar" />
     </include>
 
-    <!-- camera2 -->
+    <!-- camera1 -->
     <include file="$(find asv_perception_obstacleid)/launch/camera.launch" ns="camera1">
+    <!-- <include file="$(find asv_perception_obstacleid)/launch/camera.launch" > -->
         <arg name="use_segmentation" value="$(arg use_segmentation)" />
-        <arg name="segmentation_topic" value="/segmentation/1/obstacles" />
+        <!--<arg name="segmentation_topic" value="/segmentation/1/output" />-->
         <arg name="classification_topic" value="/classification/1/output" />
         <arg name="homography_topic" value="/camera1/homography/rgb_radar" />
     </include>
 
     <!-- camera2 -->
-    <include file="$(find asv_perception_obstacleid)/launch/camera.launch" ns="camera2">
-        <arg name="use_segmentation" value="$(arg use_segmentation)" />
-        <arg name="segmentation_topic" value="/segmentation/2/obstacles" />
+    <include file="$(find asv_perception_obstacleid)/launch/camera.launch" ns="camera2"> 
+    <!-- <include file="$(find asv_perception_obstacleid)/launch/camera.launch" > -->
+        <arg name="use_segmentation" value="0" />
+        <!--<arg name="segmentation_topic" value="/segmentation/2/output" />-->
         <arg name="classification_topic" value="/classification/2/output" />
         <arg name="homography_topic" value="/camera2/homography/rgb_radar" />
+    </include>
+
+    <!-- ir_camera1 -->
+    <!-- The segmentation is scoped to obstacles only and the obstacle mask is converted to blobs
+    and in turn converted to ObstacleArray. The output emitted by following will have form /ir_camera1/-->
+    <include file="$(find asv_perception_obstacleid)/launch/camera.launch" ns="ir_camera1"> 
+        <arg name="use_segmentation" value="$(arg use_segmentation)" />
+        <arg name="ir_segmentation_topic" value="/segmentation_ir/0/output" />
+        <arg name="ir_homography_topic" value="/ir_camera1/homography/ir_radar" />
+    </include>
+
+    <!-- ir_camera2 -->
+    <include file="$(find asv_perception_obstacleid)/launch/camera.launch" ns="ir_camera2"> 
+        <arg name="use_segmentation" value="$(arg use_segmentation)" />
+        <arg name="ir_segmentation_topic" value="/segmentation_ir/1/output" />
+        <arg name="ir_homography_topic" value="/ir_camera2/homography/ir_radar" />
     </include>
 
     <!-- radar0 -->
     <include file="$(find asv_perception_obstacleid)/launch/radar.launch" ns="radar0">
         <arg name="radar_topic" value="$(arg radar0_topic)" />
+        <arg name="radar_pointcloud_topic" value="$(arg radar0_pointcloud_topic)" />
     </include>
 
     <!-- lidar0 -->

@@ -33,6 +33,8 @@ class Homography {
         float at( const int row, const int column ) const { return (float)this->_mat( row, column ); }
 
         // transforms 2d point
+        // (3*3) x (3,1) will give (3,1) result [v[0], v[1], v[2]]. If v[2] represents scale factor
+        // then dividing v[0] and v[1] by scale factor will give normalized result.
         std::pair<float, float> operator()( const float x, const float y ) const {
             Eigen::Vector3d v = this->_mat * Eigen::Vector3d(x, y, 1.);
             return std::make_pair( (float)( v[0] / v[2] ), (float)( v[1] / v[2] ) );

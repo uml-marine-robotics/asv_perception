@@ -33,10 +33,12 @@ class NodeLazy(object):
 
     # client should override, init subscriptions
     def subscribe( self ):
+        raise Exception('Base class subscribe method is invoked')
         pass
 
     # client should override, unsubscribe
     def unsubscribe( self ):
+        raise Exception('Base class unsubscribe method is invoked')
         pass
 
     def advertise( self, *args, **kwargs ):

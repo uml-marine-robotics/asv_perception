@@ -30,9 +30,9 @@ class homography_node(object):
         self.has_published = False
         
         # publish with latch in case of no IMU/testing/etc
-        self.pub_rgb_radarimg = rospy.Publisher( "~rgb_radarimg", Homography, queue_size=1, latch=True)
+        self.pub_ir_radarimg = rospy.Publisher( "~ir_radarimg", Homography, queue_size=1, latch=True)
         self.pub_radarimg_radar = rospy.Publisher( "~radarimg_radar", Homography, queue_size=1, latch=True)
-        self.pub_rgb_radar = rospy.Publisher( "~rgb_radar", Homography, queue_size=1, latch=True)
+        self.pub_ir_radar = rospy.Publisher( "~ir_radar", Homography, queue_size=1, latch=True)
 
         # subscriptions:
 
@@ -41,6 +41,8 @@ class homography_node(object):
 
         # refresh notification from calibration tool; useful for visualization updates when rosbag is paused/stopped
         self.sub_refresh = rospy.Subscriber( "~refresh", Empty, self.cb_refresh, queue_size=1 )
+
+        print("homography_node : {0} created.".format(self.node_name))
     
     def cb_refresh( self, msg ):
         self.publish()
@@ -64,15 +66,15 @@ class homography_node(object):
 
     def publish( self ):
 
-        print(" homography: self.has_published={0}".format(self.has_published))
-        print(" homography: self.pub_rgb_radarimg.get_num_connections()={0}".format(self.pub_rgb_radarimg.get_num_connections()))
-        print(" homography: self.pub_radarimg_radar.get_num_connections()={0}".format(self.pub_radarimg_radar.get_num_connections()))
-        print(" homography: self.pub_rgb_radar.get_num_connections()={0}".format(self.pub_rgb_radar.get_num_connections()))
+        print("IR homography: self.has_published={0}".format(self.has_published))
+        print("IR homography: self.pub_ir_radarimg.get_num_connections()={0}".format(self.pub_ir_radarimg.get_num_connections()))
+        print("IR homography: self.pub_radarimg_radar.get_num_connections()={0}".format(self.pub_radarimg_radar.get_num_connections()))
+        print("IR homography: self.pub_ir_radar.get_num_connections()={0}".format(self.pub_ir_radar.get_num_connections()))
 
         # check for early exit
-        if self.has_published and self.pub_rgb_radarimg.get_num_connections() < 1 and self.pub_radarimg_radar.get_num_connections() < 1 and self.pub_rgb_radar.get_num_connections() < 1:
-            print("XXXX No connections in homography XXXX")
-            return
+        #if self.has_published and self.pub_ir_radarimg.get_num_connections() < 1 and self.pub_radarimg_radar.get_num_connections() < 1 and self.pub_ir_radar.get_num_connections() < 1:
+        #    print("XXXX No connections in IR homography XXXX")
+        #    return
 
         # message time
         t = rospy.Time.now()
@@ -109,23 +111,23 @@ class homography_node(object):
             ) 
             )
 
-        rgb_frame_id = rospy.get_param("~rgb_frame_id")
+        rgb_frame_id = rospy.get_param("~ir_frame_id")
         radarimg_frame_id = rospy.get_param("~radarimg_frame_id")
         radar_frame_id = rospy.get_param("~radar_frame_id")
 
-        self.publish_homography( self.pub_rgb_radarimg, M_rgb_radar, t, rgb_frame_id, radarimg_frame_id )
-        print("M_rgb_radar={0}".format(M_rgb_radar))
+        self.publish_homography( self.pub_ir_radarimg, M_rgb_radar, t, rgb_frame_id, radarimg_frame_id )
+        print("IR pub_ir_radarimg={0}".format(M_rgb_radar))
 
         # radar to robot
         #  multiply radar range by 2 to get diameter
         M_radar_robot = get_radar_to_world_matrix( rospy.get_param('~radar_img_w'), 2. * rospy.get_param('~radar_range') )
         self.publish_homography( self.pub_radarimg_radar, M_radar_robot, t, radarimg_frame_id, radar_frame_id )
-        print("M_radar_robot={0}".format(M_radar_robot))
+        print("IR M_radar_robot={0}".format(M_radar_robot))
 
         # rgb to robot is (radar_to_robot)*(rgb_to_radar)
         M_rgb_robot = np.matmul( M_radar_robot, M_rgb_radar )
-        self.publish_homography( self.pub_rgb_radar, M_rgb_robot, t, rgb_frame_id, radar_frame_id )
-        print("M_rgb_robot={0}".format(M_rgb_robot))
+        self.publish_homography( self.pub_ir_radar, M_rgb_robot, t, rgb_frame_id, radar_frame_id )
+        print("IR pub_ir_radar={0}".format(M_rgb_robot))
 
 if __name__ == "__main__":
 

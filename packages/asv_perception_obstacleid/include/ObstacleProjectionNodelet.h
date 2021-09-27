@@ -27,6 +27,8 @@ namespace obstacle_id
     Projects remaining unclassified obstacle pixels to pointcloud
     Subscriptions:
         ~segmentation:      [sensor_msgs/Image] 2d obstacle map, all pixels with value > 0 are considered obstacle pixels
+        *~segmentation:     [asv_perception_common/ClassificationArray]  Classifications : From IR, segmentation is
+                             modified to output ClassificationArray
         ~classification:    [asv_perception_common/ClassificationArray]  Classifications
         ~rgb_radar:         [asv_perception_common/Homography] rgb to radar homography matrix
     
@@ -79,8 +81,12 @@ namespace obstacle_id
             const typename classification_msg_type::ConstPtr&
         );
 
+        void sub_ir_seg_callback(const typename classification_msg_type::ConstPtr& );
+
         // homography callback
         void cb_homography_rgb_radar ( const typename homography_msg_type::ConstPtr& );
+
+        void cb_homography_ir_radar ( const typename homography_msg_type::ConstPtr& h);
         
     private:
 
@@ -88,18 +94,17 @@ namespace obstacle_id
         std::mutex _mtx;
 
         // publishers
-        ros::Publisher 
-            _pub
-            , _pub_cloud
-            ;
+        ros::Publisher _pub, _pub_cloud;
 
         // subscriptions
-        ros::Subscriber 
-            _sub_rgb_radar
+        ros::Subscriber _sub_rgb_radar;
             // only used if !use_segmentation
-            , _sub_classification_only
-            ;
+        ros::Subscriber _sub_classification_only;
+        ros::Subscriber _sub_ir_radar;
+        ros::Subscriber _sub_segmentation_as_classification_only;
+
         message_filters::Subscriber<segmentation_msg_type> _sub_segmentation;
+        message_filters::Subscriber<classification_msg_type> _sub_ir_segmentation;
         message_filters::Subscriber<classification_msg_type> _sub_classification;
 
         // sync policy for segmentation + classification subscriptions
@@ -108,14 +113,11 @@ namespace obstacle_id
         boost::shared_ptr<_seg_cls_synchronizer_type> _seg_cls_sync;
 
         // homography msg storage
-        typename asv_perception_common::Homography::ConstPtr 
-            _h_rgb_radar
-            ;
+        typename asv_perception_common::Homography::ConstPtr _h_rgb_radar;
+        typename asv_perception_common::Homography::ConstPtr _h_ir_radar;
 
         // parameters
-        bool
-            _use_segmentation = true
-            ;
+        bool _use_segmentation = true;
 
         float 
             _min_height = 1.f

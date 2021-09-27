@@ -54,6 +54,8 @@ namespace obstacle_id
 
       // the callback function to handle input from subscription
       void sub_callback ( const asv_perception_common::RadarSegment::ConstPtr& );
+      void sub_callback_pointcloud (const sensor_msgs::PointCloud2::ConstPtr& );
+
       
     private:
 
@@ -69,6 +71,7 @@ namespace obstacle_id
         std::string frame_id_;
 
         ros::Subscriber sub_;
+        ros::Subscriber sub_pointcloud;
         ros::Publisher 
           pub_segment_, 
           pub_full_,

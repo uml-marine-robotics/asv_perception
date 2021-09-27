@@ -40,8 +40,9 @@ def image_scaling(img, label, imu):
     label = tf.image.resize_nearest_neighbor(tf.expand_dims(label, 0), new_shape)
     label = tf.squeeze(label, squeeze_dims=[0])
 
-    imu = tf.image.resize_nearest_neighbor(tf.expand_dims(imu, 0), new_shape)
-    imu = tf.squeeze(imu, squeeze_dims=[0])
+    if (imu != None):
+       imu = tf.image.resize_nearest_neighbor(tf.expand_dims(imu, 0), new_shape)
+       imu = tf.squeeze(imu, squeeze_dims=[0])
    
     return img, label, imu
 
@@ -63,7 +64,8 @@ def image_mirroring(img, label, imu):
 
     label = tf.reverse(label, mirror)
 
-    imu = tf.reverse(imu, mirror)
+    if (imu != None):
+        imu = tf.reverse(imu, mirror)
 
     return img, label, imu
 
@@ -83,12 +85,17 @@ def random_crop_and_pad_image_and_labels(image, label, imu, crop_h, crop_w, igno
     label = tf.cast(label, dtype=tf.float32)
     label = label - ignore_label # Needs to be subtracted and later added due to 0 padding.
 
-    imu = tf.cast(imu, dtype=tf.float32)
+    
 	# We are not cropping the images
     #imu = tf.cast(imu, dtype=tf.float32)
     #imu = imu - ignore_label
 
-    combined = tf.concat(axis=2, values=[image, label, imu])
+    if (imu != None):
+        imu = tf.cast(imu, dtype=tf.float32)
+        combined = tf.concat(axis=2, values=[image, label, imu])
+    else:
+        combined = tf.concat(axis=2, values=[image, label])
+
     print(combined.shape)
     image_shape = tf.shape(image)
     combined_pad = tf.image.pad_to_bounding_box(combined, 0, 0, tf.maximum(crop_h, image_shape[0]),
@@ -135,18 +142,20 @@ def read_labeled_image_list(data_dir, data_list):
     gt_masks = []
     imu_masks = []
     for line in f:
-        image, gt_mask, imu_mask = line.strip("\r\n").split(' ')
+        #image, gt_mask, imu_mask = line.strip("\r\n").split(' ')
         #print(image)
         #print(mask)
         #try:
-        #    image, mask = line.strip("\r\n").split(' ')
+        tokens = line.strip("\r\n").split(' ')
+        if (len(tokens) == 3):
+          image, gt_mask, imu_mask = line.strip("\r\n").split(' ')
+          imu_masks.append(data_dir + imu_mask)
+        elif (len(tokens) == 2):
+          image, gt_mask = line.strip("\r\n").split(' ')
         #except ValueError: # Adhoc for test.
         #   image = mask = line.split(' ')
-        #images.append(data_dir + image)
-        #masks.append(data_dir + mask)
         images.append(data_dir + image)
         gt_masks.append(data_dir + gt_mask)
-        imu_masks.append(data_dir + imu_mask)
 
     return images, gt_masks, imu_masks
 
@@ -169,7 +178,11 @@ def read_images_from_disk(input_queue, input_size, random_scale, random_mirror, 
     """
     img_contents = tf.read_file(input_queue[0])
     label_contents = tf.read_file(input_queue[1])
-    imu_contents = tf.read_file(input_queue[2])
+
+    imu = None
+    if (len(input_queue) == 3):
+        imu_contents = tf.read_file(input_queue[2])
+        imu = tf.image.decode_png(imu_contents, channels=1)
     
     img = tf.image.decode_jpeg(img_contents, channels=3)
     # Extract mean.
@@ -177,8 +190,6 @@ def read_images_from_disk(input_queue, input_size, random_scale, random_mirror, 
     img -= img_mean
 
     label = tf.image.decode_png(label_contents, channels=1)
-
-    imu = tf.image.decode_png(imu_contents, channels=1)
 
     if input_size is not None:
         h, w = input_size
@@ -224,11 +235,17 @@ class ImageReader(object):
         self.image_list, self.label_list, self.imu_list = read_labeled_image_list(self.data_dir, self.data_list)
         self.images = tf.convert_to_tensor(self.image_list, dtype=tf.string)
         self.labels = tf.convert_to_tensor(self.label_list, dtype=tf.string)
-        self.imus = tf.convert_to_tensor(self.imu_list, dtype=tf.string)
+        
+        if (self.imu_list != None):
+            self.imus = tf.convert_to_tensor(self.imu_list, dtype=tf.string)
 
-        self.queue = tf.train.slice_input_producer([self.images, self.labels, self.imus]) # no shuffling. we have it preshuffled
+            self.queue = tf.train.slice_input_producer([self.images, self.labels, self.imus]) # no shuffling. we have it preshuffled
                                                    #shuffle=input_size is not None) # not shuffling if it is val
-        self.image, self.label, self.imu = read_images_from_disk(self.queue, self.input_size, random_scale, random_mirror, ignore_label, img_mean)
+            self.image, self.label, self.imu = read_images_from_disk(self.queue, self.input_size, random_scale, random_mirror, ignore_label, img_mean)
+        else: # no imu support for now, 3rd return value is None
+          self.queue = tf.train.slice_input_producer([self.images, self.labels])
+          self.image, self.label, self.imu = read_images_from_disk(self.queue, self.input_size, random_scale, random_mirror, ignore_label, img_mean)
+
 
     def dequeue(self, num_elements):
         '''Pack images and labels into a batch.

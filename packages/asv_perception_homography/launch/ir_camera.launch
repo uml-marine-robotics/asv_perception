@@ -2,7 +2,7 @@
 <launch>
     <arg name="package_name" default="asv_perception_homography"/>
     <arg name="node_name" default="homography"/>
-    <arg name="image_topic" default="None"/>
+    <arg name="image_ir_topic" default="default1"/>
     <arg name="calibration_file" />
     <arg name="imu_topic" />
     <arg name="radar_topic" />
@@ -13,17 +13,17 @@
             - ~imu:             [sensor_msgs/Imu] IMU data
             - ~refresh:         [sensor_msgs/Empty]
         Publications:
-            - ~rgb_radarimg:       [asv_perception_common/Homography] Homography from rgb image pixels to radar image pixels
+            - ~ir_radarimg:       [asv_perception_common/Homography] Homography from rgb image pixels to radar image pixels
             - ~radarimg_radar:     [asv_perception_common/Homography] Homography from radar image pixels to radar frame in world units, iaw REP-103
-            - ~rgb_radar:          [asv_perception_common/Homography] Homography from rgb image pixels to radar frame in world units, iaw REP-103
+            - ~ir_radar:          [asv_perception_common/Homography] Homography from rgb image pixels to radar frame in world units, iaw REP-103
     -->
-    <node name="$(arg node_name)" pkg="$(arg package_name)" type="homography.py" output="screen">
+    <node name="$(arg node_name)" pkg="$(arg package_name)" type="homography_ir.py" output="screen">
 
         <remap from="~imu" to="$(arg imu_topic)" />
 
         <rosparam>
             <!-- frame ids for homography msgs -->
-            rgb_frame_id: "camera"
+            ir_frame_id: "ir_camera"
             radarimg_frame_id: "radar"
             radar_frame_id: "base_link"
 
@@ -52,6 +52,20 @@
 
     </node>
 
+
+   <node name="$(arg node_name)_vis_ir_debug" pkg="$(arg package_name)" type="visualization_ir.py" output="screen">
+
+        <!-- remap from=sink to=source -->
+        <remap from="~imu" to="$(arg imu_topic)" />
+        <remap from="~ir" to="$(arg image_ir_topic)" />
+        <remap from="~radarimg" to="$(arg radar_topic)" />
+        <remap from="~ir_radarimg" to="$(arg node_name)/ir_radarimg" />
+        <remap from="~radarimg_radar" to="$(arg node_name)/radarimg_radar"/>
+        <remap from="~ir_radar" to="$(arg node_name)/ir_radar" />
+        <rosparam>
+            ir_image_size: [256, 320]
+        </rosparam>
+    </node>
     
 
     <!-- 
@@ -64,14 +78,21 @@
         Publications:
             - ~image:                 [sensor_msgs/Image] Image which visualizes homography between rgb image and radar image
     -->
-    <node name="$(arg node_name)_vis" pkg="$(arg package_name)" type="visualization.py" output="screen">
+    <node name="$(arg node_name)_vis_ir" pkg="$(arg package_name)" type="visualization_ir.py" output="screen">
 
         <!-- remap from=sink to=source -->
         <remap from="~imu" to="$(arg imu_topic)" />
-        <remap from="~rgb" to="$(arg image_topic)" />
+        <remap from="~ir" to="$(arg image_ir_topic)" />
         <remap from="~radarimg" to="$(arg radar_topic)" />
-        <remap from="~rgb_radarimg" to="$(arg node_name)/rgb_radarimg" />
+        <remap from="~ir_radarimg" to="$(arg node_name)/ir_radarimg" />
+        <remap from="~radarimg_radar" to="$(arg node_name)/radarimg_radar"/>
+        <remap from="~ir_radar" to="$(arg node_name)/ir_radar" />
+        <rosparam>
+            ir_image_size: [256, 320]
+        </rosparam>
     </node>
+
+    
     
 </launch>
 

@@ -78,6 +78,8 @@ class darknet_node(object):
 
         # subscriptions array
         self.subs = [ rospy.Subscriber( '~%d/input' % i, CompressedImage, queue_size=1, callback=self.cb_sub, callback_args=i, buff_size=2**24 ) for i in range(self.n_inputs) ]
+
+        print("darknet_node name : {0}".format(self.node_name))
         
     def cb_sub( self, msg, idx ):
         """ perform callback for image message at input index """
@@ -108,7 +110,10 @@ class darknet_node(object):
         # darknet requires rgb image in proper shape.  we need to resize, and then convert resulting bounding boxes to proper shape
         img = utils.convert_ros_msg_to_cv2( image_msg, 'rgb8' )
 
-        orig_shape = img.shape
+        orig_shape = img.shape # row, columns, channel
+
+        print("In darknet, orig image shape h:{0}, w:{1}, c:{2}".format(orig_shape[0], orig_shape[1], orig_shape[2]))
+        print("Resize shape=h:{0}, w:{1}".format(self.net_img_h, self.net_img_w ))
 
         # need distortion-free center crop; detector likely requires square image while input is likely widescreen
         img, offsets, scale = utils.resize( img, ( self.net_img_h, self.net_img_w ) ) # do crop/resize

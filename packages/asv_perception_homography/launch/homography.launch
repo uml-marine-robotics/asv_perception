@@ -4,13 +4,18 @@
     <arg name="node_name" default="homography"/>
     
     <arg name="imu_topic" />
-    <arg name="radar_topic" />
+    <arg name="radar_topic" default="dummyPQR"/>
+    <arg name="radar_pointcloud_topic" default="dummyXYZ"/>
     <arg name="camera0_image_topic" />
     <arg name="camera0_calibration_file" />
     <arg name="camera1_image_topic" />
     <arg name="camera1_calibration_file" />
     <arg name="camera2_image_topic" />
     <arg name="camera2_calibration_file" />
+    <arg name="left_ir_camera_image_topic" />
+    <arg name="left_ir_calibration_file" />
+    <arg name="right_ir_camera_image_topic" />
+    <arg name="right_ir_calibration_file" />
 
     <!-- camera0 -->
     <include file="$(find asv_perception_homography)/launch/camera.launch" ns="camera0">
@@ -36,6 +41,22 @@
         <arg name="calibration_file" default="$(arg camera2_calibration_file)" />
     </include>
 
+    <!-- ir camera1 -->
+    <include file="$(find asv_perception_homography)/launch/ir_camera.launch" ns="ir_camera1">
+        <arg name="image_ir_topic" value="$(arg left_ir_camera_image_topic)" />
+        <arg name="imu_topic" value="$(arg imu_topic)" />
+        <arg name="radar_topic" value="/homography/radar_image/output" />
+        <arg name="calibration_file" default="$(arg left_ir_calibration_file)" />
+    </include>
+
+    <!-- ir camera2 -->
+    <include file="$(find asv_perception_homography)/launch/ir_camera.launch" ns="ir_camera2">
+        <arg name="image_ir_topic" value="$(arg right_ir_camera_image_topic)" />
+        <arg name="imu_topic" value="$(arg imu_topic)" />
+        <arg name="radar_topic" value="/homography/radar_image/output" />
+        <arg name="calibration_file" default="$(arg right_ir_calibration_file)" />
+    </include>
+
     <group ns="homography">
         <!-- create radar image from pointcloud -->
         <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
@@ -45,6 +66,7 @@
         <node pkg="nodelet" type="nodelet" name="radar_pointcloud" args="load asv_perception_obstacleid/RadarToPointCloudNodelet $(arg nodelet_name)" output="screen">
 
             <remap from="~input" to="$(arg radar_topic)" />
+            <remap from="~input2" to="$(arg radar_pointcloud_topic)" />
 
             <rosparam>
                 angle_offset: -270.0
@@ -53,8 +75,11 @@
         </node>
 
         <!-- create image from pointcloud for homography -->
+        <!-- The previous node name is radar_pointcloud and it publishes one of the messages
+        full_current hence the complete message name is radar_pointcloud/full_current -->
         <node name="radar_image" pkg="$(arg package_name)" type="imager.py" output="screen">
             <remap from="~input" to="radar_pointcloud/full_current" />
+            <remap from="~input2" to="radar_pointcloud/full_current_pointcloud" />
             <rosparam>
                 max_range: 500
                 image_size: 1024

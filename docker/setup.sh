@@ -5,6 +5,7 @@
 echo "deb http://packages.ros.org/ros/ubuntu bionic main" > /etc/apt/sources.list.d/ros-latest.list
 apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
 
+
 # apt packages
 apt-get update
 
@@ -37,7 +38,7 @@ rm -rf /var/lib/apt/lists/*
 #   pip: 20
 #   opencv:  4.2.0.32
 #   numpy: 1.16.6
-#   tensorflow 1.15 for wasr
+#   tensorflow 1.15.* for wasr
 python -m pip install --upgrade \
     pip==20.* wheel
 

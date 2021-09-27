@@ -2,9 +2,12 @@
 
   <arg name="package_name" value="asv_perception_obstacleid"/>
   <arg name="use_segmentation" />
-  <arg name="segmentation_topic" />
-  <arg name="classification_topic" />
-  <arg name="homography_topic" />
+  <arg name="segmentation_topic" default="default1"/>
+  <arg name="ir_segmentation_topic" default="default2" />
+  <arg name="classification_topic" default="default3"/>
+  <arg name="homography_topic" default="default4"/>
+  <arg name="ir_homography_topic" default="default5"/>
+
 
   <arg name="nodelet_name" value="$(arg package_name)_nodelet" />
   <node pkg="nodelet" type="nodelet" name="$(arg nodelet_name)" args="manager" respawn="true" />
@@ -12,13 +15,18 @@
   <!-- 
     camera classified extraction, unclassified projection
     See ObstacleProjectionNodelet.h
+    The output emitted by following nodelet will have form /namespace/projection/output or 
+    /namespace/projection/cloud. Here namespace will be ir_camera1 or camera0
   -->
   <node pkg="nodelet" type="nodelet" name="projection" respawn="true" output="screen"
     args="load $(arg package_name)/ObstacleProjectionNodelet $(arg nodelet_name)" >
 
     <remap from="~segmentation" to="$(arg segmentation_topic)" />
+    <remap from="~ir_segmentation" to="$(arg ir_segmentation_topic)" />
     <remap from="~classification" to="$(arg classification_topic)" />
     <remap from="~rgb_radar" to="$(arg homography_topic)" />
+    <remap from="~ir_radar" to="$(arg ir_homography_topic)" />
+    
 
     <!-- convert to boolean strings that roscpp likes -->
     <param name="use_segmentation" value="true" if="$(arg use_segmentation)" />
@@ -37,10 +45,10 @@
   </node>
 
   <!-- minimum distance filter -->
-  <!-- 
+  <!--
   <node pkg="nodelet" type="nodelet" name="distance_filter" respawn="true" output="screen"
     args="load $(arg package_name)/PointCloudFilterNodelet $(arg nodelet_name)" >
-  >
+  
     <remap from="~input" to="projection/cloud" />
     <rosparam>
       min_distance_x: 6.
@@ -63,12 +71,16 @@
     </rosparam>
   </node>
   -->
+
   <!-- cluster extraction to obstacles -->
   <!--
   <node pkg="nodelet" type="nodelet" name="extraction" respawn="true" output="screen"
     args="load $(arg package_name)/ObstacleExtractionNodelet $(arg nodelet_name)" >
 
     <remap from="~input" to="pc_filter/output" />
+     IR segmentation + homography is projected in earlier node and created a pointcloud 
+     Here try to use that pointcloud to create obstacle array 
+    <remap from="~input" to="projection/cloud" />
     
     <rosparam>
       cluster_tolerance: 4.

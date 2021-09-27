@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Copyright (c) 2020 University of Massachusetts
 All rights reserved.
@@ -20,7 +21,7 @@ from wasr_models import wasr_NOIMU2
 IMG_MEAN = np.array((148.8430, 171.0260, 162.4082), dtype=np.float32)
 
 # Number of classes
-NUM_CLASSES = 3
+NUM_CLASSES = 7
 
 # Input image size. Our network expects images of resolution 512x384
 IMG_SIZE = [384, 512]
@@ -28,10 +29,13 @@ IMG_SIZE = [384, 512]
 """ WASR network object for inference"""
 class WASR_net(object):
 
-    def __init__( self, weights_path, per_process_gpu_memory_fraction = 0 ):
+    def __init__( self, weights_path, image_size=None, image_mean=None, num_classes=None, per_process_gpu_memory_fraction = 0 ):
 
         # Create network
-        self.img_input = tf.placeholder(dtype=tf.uint8, shape=(IMG_SIZE[0], IMG_SIZE[1], 3))
+        if (image_size is None):
+            self.img_input = tf.placeholder(dtype=tf.uint8, shape=(IMG_SIZE[0], IMG_SIZE[1], 3))
+        else:
+            self.img_input = tf.placeholder(dtype=tf.uint8, shape=(image_size[0], image_size[1], 3))
 
         # Convert from opencv BGR to tensorflow's RGB format
         img_b, img_g, img_r = tf.split(axis=2, num_or_size_splits=3, value=self.img_input)
@@ -39,14 +43,20 @@ class WASR_net(object):
         # Join and subtract means
         img = tf.cast(tf.concat(axis=2, values=[img_r, img_g, img_b]), dtype=tf.float32)
 
-        img -= IMG_MEAN
+        if (image_mean is None):
+            img -= IMG_MEAN
+        else:
+            img -= image_mean
 
         # Expand first dimension
         #img = tf.expand_dims(img, dim=0) # tf 1.2
         img = tf.expand_dims(img, axis=0)
 
         with tf.variable_scope('', reuse=False):
-            net = wasr_NOIMU2({'data': img}, is_training=False, num_classes=NUM_CLASSES)
+            if (num_classes is None):
+                net = wasr_NOIMU2({'data': img}, is_training=False, num_classes=NUM_CLASSES)
+            else:
+                net = wasr_NOIMU2({'data': img}, is_training=False, num_classes=num_classes)
 
         # Which variables to load...
         restore_var = tf.global_variables()
@@ -84,7 +94,9 @@ class WASR_net(object):
         # Run inference
         preds = self.sess.run( self.pred, feed_dict={self.img_input: img_in})
         
+        # Shailesh: use this code at call-site so the preds remains tensor
+        # and a color image can be obtained.
         # just convert prediction mask to uint8, return it in 2D
-        result = np.squeeze(preds[0]).astype('uint8')
+        # result = np.squeeze(preds[0]).astype('uint8')
 
-        return result
+        return preds

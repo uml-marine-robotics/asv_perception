@@ -52,6 +52,7 @@ namespace impl {
 
         // construct 2 points at base of detection, other points are built from those
         //  blf = bottom-left-front, brf = bottom-right-front
+        // Calls std::pair<float, float> operator() of homography class, returns pair
         const auto 
             blf = h( roi.x_offset, roi.y_offset + roi.height )
             , brf = h( roi.x_offset + roi.width, roi.y_offset + roi.height )
@@ -68,6 +69,11 @@ namespace impl {
         result->push_back( make_point( brf.first + depth, brf.second, z_offset ) );   // brr
         result->push_back( make_point( blf.first + depth, blf.second, z_offset ) );   // blr
 
+        ROS_DEBUG("roi=%lf, %lf, %lf, %lf \n", (float)roi.x_offset, (float)roi.y_offset,
+        (float)(roi.x_offset + roi.width), (float)(roi.y_offset + roi.height));
+        ROS_DEBUG("blf=%lf, %lf, %lf, trr=%lf, %lf, %lf \n", blf.first, blf.second, z_offset,
+        brf.first + depth, brf.second, z_offset + height);
+
         // top 4 points, clockwise from top left rear
         result->push_back( make_point( blf.first + depth, blf.second, z_offset + height ) );   // tlr
         result->push_back( make_point( brf.first + depth, brf.second, z_offset + height ) );   // trr
@@ -83,27 +89,29 @@ class ClassifiedObstacle2d {
 
     public:
 
-        asv_perception_common::Classification cls;
-        std::weak_ptr<ClassifiedObstacle2d> parent;
+        asv_perception_common::Classification m_cls;
+        std::weak_ptr<ClassifiedObstacle2d> m_parent;
 
         ClassifiedObstacle2d() = default;
         ClassifiedObstacle2d( asv_perception_common::Classification cls )
-            : cls(std::move(cls))
-            , parent()
-        {}
+            : m_cls(cls)
+            , m_parent()
+        {
+            ROS_DEBUG("Ctor ClassifiedObstacle2d, cls.roi.width=%lf, cls.roi.height=%lf\n", (float)m_cls.roi.width, (float)m_cls.roi.height);
+        }
 
         // computes area of roi intersection between this obstacle and another
         float roi_intersection_area( const ClassifiedObstacle2d& other ) const {
 
             return impl::rect_intersection(
-                (float)this->cls.roi.x_offset
-                , (float)this->cls.roi.y_offset
-                , (float)this->cls.roi.width
-                , (float)this->cls.roi.height
-                , (float)other.cls.roi.x_offset
-                , (float)other.cls.roi.y_offset
-                , (float)other.cls.roi.width
-                , (float)other.cls.roi.height
+                (float)this->m_cls.roi.x_offset
+                , (float)this->m_cls.roi.y_offset
+                , (float)this->m_cls.roi.width
+                , (float)this->m_cls.roi.height
+                , (float)other.m_cls.roi.x_offset
+                , (float)other.m_cls.roi.y_offset
+                , (float)other.m_cls.roi.width
+                , (float)other.m_cls.roi.height
             );
         }
 
@@ -127,7 +135,8 @@ class ClassifiedObstacle2d {
             const auto depth = height;
             
             // project roi to pointcloud
-            auto pc_ptr = impl::roi_to_pointcloud( this->cls.roi, depth, height, z_offset, h );
+            ROS_DEBUG("Before pointcloud, cls.roi.x_offset=%lf, cls.roi.y_offset=%lf, cls.roi.width=%lf, cls.roi.height=%lf, height=%lf \n", (float)m_cls.roi.x_offset, (float)m_cls.roi.y_offset, (float)m_cls.roi.width, (float)m_cls.roi.height, (float)height);
+            auto pc_ptr = impl::roi_to_pointcloud( this->m_cls.roi, depth, height, z_offset, h );
             
             // need pointcluster for create_obstacle.  create PointIndices for all points
             pcl::PointIndices pi = {};
@@ -136,8 +145,8 @@ class ClassifiedObstacle2d {
             
             auto result = PointCluster( pc_ptr, pi ).to_obstacle();
 
-            result.label = this->cls.label;
-            result.label_probability = this->cls.probability;
+            result.label = this->m_cls.label;
+            result.label_probability = this->m_cls.probability;
 
             return result;
 
