@@ -35,7 +35,7 @@
             n_inputs_ir: 2
             ir_image_size: [256, 320]
             ir_image_mean: [130.94,130.94,130.94]
-            ir_model_path: "/data/segmentation/IRWASRWeights/arm8imu3_noimu.ckpt-30900"
+            ir_model_path: "/data/segmentation/IRWASRWeights/arm8imu3_noimu.ckpt-99900"
             ir_num_classes: 7
             per_process_gpu_memory_fraction: 0.0
             pixel_remap_value: 128

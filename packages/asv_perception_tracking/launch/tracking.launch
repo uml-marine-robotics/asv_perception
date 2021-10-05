@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+    <arg name="pkg_name" value="asv_perception_tracking"/>
+    <arg name="ns_name" default="tracking"/>
+
+    <!-- sensor-specific trackers -->
+
+    <!-- camera0 -->
+    <include file="$(find asv_perception_tracking)/launch/camera.launch" ns="camera0">
+        <arg name="obstacle_topic" value="/camera0/projection/obstacles" />
+    </include>
+
+    <!-- camera1 -->
+    <include file="$(find asv_perception_tracking)/launch/camera.launch" ns="camera1">
+        <arg name="obstacle_topic" value="/camera1/projection/obstacles" />
+    </include>
+
+    <!-- camera2 -->
+    <include file="$(find asv_perception_tracking)/launch/camera.launch" ns="camera2">
+        <arg name="obstacle_topic" value="/camera2/projection/obstacles" />
+    </include>
+
+    <!-- ir_camera1 -->
+    <include file="$(find asv_perception_tracking)/launch/camera.launch" ns="ir_camera1">
+        <arg name="obstacle_topic" value="/ir_camera1/projection/obstacles" />
+    </include>
+
+    <!-- ir_camera2 -->
+    <include file="$(find asv_perception_tracking)/launch/camera.launch" ns="ir_camera2">
+        <arg name="obstacle_topic" value="/ir_camera2/projection/obstacles" />
+    </include>
+    
+    <!-- radar0 -->
+    <include file="$(find asv_perception_tracking)/launch/radar.launch" ns="radar0">
+        <arg name="obstacle_topic" value="/radar0/extraction/obstacles" />
+    </include>
+
+    <!-- lidar0 -->
+    <include file="$(find asv_perception_tracking)/launch/lidar.launch" ns="lidar0">
+        <arg name="obstacle_topic" value="/lidar0/extraction/obstacles" />
+    </include>
+
+    <group ns="$(arg ns_name)">
+
+        <!-- 
+            tracked obstacle fusion
+        -->
+        <node name="fusion" pkg="$(arg pkg_name)" type="fusion_node.py" output="screen" respawn="true">
+            
+            <remap from="~0/input" to="/radar0/tracking/obstacles" />
+            <remap from="~1/input" to="/lidar0/tracking/obstacles" />
+            <remap from="~2/input" to="/camera0/tracking/classified/obstacles" />
+            <remap from="~3/input" to="/camera1/tracking/classified/obstacles" />
+            <remap from="~4/input" to="/camera2/tracking/classified/obstacles" />
+            <remap from="~5/input" to="/ir_camera1/tracking/classified/obstacles" />
+            <remap from="~6/input" to="/ir_camera2/tracking/classified/obstacles" />
+
+            <rosparam>
+                n_subs: 7
+                publish_rate: 7
+                
+                sensor0: { cost_fn: euclidean, cost_fn_max: 20.0 }
+                sensor1: { cost_fn: euclidean, cost_fn_max: 20.0 }
+                sensor2: { cost_fn: perspective, cost_fn_max: 0.4, cost_disassociation_factor: 3.0 }
+                sensor3: { cost_fn: perspective, cost_fn_max: 0.4, cost_disassociation_factor: 3.0 }
+                sensor4: { cost_fn: perspective, cost_fn_max: 0.4, cost_disassociation_factor: 3.0 }
+            </rosparam>
+
+        </node>
+
+        <!-- 
+            fused obstacle visualization
+        -->
+        <node name="visualization" pkg="$(arg pkg_name)" type="visualization.py" output="screen">
+
+            <remap from="~input" to="fusion/obstacles" />
+
+            <rosparam>
+                marker_duration_secs: 0.15
+            </rosparam>
+        </node>
+
+        <!-- 
+            NMEA reporting node
+        -->
+        <!--
+        <node name="nmea_reporting" pkg="$(arg pkg_name)" type="nmea_reporting.py" output="screen">
+
+            <remap from="~input" to="fusion/obstacles" />
+            
+            <rosparam>
+                convex_hull: True
+                tf_frame: 'base_link'
+            </rosparam>
+        </node>
+        -->
+        
+        <!-- 
+            socket reporting sample
+        -->
+        <!--
+        <node name="udp_reporting" pkg="$(arg pkg_name)" type="socket_reporting.py" output="screen">
+
+            <remap from="~input" to="fusion/obstacles" />
+            
+            <rosparam>
+                host: '127.0.0.1'
+                port: 5555
+                proto:  'udp'
+                tf_frame: 'base_link'
+            </rosparam>
+        </node>
+        -->
+    </group>
+</launch>
+
