@@ -64,6 +64,8 @@
                 sensor2: { cost_fn: perspective, cost_fn_max: 0.4, cost_disassociation_factor: 3.0 }
                 sensor3: { cost_fn: perspective, cost_fn_max: 0.4, cost_disassociation_factor: 3.0 }
                 sensor4: { cost_fn: perspective, cost_fn_max: 0.4, cost_disassociation_factor: 3.0 }
+                sensor5: { cost_fn: perspective, cost_fn_max: 0.4, cost_disassociation_factor: 3.0 }
+                sensor6: { cost_fn: perspective, cost_fn_max: 0.4, cost_disassociation_factor: 3.0 }
             </rosparam>
 
         </node>

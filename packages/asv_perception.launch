@@ -18,8 +18,8 @@
     <!-- throttled sensor inputs -->
     <node name="remap_throttle_lidar0" type="throttle" pkg="topic_tools" args= "messages /velodyne_points 10.0 /perception/sensor/lidar0" />
     <node name="remap_throttle_camera0" type="throttle" pkg="topic_tools" args= "messages /center_camera/image_color/compressed 10.0 /perception/sensor/camera0/compressed" />
-    <node name="remap_throttle_camera1" type="throttle" pkg="topic_tools" args= "messages /left_camera/image_color/compressed 5.0 /perception/sensor/camera1/compressed" />
-    <node name="remap_throttle_camera2" type="throttle" pkg="topic_tools" args= "messages /right_camera/image_color/compressed 5.0 /perception/sensor/camera2/compressed" />
+    <node name="remap_throttle_camera1" type="throttle" pkg="topic_tools" args= "messages /left_camera/image_color/compressed 10.0 /perception/sensor/camera1/compressed" />
+    <node name="remap_throttle_camera2" type="throttle" pkg="topic_tools" args= "messages /right_camera/image_color/compressed 10.0 /perception/sensor/camera2/compressed" />
     <node name="remap_throttle_ir_camera_left" type="throttle" pkg="topic_tools" args= "messages /left_ir/rotated/image_raw 10.0 /perception/sensor/ir_camera_left" /> 
     <node name="remap_throttle_ir_camera_right" type="throttle" pkg="topic_tools" args= "messages /right_ir/rotated/image_raw 10.0 /perception/sensor/ir_camera_right" />
     
